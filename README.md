@@ -39,18 +39,18 @@ Xây dựng trên 5 subsystem từ [harness engineering](https://github.com/walk
 
 Cộng thêm layer thứ 6 — **Continuous Learning** — qua instincts (pattern tái sử dụng).
 
-## Tools hiện có (Phase 2)
+## Tools hiện có (Phase 3 — 21 tools)
 
 | Tool | Mô tả |
 |---|---|
-| `session_start` | Bắt đầu session, nhận context + handoff + pending tasks |
+| `session_start` | Bắt đầu session, nhận context + handoff + applicable skills |
 | `session_resume` | Tiếp tục session trước (alias session_start) |
 | `session_end` | Đóng session |
 | `session_handoff` | Kết thúc session với handoff (atomic: ghi handoff + progress + đóng) |
 | `task_create` | Tạo task với title + scope |
 | `task_update` | Cập nhật trạng thái task |
 | `task_list` | Liệt kê tasks (filter theo repo/status) |
-| `verify_run` | Chạy pipeline verify (install→build→test→lint) |
+| `verify_run` | Chạy pipeline verify (hỗ trợ verify.yaml config) |
 | `skill_load` | Load skill theo tên (kèm metadata) |
 | `skill_list` | Liệt kê tất cả skills (filter theo stack) |
 | `instinct_add` | Thêm pattern đã học được |
@@ -60,21 +60,28 @@ Cộng thêm layer thứ 6 — **Continuous Learning** — qua instincts (patter
 | `feature_list_update` | Cập nhật feature entry (upsert) |
 | `handoff_write` | Ghi handoff file cho session sau |
 | `handoff_read` | Đọc handoff file gần nhất |
+| `scope_get` | Lấy scope config (allowed/forbidden paths, definition of done) |
+| `scope_check` | Kiểm tra file có trong scope không |
+| `audit_log` | Ghi audit event (SQLite + JSONL) |
+| `harness_status` | Xem trạng thái tổng quan (session, tasks, verify, instincts) |
 
 ## Cấu trúc project
 
 ```
 src/
-├── index.ts              # MCP stdio server entry (17 tools)
+├── index.ts              # MCP stdio server entry (21 tools)
 ├── db/
-│   └── client.ts         # SQLite + migrations
+│   ├── client.ts         # SQLite + migrations
+│   └── audit.ts          # JSONL audit append helper
 ├── tools/
 │   ├── session.ts        # session_start, session_resume, session_end, session_handoff
 │   ├── task.ts           # task_create, task_update, task_list
-│   ├── verify.ts         # verify_run
+│   ├── verify.ts         # verify_run (supports verify.yaml config)
 │   ├── skill.ts          # skill_load, skill_list
 │   ├── instinct.ts       # instinct_add, instinct_get
-│   └── state.ts          # progress_log, feature_list_read/update, handoff_write/read
+│   ├── state.ts          # progress_log, feature_list_read/update, handoff_write/read
+│   ├── scope.ts          # scope_get, scope_check (glob patterns)
+│   └── observe.ts        # audit_log, harness_status
 └── lib/
     ├── runtime.ts        # Nhận diện stack (node/dotnet/python/go/rust)
     ├── repo.ts           # Resolve .harness/ dir, repo hash
@@ -122,7 +129,8 @@ npm run build && npm run smoke
 
 - [x] Phase 1 — Project scaffold + first boot (9 tools, smoke test)
 - [x] Phase 2 — State files & lifecycle tools (17 tools, 8 skills)
-- [ ] Phase 3 — Scope + verify + observe
+- [x] Phase 3 — Scope + verify + observe (21 tools)
+- [ ] Phase 4 — Templates + CLI + IDE adapters
 - [ ] Phase 4 — Templates + CLI + IDE adapters
 - [ ] Phase 5 — Continuous learning
 - [ ] Phase 6 — Hardening & observability

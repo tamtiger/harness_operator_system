@@ -48,6 +48,10 @@ async function main() {
       "feature_list_update",
       "handoff_write",
       "handoff_read",
+      "scope_get",
+      "scope_check",
+      "audit_log",
+      "harness_status",
     ];
 
     for (const name of expected) {
@@ -68,7 +72,10 @@ async function main() {
     if (!sessionData.session_id) {
       throw new Error("session_start missing session_id");
     }
-    console.log(`✓ session_start — session_id: ${sessionData.session_id}`);
+    if (!Array.isArray(sessionData.applicable_skills)) {
+      throw new Error("session_start missing applicable_skills");
+    }
+    console.log(`✓ session_start — session_id: ${sessionData.session_id} (${sessionData.applicable_skills.length} skills)`);
 
     // Call task_create
     const taskResult = await client.callTool({

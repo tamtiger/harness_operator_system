@@ -14,10 +14,12 @@ import {
   handoffWrite,
   handoffRead,
 } from "./tools/state.js";
+import { scopeGet, scopeCheck } from "./tools/scope.js";
+import { auditLog, harnessStatus } from "./tools/observe.js";
 
 const server = new McpServer({
   name: "harness-os",
-  version: "0.2.0",
+  version: "0.3.0",
 });
 
 // === Session tools ===
@@ -277,6 +279,62 @@ server.tool(
   { repo_path: z.string().describe("Path to the repo") },
   async ({ repo_path }) => {
     const result = handoffRead(repo_path);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  }
+);
+
+// === Scope tools ===
+
+server.tool(
+  "scope_get",
+  "Get scope configuration for a task (allowed paths, forbidden paths, definition of done).",
+  {
+    repo_path: z.string().describe("Path to the repo"),
+    task_id: z.string().optional().describe("Task ID for task-specific scope"),
+  },
+  async ({ repo_path, task_id }) => {
+    const result = scopeGet(repo_path, task_id);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  }
+);
+
+server.tool(
+  "scope_check",
+  "Check if a file path is within scope for a task.",
+  {
+    repo_path: z.string().describe("Path to the repo"),
+    task_id: z.string().optional().describe("Task ID"),
+    file_path: z.string().describe("File path to check (relative to repo)"),
+  },
+  async ({ repo_path, task_id, file_path }) => {
+    const result = scopeCheck(repo_path, task_id, file_path);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  }
+);
+
+// === Observe tools ===
+
+server.tool(
+  "audit_log",
+  "Log an audit event (stored in SQLite + JSONL).",
+  {
+    event_type: z.string().describe("Event type (e.g. 'tool_call', 'verify_run', 'error')"),
+    payload: z.record(z.string(), z.unknown()).describe("Event payload data"),
+  },
+  async ({ event_type, payload }) => {
+    const result = auditLog(event_type, payload);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  }
+);
+
+server.tool(
+  "harness_status",
+  "Get current harness status: active session, pending tasks, last verify, recent instincts.",
+  {
+    repo_path: z.string().optional().describe("Filter by repo path"),
+  },
+  async ({ repo_path }) => {
+    const result = harnessStatus(repo_path);
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   }
 );

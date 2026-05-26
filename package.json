@@ -13,18 +13,25 @@
     "test": "vitest run",
     "smoke": "tsx scripts/smoke-test.ts"
   },
-  "keywords": ["harness", "mcp", "agentic", "coding"],
+  "keywords": [
+    "harness",
+    "mcp",
+    "agentic",
+    "coding"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "better-sqlite3": "^11.7.0"
+    "better-sqlite3": "^11.7.0",
+    "picomatch": "^4.0.4"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.0",
+    "@types/picomatch": "^4.0.3",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

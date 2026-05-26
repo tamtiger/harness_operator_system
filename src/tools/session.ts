@@ -3,13 +3,16 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getDb } from "../db/client.js";
 import { resolveHarnessDir } from "../lib/repo.js";
+import { detectRuntime } from "../lib/runtime.js";
 import { handoffRead, handoffWrite, progressLog, type HandoffData } from "./state.js";
 import { taskList } from "./task.js";
+import { skillList } from "./skill.js";
 
 export interface SessionStartResult {
   session_id: string;
   last_handoff: HandoffData | null;
   pending_tasks_count: number;
+  applicable_skills: string[];
   instructions_to_read: string[];
 }
 
@@ -40,13 +43,19 @@ export function sessionStart(repoPath: string): SessionStartResult {
   const { tasks } = taskList(repoPath, "pending");
   const pendingCount = tasks.length;
 
+  // Detect stack and get applicable skills
+  const runtime = detectRuntime(repoPath);
+  const { skills } = skillList(runtime.runtime !== "unknown" ? runtime.runtime : undefined, repoPath);
+  const applicableSkills = skills.map((s) => s.name);
+
   // Determine instructions to read
-  const instructions: string[] = ["AGENTS.md"];
+  const instructions: string[] = ["AGENTS.md", "skill:harness-workflow"];
 
   return {
     session_id: id,
     last_handoff: handoff,
     pending_tasks_count: pendingCount,
+    applicable_skills: applicableSkills,
     instructions_to_read: instructions,
   };
 }

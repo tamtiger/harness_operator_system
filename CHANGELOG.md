@@ -7,6 +7,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Phase 3 — Scope + Verify + Observe
+
+**Status:** ✅ Complete
+
+#### Added
+- `src/tools/scope.ts` — `scope_get`, `scope_check` with glob pattern matching (picomatch)
+- `src/tools/observe.ts` — `audit_log` (SQLite + JSONL), `harness_status` (aggregated view)
+- `src/db/audit.ts` — JSONL append helper for audit trail
+- `verify_run` now reads `.harness/verify.yaml` config (overrides auto-detect)
+- `session_start` now returns `applicable_skills` filtered by detected stack
+- `session_start` `instructions_to_read` includes `skill:harness-workflow`
+- Support for `verify.yaml` fields: runtime, commands.*, timeouts.*
+- Null command in verify.yaml = skip that step
+- Total: 21 MCP tools registered
+
+#### Verified
+- `npm run build` passes
+- 19 unit tests passing
+- Smoke test: all 21 tools registered, session_start returns applicable_skills
+- scope_check blocks forbidden paths, allows task-specific paths
+- Missing scope.yaml → permissive mode (everything allowed)
+
+---
+
 ### Phase 2 — State Files & Lifecycle Tools
 
 **Status:** ✅ Complete
