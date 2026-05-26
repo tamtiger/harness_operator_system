@@ -1,0 +1,32 @@
+{
+  "name": "harness-os",
+  "version": "0.1.0",
+  "description": "Local harness operator system for agentic coding. MCP-first, cross-IDE, multi-repo.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "harness": "dist/cli/harness.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "smoke": "tsx scripts/smoke-test.ts"
+  },
+  "keywords": ["harness", "mcp", "agentic", "coding"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "better-sqlite3": "^11.7.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
