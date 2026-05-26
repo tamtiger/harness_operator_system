@@ -1,86 +1,103 @@
 # harness-os
 
-Local harness operator system for agentic coding. MCP-first, cross-IDE, multi-repo.
+Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
-## What is this?
+## Đây là gì?
 
-A structured system that ensures AI coding agents:
-- Don't claim "done" without verification
-- Don't edit files outside their scope
-- Don't lose context between sessions
-- Don't repeat past mistakes
+Một hệ thống có cấu trúc đảm bảo AI coding agent:
+- Không tuyên bố "done" khi chưa verify
+- Không edit file ngoài scope
+- Không mất context giữa các session
+- Không lặp lại sai lầm đã từng phạm
 
-Works with any MCP-compatible IDE: Cursor, Claude Code, Kiro, VS Code, Antigravity, OpenCode.
+Hoạt động với mọi IDE hỗ trợ MCP: Cursor, Claude Code, Kiro, VS Code, Antigravity, OpenCode.
 
-## Quick Start
+## Bắt đầu nhanh
 
 ```bash
-# Install
+# Cài đặt
 npm install
 
 # Build
 npm run build
 
-# Run MCP server (stdio transport)
+# Chạy MCP server (stdio transport)
 node dist/index.js
 ```
 
-## Architecture
+## Kiến trúc
 
-Built on 5 subsystems from [harness engineering](https://github.com/walkinglabs/learn-harness-engineering):
+Xây dựng trên 5 subsystem từ [harness engineering](https://github.com/walkinglabs/learn-harness-engineering):
 
-| Subsystem | Purpose | MCP Tools |
+| Subsystem | Mục đích | MCP Tools |
 |---|---|---|
-| **Instructions** | What to do, how to behave | `skill_load`, `skill_list` |
-| **State** | Memory across sessions | `progress_log`, `handoff_write/read` |
-| **Verification** | Proof that work is correct | `verify_run` |
-| **Scope** | Boundaries to prevent drift | `scope_check`, `scope_get` |
-| **Lifecycle** | Session flow start→end | `session_start/end/resume/handoff` |
+| **Instructions** | Agent biết phải làm gì, hành xử thế nào | `skill_load`, `skill_list` |
+| **State** | Bộ nhớ xuyên session | `progress_log`, `handoff_write/read` |
+| **Verification** | Bằng chứng công việc đúng | `verify_run` |
+| **Scope** | Ranh giới ngăn drift | `scope_check`, `scope_get` |
+| **Lifecycle** | Luồng session từ đầu→cuối | `session_start/end/resume/handoff` |
 
-Plus a 6th layer — **Continuous Learning** — via instincts (reusable patterns).
+Cộng thêm layer thứ 6 — **Continuous Learning** — qua instincts (pattern tái sử dụng).
 
-## Available Tools (Phase 1)
+## Tools hiện có (Phase 2)
 
-| Tool | Description |
+| Tool | Mô tả |
 |---|---|
-| `session_start` | Start a session, get context + instructions |
-| `session_end` | Close a session |
-| `task_create` | Create a task with title + scope |
-| `task_update` | Update task status |
-| `task_list` | List tasks (filter by repo/status) |
-| `verify_run` | Run verification pipeline (install→build→test→lint) |
-| `skill_load` | Load a skill by name |
-| `instinct_add` | Add a learned pattern |
-| `instinct_get` | Retrieve instincts by tags |
+| `session_start` | Bắt đầu session, nhận context + handoff + pending tasks |
+| `session_resume` | Tiếp tục session trước (alias session_start) |
+| `session_end` | Đóng session |
+| `session_handoff` | Kết thúc session với handoff (atomic: ghi handoff + progress + đóng) |
+| `task_create` | Tạo task với title + scope |
+| `task_update` | Cập nhật trạng thái task |
+| `task_list` | Liệt kê tasks (filter theo repo/status) |
+| `verify_run` | Chạy pipeline verify (install→build→test→lint) |
+| `skill_load` | Load skill theo tên (kèm metadata) |
+| `skill_list` | Liệt kê tất cả skills (filter theo stack) |
+| `instinct_add` | Thêm pattern đã học được |
+| `instinct_get` | Truy vấn instincts theo tags |
+| `progress_log` | Ghi entry vào `.harness/progress.md` |
+| `feature_list_read` | Đọc danh sách features |
+| `feature_list_update` | Cập nhật feature entry (upsert) |
+| `handoff_write` | Ghi handoff file cho session sau |
+| `handoff_read` | Đọc handoff file gần nhất |
 
-## Project Structure
+## Cấu trúc project
 
 ```
 src/
-├── index.ts              # MCP stdio server entry
+├── index.ts              # MCP stdio server entry (17 tools)
 ├── db/
 │   └── client.ts         # SQLite + migrations
 ├── tools/
-│   ├── session.ts        # session_start, session_end
+│   ├── session.ts        # session_start, session_resume, session_end, session_handoff
 │   ├── task.ts           # task_create, task_update, task_list
 │   ├── verify.ts         # verify_run
-│   ├── skill.ts          # skill_load
-│   └── instinct.ts       # instinct_add, instinct_get
+│   ├── skill.ts          # skill_load, skill_list
+│   ├── instinct.ts       # instinct_add, instinct_get
+│   └── state.ts          # progress_log, feature_list_read/update, handoff_write/read
 └── lib/
-    └── runtime.ts        # Stack detection (node/dotnet/python/go/rust)
+    ├── runtime.ts        # Nhận diện stack (node/dotnet/python/go/rust)
+    ├── repo.ts           # Resolve .harness/ dir, repo hash
+    └── frontmatter.ts    # Parse YAML frontmatter từ SKILL.md
 
-skills/                   # Built-in skills (SKILL.md format)
+skills/                   # Built-in skills (định dạng SKILL.md)
 ├── karpathy-guidelines/
-└── harness-workflow/
+├── harness-workflow/
+├── tdd-workflow/
+├── verification-loop/
+├── search-first/
+├── goal-driven-execution/
+├── strategic-compact/
+└── continuous-learning/
 
 scripts/
-└── smoke-test.ts         # End-to-end MCP server test
+└── smoke-test.ts         # Test end-to-end MCP server
 ```
 
-## Development
+## Phát triển
 
 ```bash
-# Dev mode (tsx, no build needed)
+# Dev mode (tsx, không cần build)
 npm run dev
 
 # Build
@@ -89,22 +106,22 @@ npm run build
 # Unit tests
 npm test
 
-# Smoke test (requires build first)
+# Smoke test (cần build trước)
 npm run build && npm run smoke
 ```
 
-## Stack
+## Stack công nghệ
 
 - **Runtime:** Node.js 20+
-- **Language:** TypeScript (ES2022, NodeNext modules)
+- **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
-- **Protocol:** MCP (Model Context Protocol) over stdio
+- **Protocol:** MCP (Model Context Protocol) qua stdio
 - **Testing:** Vitest
 
-## Roadmap
+## Lộ trình
 
 - [x] Phase 1 — Project scaffold + first boot (9 tools, smoke test)
-- [ ] Phase 2 — State files & lifecycle tools
+- [x] Phase 2 — State files & lifecycle tools (17 tools, 8 skills)
 - [ ] Phase 3 — Scope + verify + observe
 - [ ] Phase 4 — Templates + CLI + IDE adapters
 - [ ] Phase 5 — Continuous learning

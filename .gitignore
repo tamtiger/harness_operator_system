@@ -5,6 +5,10 @@ dist/
 *.sqlite-wal
 *.sqlite-shm
 
+# Runtime data
+.harness/
+.harness-test-tmp/
+
 # IDE
 .idea/
 .vscode/

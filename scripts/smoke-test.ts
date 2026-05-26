@@ -33,13 +33,21 @@ async function main() {
     const expected = [
       "session_start",
       "session_end",
+      "session_resume",
+      "session_handoff",
       "task_create",
       "task_update",
       "task_list",
       "verify_run",
       "skill_load",
+      "skill_list",
       "instinct_add",
       "instinct_get",
+      "progress_log",
+      "feature_list_read",
+      "feature_list_update",
+      "handoff_write",
+      "handoff_read",
     ];
 
     for (const name of expected) {
@@ -119,6 +127,60 @@ async function main() {
       arguments: { session_id: sessionData.session_id },
     });
     console.log("✓ session_end — session closed");
+
+    // Call skill_list
+    const skillListResult = await client.callTool({
+      name: "skill_list",
+      arguments: {},
+    });
+    const skillListContent = skillListResult.content as Array<{ type: string; text: string }>;
+    const skillListData = JSON.parse(skillListContent[0].text);
+    if (!skillListData.skills || skillListData.skills.length < 8) {
+      throw new Error(`skill_list expected ≥8 skills, got ${skillListData.skills?.length}`);
+    }
+    console.log(`✓ skill_list — ${skillListData.skills.length} skills found`);
+
+    // Call session_handoff (start new session first)
+    const session2 = await client.callTool({
+      name: "session_start",
+      arguments: { repo_path: "." },
+    });
+    const session2Content = session2.content as Array<{ type: string; text: string }>;
+    const session2Data = JSON.parse(session2Content[0].text);
+
+    const handoffResult = await client.callTool({
+      name: "session_handoff",
+      arguments: {
+        session_id: session2Data.session_id,
+        summary: "Smoke test completed",
+        unfinished: ["nothing"],
+        next_steps: ["run more tests"],
+      },
+    });
+    const handoffContent = handoffResult.content as Array<{ type: string; text: string }>;
+    const handoffData = JSON.parse(handoffContent[0].text);
+    if (!handoffData.handoff_path) {
+      throw new Error("session_handoff missing handoff_path");
+    }
+    console.log("✓ session_handoff — handoff written");
+
+    // Verify next session_start sees the handoff
+    const session3 = await client.callTool({
+      name: "session_start",
+      arguments: { repo_path: "." },
+    });
+    const session3Content = session3.content as Array<{ type: string; text: string }>;
+    const session3Data = JSON.parse(session3Content[0].text);
+    if (!session3Data.last_handoff) {
+      throw new Error("session_start did not return last_handoff after handoff was written");
+    }
+    console.log("✓ session_start sees previous handoff");
+
+    // Close last session
+    await client.callTool({
+      name: "session_end",
+      arguments: { session_id: session3Data.session_id },
+    });
 
     console.log("\n✅ SMOKE TEST PASSED");
   } finally {

@@ -1,14 +1,27 @@
 import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { getDb } from "../db/client.js";
+import { resolveHarnessDir } from "../lib/repo.js";
+import { handoffRead, handoffWrite, progressLog, type HandoffData } from "./state.js";
+import { taskList } from "./task.js";
 
 export interface SessionStartResult {
   session_id: string;
+  last_handoff: HandoffData | null;
+  pending_tasks_count: number;
   instructions_to_read: string[];
 }
 
 export interface SessionEndResult {
   session_id: string;
   status: string;
+}
+
+export interface SessionHandoffResult {
+  session_id: string;
+  handoff_path: string;
+  progress_logged: boolean;
 }
 
 export function sessionStart(repoPath: string): SessionStartResult {
@@ -20,10 +33,27 @@ export function sessionStart(repoPath: string): SessionStartResult {
     `INSERT INTO sessions (id, repo_path, status, started_at) VALUES (?, ?, 'active', ?)`
   ).run(id, repoPath, now);
 
+  // Read last handoff
+  const { handoff } = handoffRead(repoPath);
+
+  // Count pending tasks
+  const { tasks } = taskList(repoPath, "pending");
+  const pendingCount = tasks.length;
+
+  // Determine instructions to read
+  const instructions: string[] = ["AGENTS.md"];
+
   return {
     session_id: id,
-    instructions_to_read: ["AGENTS.md"],
+    last_handoff: handoff,
+    pending_tasks_count: pendingCount,
+    instructions_to_read: instructions,
   };
+}
+
+export function sessionResume(repoPath: string): SessionStartResult {
+  // Same as session_start but semantically "continue previous work"
+  return sessionStart(repoPath);
 }
 
 export function sessionEnd(sessionId: string): SessionEndResult {
@@ -39,4 +69,52 @@ export function sessionEnd(sessionId: string): SessionEndResult {
   }
 
   return { session_id: sessionId, status: "closed" };
+}
+
+export function sessionHandoff(
+  sessionId: string,
+  summary: string,
+  unfinished: string[],
+  nextSteps: string[]
+): SessionHandoffResult {
+  const db = getDb();
+
+  // Get session's repo_path
+  const session = db
+    .prepare(`SELECT repo_path FROM sessions WHERE id = ?`)
+    .get(sessionId) as { repo_path: string } | undefined;
+
+  if (!session) {
+    throw new Error(`Session not found: ${sessionId}`);
+  }
+
+  const repoPath = session.repo_path;
+
+  // Write handoff file
+  const { path: handoffPath } = handoffWrite(
+    repoPath,
+    sessionId,
+    nextSteps,
+    unfinished,
+    summary
+  );
+
+  // Append progress log
+  progressLog(repoPath, {
+    summary,
+    status: "handoff",
+  });
+
+  // Close session
+  const now = new Date().toISOString();
+  db.prepare(`UPDATE sessions SET status = 'closed', ended_at = ? WHERE id = ?`).run(
+    now,
+    sessionId
+  );
+
+  return {
+    session_id: sessionId,
+    handoff_path: handoffPath,
+    progress_logged: true,
+  };
 }
