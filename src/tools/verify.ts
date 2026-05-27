@@ -4,12 +4,31 @@ import { join, resolve } from "node:path";
 import { detectRuntime } from "../lib/runtime.js";
 import { parseVitestJson, type ParsedTestResult } from "../lib/parsers/vitest.js";
 import { parseGenericOutput } from "../lib/parsers/generic.js";
+import { getChangedFiles } from "../lib/git-diff.js";
+import { saveEvidence } from "../lib/evidence.js";
+
+export interface StepResult {
+  name: string;
+  passed: boolean;
+  output: string;       // per-step output, capped at 2KB
+  duration_ms: number;
+}
+
+export interface VerifyOptions {
+  steps?: string[];
+  fail_fast?: boolean;       // default true
+  changed_only?: boolean;    // default false — lint only changed files
+  task_id?: string;          // if provided, auto-save evidence
+}
 
 export interface VerifyResult {
   passed: boolean;
   output: string;
   steps_run: string[];
+  step_results: StepResult[];
   test_results?: ParsedTestResult | null;
+  evidence_path?: string;
+  changed_files?: string[];
 }
 
 interface VerifyConfig {
@@ -28,7 +47,16 @@ interface VerifyConfig {
 }
 
 const MAX_OUTPUT = 8 * 1024; // 8KB
+const MAX_STEP_OUTPUT = 2 * 1024; // 2KB per step
 const DEFAULT_TIMEOUT = 120_000;
+
+const LINTABLE_EXTENSIONS: Record<string, string[]> = {
+  node: [".ts", ".tsx", ".js", ".jsx"],
+  dotnet: [".cs"],
+  python: [".py"],
+  go: [".go"],
+  rust: [".rs"],
+};
 
 function truncate(str: string, max: number): string {
   if (str.length <= max) return str;
@@ -122,10 +150,36 @@ function parseVerifyYaml(content: string): VerifyConfig {
   return config;
 }
 
+function filterLintableFiles(files: string[], runtimeName: string): string[] {
+  const exts = LINTABLE_EXTENSIONS[runtimeName];
+  if (!exts) return files;
+  return files.filter((f) => exts.some((ext) => f.endsWith(ext)));
+}
+
+function buildChangedOnlyLintCmd(
+  originalCmd: string,
+  runtimeName: string,
+  changedFiles: string[]
+): string | null {
+  if (changedFiles.length === 0) return null; // skip lint
+
+  const fileList = changedFiles.join(" ");
+
+  if (runtimeName === "dotnet") {
+    return `dotnet format --verify-no-changes --include ${fileList}`;
+  }
+  if (runtimeName === "node") {
+    return `${originalCmd} ${fileList}`;
+  }
+  // Fallback: run original command for other runtimes
+  return originalCmd;
+}
+
 export function verifyRun(
   repoPath: string,
-  steps?: string[]
+  options: VerifyOptions = {}
 ): VerifyResult {
+  const { steps, fail_fast = true, changed_only = false, task_id } = options;
   const absPath = resolve(repoPath);
   const verifyConfig = loadVerifyConfig(absPath);
   const runtime = detectRuntime(absPath);
@@ -171,17 +225,58 @@ export function verifyRun(
       passed: false,
       output: `No verify steps found for runtime: ${runtime.runtime}`,
       steps_run: [],
+      step_results: [],
     };
   }
 
   const outputs: string[] = [];
   const stepsRan: string[] = [];
+  const stepResults: StepResult[] = [];
   let allPassed = true;
   let testResults: ParsedTestResult | null = null;
+  let changedFiles: string[] | undefined;
 
   for (const step of stepsToRun) {
     stepsRan.push(step.name);
+
+    // Handle changed_only for lint step
+    if (changed_only && step.name === "lint") {
+      const allChanged = getChangedFiles(absPath);
+      const runtimeName = verifyConfig?.runtime || runtime.runtime;
+      const lintable = filterLintableFiles(allChanged, runtimeName);
+      changedFiles = lintable;
+
+      if (lintable.length === 0) {
+        // No lintable files changed — skip with pass
+        const skipResult: StepResult = {
+          name: step.name,
+          passed: true,
+          output: "No lintable changed files — skipped.",
+          duration_ms: 0,
+        };
+        stepResults.push(skipResult);
+        outputs.push(`=== ${step.name} (SKIP — no changed files) ===`);
+        continue;
+      }
+
+      const modifiedCmd = buildChangedOnlyLintCmd(step.cmd, runtimeName, lintable);
+      if (modifiedCmd) {
+        step.cmd = modifiedCmd;
+      }
+    }
+
+    const startTime = Date.now();
     const { ok, output } = runCommand(step.cmd, absPath, step.timeout);
+    const duration_ms = Date.now() - startTime;
+
+    const stepResult: StepResult = {
+      name: step.name,
+      passed: ok,
+      output: truncate(output, MAX_STEP_OUTPUT),
+      duration_ms,
+    };
+    stepResults.push(stepResult);
+
     outputs.push(`=== ${step.name} (${ok ? "PASS" : "FAIL"}) ===\n${output}`);
 
     // Parse test output if this is the test step
@@ -191,14 +286,42 @@ export function verifyRun(
 
     if (!ok) {
       allPassed = false;
-      break; // Stop on first failure
+      if (fail_fast) {
+        break; // Stop on first failure
+      }
     }
   }
 
-  return {
+  // Auto-save evidence if task_id provided
+  let evidencePath: string | undefined;
+  if (task_id) {
+    const evidenceData = {
+      passed: allPassed,
+      step_results: stepResults,
+      test_results: testResults,
+      ran_at: new Date().toISOString(),
+    };
+    const saveResult = saveEvidence(absPath, task_id, evidenceData);
+    if (saveResult.saved) {
+      evidencePath = saveResult.path;
+    }
+  }
+
+  const result: VerifyResult = {
     passed: allPassed,
     output: truncate(outputs.join("\n\n"), MAX_OUTPUT),
     steps_run: stepsRan,
+    step_results: stepResults,
     test_results: testResults,
   };
+
+  if (evidencePath) {
+    result.evidence_path = evidencePath;
+  }
+
+  if (changed_only && changedFiles !== undefined) {
+    result.changed_files = changedFiles;
+  }
+
+  return result;
 }

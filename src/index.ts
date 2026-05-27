@@ -23,7 +23,7 @@ import { log } from "./lib/logger.js";
 
 const server = new McpServer({
   name: "harness-os",
-  version: "0.6.0",
+  version: "0.7.0",
 });
 
 /**
@@ -71,6 +71,11 @@ server.tool(
     summary: z.string().describe("Summary of what was accomplished"),
     unfinished: z.array(z.string()).describe("List of unfinished items"),
     next_steps: z.array(z.string()).describe("Suggested next steps for following session"),
+    verify_status: z.object({
+      passed: z.boolean(),
+      steps_run: z.array(z.string()),
+      failed_step: z.string().optional(),
+    }).optional().describe("Last verify_run result summary"),
   },
   makeHandler(
     "session_handoff",
@@ -79,12 +84,14 @@ server.tool(
       summary,
       unfinished,
       next_steps,
+      verify_status,
     }: {
       session_id: string;
       summary: string;
       unfinished: string[];
       next_steps: string[];
-    }) => sessionHandoff(session_id, summary, unfinished, next_steps)
+      verify_status?: { passed: boolean; steps_run: string[]; failed_step?: string };
+    }) => sessionHandoff(session_id, summary, unfinished, next_steps, verify_status)
   )
 );
 
@@ -145,10 +152,19 @@ server.tool(
       .array(z.string())
       .optional()
       .describe("Explicit commands to run (overrides auto-detect)"),
+    fail_fast: z.boolean().optional().describe("Stop on first failure (default true)"),
+    changed_only: z.boolean().optional().describe("Lint only changed files (default false)"),
+    task_id: z.string().optional().describe("If provided, auto-save evidence for this task"),
   },
   makeHandler(
     "verify_run",
-    ({ repo_path, steps }: { repo_path: string; steps?: string[] }) => verifyRun(repo_path, steps)
+    ({ repo_path, steps, fail_fast, changed_only, task_id }: {
+      repo_path: string;
+      steps?: string[];
+      fail_fast?: boolean;
+      changed_only?: boolean;
+      task_id?: string;
+    }) => verifyRun(repo_path, { steps, fail_fast, changed_only, task_id })
   )
 );
 
@@ -294,6 +310,7 @@ server.tool(
       summary: z.string(),
       status: z.string(),
       evidence_ref: z.string().optional(),
+      files_changed: z.array(z.string()).optional().describe("List of files modified"),
     }),
   },
   makeHandler(
@@ -303,7 +320,7 @@ server.tool(
       entry,
     }: {
       repo_path: string;
-      entry: { task_id?: string; summary: string; status: string; evidence_ref?: string };
+      entry: { task_id?: string; summary: string; status: string; evidence_ref?: string; files_changed?: string[] };
     }) => progressLog(repo_path, entry)
   )
 );

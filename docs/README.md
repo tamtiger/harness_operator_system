@@ -1,6 +1,6 @@
 # Tài liệu harness-os
 
-> Hướng dẫn chi tiết sử dụng harness-os v0.6.0 — hệ thống harness operator chạy local cho agentic coding.
+> Hướng dẫn chi tiết sử dụng harness-os v0.7.0 — hệ thống harness operator chạy local cho agentic coding.
 
 ---
 
@@ -30,4 +30,4 @@
 
 ---
 
-*Tài liệu cập nhật cho harness-os v0.6.0.*
+*Tài liệu cập nhật cho harness-os v0.7.0.*

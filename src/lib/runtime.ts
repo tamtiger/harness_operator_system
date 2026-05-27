@@ -12,6 +12,13 @@ export interface RuntimeInfo {
 }
 
 export function detectRuntime(repoPath: string): RuntimeInfo {
+  if (!existsSync(repoPath)) {
+    return {
+      runtime: "unknown",
+      commands: { install: null, build: null, test: null, lint: null },
+    };
+  }
+
   // Check for .NET
   const files = readdirSync(repoPath);
   const hasSln = files.some((f) => f.endsWith(".sln"));

@@ -33,9 +33,20 @@ function getProjectRoot(): string {
 // === harness init ===
 
 function cmdInit() {
-  const repoPath = resolve(args[1] || ".");
+  let rawPath = args[1] || ".";
+  // Expand ~ to home directory (not done automatically on Windows CMD)
+  if (rawPath === "~" || rawPath.startsWith("~/") || rawPath.startsWith("~\\")) {
+    rawPath = join(homedir(), rawPath.slice(2));
+  }
+  const repoPath = resolve(rawPath);
   const stackArg = getFlag("stack") || "auto";
   const force = hasFlag("force");
+
+  if (!existsSync(repoPath)) {
+    console.error(`\n  ✗ Directory does not exist: ${repoPath}`);
+    console.error(`    Create it first, then run harness init again.\n`);
+    process.exit(1);
+  }
 
   const runtime = stackArg === "auto" ? detectRuntime(repoPath) : { runtime: stackArg };
   const stack = runtime.runtime;

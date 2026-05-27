@@ -1,6 +1,6 @@
 {
   "name": "harness-os",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Local harness operator system for agentic coding. MCP-first, cross-IDE, multi-repo.",
   "type": "module",
   "main": "dist/index.js",
@@ -29,11 +29,11 @@
     "picomatch": "^4.0.4"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/node": "^22.10.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.19",
     "@types/picomatch": "^4.0.3",
-    "tsx": "^4.19.0",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "tsx": "^4.22.3",
+    "typescript": "5.7",
+    "vitest": "^3.2.4"
   }
 }

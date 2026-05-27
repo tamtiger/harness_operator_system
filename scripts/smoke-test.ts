@@ -205,6 +205,43 @@ async function main() {
     }
     console.log(`✓ scope_check — in_scope: ${scopeData.in_scope}`);
 
+    // Test verify_run with new params (changed_only + step_results)
+    const verifyResult = await client.callTool({
+      name: "verify_run",
+      arguments: { repo_path: ".", fail_fast: false, changed_only: true },
+    });
+    const verifyContent = verifyResult.content as Array<{ type: string; text: string }>;
+    const verifyData = JSON.parse(verifyContent[0].text);
+    if (!Array.isArray(verifyData.step_results)) {
+      throw new Error("verify_run missing step_results array");
+    }
+    console.log(`✓ verify_run (enhanced) — step_results: ${verifyData.step_results.length} steps, passed: ${verifyData.passed}`);
+
+    // Test session_handoff with verify_status
+    const session4 = await client.callTool({
+      name: "session_start",
+      arguments: { repo_path: "." },
+    });
+    const session4Content = session4.content as Array<{ type: string; text: string }>;
+    const session4Data = JSON.parse(session4Content[0].text);
+
+    const handoff2Result = await client.callTool({
+      name: "session_handoff",
+      arguments: {
+        session_id: session4Data.session_id,
+        summary: "Smoke test with verify_status",
+        unfinished: [],
+        next_steps: ["verify duration_seconds"],
+        verify_status: { passed: true, steps_run: ["build", "test"] },
+      },
+    });
+    const handoff2Content = handoff2Result.content as Array<{ type: string; text: string }>;
+    const handoff2Data = JSON.parse(handoff2Content[0].text);
+    if (typeof handoff2Data.duration_seconds !== "number") {
+      throw new Error("session_handoff missing duration_seconds");
+    }
+    console.log(`✓ session_handoff (enhanced) — duration_seconds: ${handoff2Data.duration_seconds}`);
+
     // Test harness_status
     const statusResult = await client.callTool({
       name: "harness_status",

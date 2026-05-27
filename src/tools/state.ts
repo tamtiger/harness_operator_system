@@ -9,6 +9,7 @@ export interface ProgressEntry {
   summary: string;
   status: string;
   evidence_ref?: string;
+  files_changed?: string[];
 }
 
 export function progressLog(
@@ -18,16 +19,19 @@ export function progressLog(
   const harnessDir = resolveHarnessDir(repoPath);
   const progressFile = join(harnessDir, "progress.md");
 
-  const now = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const now = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh", hour12: false }).slice(0, 16).replace("T", " ");
   const taskRef = entry.task_id ? ` — task ${entry.task_id}` : "";
   const evidenceRef = entry.evidence_ref
     ? `\n- **Evidence:** \`${entry.evidence_ref}\``
+    : "";
+  const filesRef = entry.files_changed?.length
+    ? `\n- **Files:** ${entry.files_changed.map(f => `\`${f}\``).join(", ")}`
     : "";
 
   const block = `
 ## ${now}${taskRef}
 - **Status:** ${entry.status}
-- **Summary:** ${entry.summary}${evidenceRef}
+- **Summary:** ${entry.summary}${evidenceRef}${filesRef}
 `;
 
   if (!existsSync(progressFile)) {
@@ -105,6 +109,12 @@ export interface HandoffData {
   unfinished: string[];
   last_known_good: string;
   written_at: string;
+  verify_status?: {
+    passed: boolean;
+    steps_run: string[];
+    failed_step?: string;
+  };
+  duration_seconds?: number;
 }
 
 export function handoffWrite(
@@ -112,7 +122,9 @@ export function handoffWrite(
   sessionId: string,
   nextSteps: string[],
   unfinished: string[],
-  lastKnownGood: string
+  lastKnownGood: string,
+  verifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string },
+  durationSeconds?: number
 ): { path: string } {
   const harnessDir = resolveHarnessDir(repoPath);
   const handoffDir = join(harnessDir, "handoff");
@@ -125,6 +137,8 @@ export function handoffWrite(
     unfinished,
     last_known_good: lastKnownGood,
     written_at: new Date().toISOString(),
+    ...(verifyStatus !== undefined && { verify_status: verifyStatus }),
+    ...(durationSeconds !== undefined && { duration_seconds: durationSeconds }),
   };
 
   writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");

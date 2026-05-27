@@ -16,12 +16,14 @@ export interface SessionStartResult {
 export interface SessionEndResult {
   session_id: string;
   status: string;
+  duration_seconds: number;
 }
 
 export interface SessionHandoffResult {
   session_id: string;
   handoff_path: string;
   progress_logged: boolean;
+  duration_seconds: number;
 }
 
 export function sessionStart(repoPath: string): SessionStartResult {
@@ -66,35 +68,48 @@ export function sessionEnd(sessionId: string): SessionEndResult {
   const db = getDb();
   const now = new Date().toISOString();
 
-  const result = db
-    .prepare(`UPDATE sessions SET status = 'closed', ended_at = ? WHERE id = ?`)
-    .run(now, sessionId);
+  const session = db
+    .prepare(`SELECT started_at FROM sessions WHERE id = ?`)
+    .get(sessionId) as { started_at: string } | undefined;
 
-  if (result.changes === 0) {
+  if (!session) {
     throw new Error(`Session not found: ${sessionId}`);
   }
 
-  return { session_id: sessionId, status: "closed" };
+  db.prepare(`UPDATE sessions SET status = 'closed', ended_at = ? WHERE id = ?`).run(
+    now,
+    sessionId
+  );
+
+  const durationSeconds = Math.round(
+    (Date.now() - new Date(session.started_at).getTime()) / 1000
+  );
+
+  return { session_id: sessionId, status: "closed", duration_seconds: durationSeconds };
 }
 
 export function sessionHandoff(
   sessionId: string,
   summary: string,
   unfinished: string[],
-  nextSteps: string[]
+  nextSteps: string[],
+  verifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string }
 ): SessionHandoffResult {
   const db = getDb();
 
-  // Get session's repo_path
+  // Get session's repo_path and started_at
   const session = db
-    .prepare(`SELECT repo_path FROM sessions WHERE id = ?`)
-    .get(sessionId) as { repo_path: string } | undefined;
+    .prepare(`SELECT repo_path, started_at FROM sessions WHERE id = ?`)
+    .get(sessionId) as { repo_path: string; started_at: string } | undefined;
 
   if (!session) {
     throw new Error(`Session not found: ${sessionId}`);
   }
 
   const repoPath = session.repo_path;
+  const durationSeconds = Math.round(
+    (Date.now() - new Date(session.started_at).getTime()) / 1000
+  );
 
   // Write handoff file
   const { path: handoffPath } = handoffWrite(
@@ -102,7 +117,9 @@ export function sessionHandoff(
     sessionId,
     nextSteps,
     unfinished,
-    summary
+    summary,
+    verifyStatus,
+    durationSeconds
   );
 
   // Append progress log
@@ -122,5 +139,6 @@ export function sessionHandoff(
     session_id: sessionId,
     handoff_path: handoffPath,
     progress_logged: true,
+    duration_seconds: durationSeconds,
   };
 }

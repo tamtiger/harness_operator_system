@@ -4,7 +4,7 @@
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-25-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-30%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-43%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -173,6 +173,8 @@ harness-os/
 │       ├── wrapper.ts        # Tool decorator (audit + try/catch + loop guard)
 │       ├── loop-guard.ts     # Detect repeated calls
 │       ├── logger.ts         # Structured stderr logger
+│       ├── git-diff.ts       # Get changed files from git
+│       ├── evidence.ts       # Evidence persistence (save/read per task)
 │       └── parsers/          # Test output parsers (vitest, generic)
 ├── skills/                   # 8 built-in skills
 ├── templates/                # init.sh, AGENTS.md, verify.yaml templates
@@ -190,14 +192,14 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (30 tests passing)
+- **Testing:** Vitest (43 tests passing)
 
 ## Phát triển
 
 ```bash
 npm run dev          # Dev mode (tsx, không cần build)
 npm run build        # Compile TypeScript
-npm test             # Unit tests (30 tests)
+npm test             # Unit tests (43 tests)
 npm run smoke        # End-to-end MCP test
 ```
 
@@ -209,6 +211,7 @@ npm run smoke        # End-to-end MCP test
 - [x] **Phase 4** — Templates + CLI + IDE adapters
 - [x] **Phase 5** — Continuous learning (25 tools)
 - [x] **Phase 6** — Hardening & observability
+- [x] **Phase 7** — Verify intelligence & evidence (structured results, changed_only, evidence auto-save)
 
 ## Tài liệu
 

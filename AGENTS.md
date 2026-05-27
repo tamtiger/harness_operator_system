@@ -12,9 +12,9 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 0.6.0
+- **Version:** 0.7.0
 - **Tools:** 25 MCP tools across 8 modules
-- **Tests:** 30 unit tests (vitest) + smoke test
+- **Tests:** 43 unit tests (vitest) + smoke test
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, and observability.
 
@@ -30,7 +30,7 @@ npm install
 # Build (TypeScript → dist/)
 npm run build
 
-# Run unit tests (30 tests)
+# Run unit tests (43 tests)
 npm test
 
 # Run smoke test (boots MCP server, calls all tools)
@@ -83,6 +83,8 @@ Each file exports pure functions grouped by domain. The MCP registration happens
 | `runtime.ts` | Detect project stack from files (node, dotnet, python, go, rust) |
 | `repo.ts` | Resolve `.harness/` dir, compute repo hash, ensure directories |
 | `frontmatter.ts` | Parse YAML frontmatter from SKILL.md files (no external deps) |
+| `git-diff.ts` | Get changed files from git (staged + unstaged) |
+| `evidence.ts` | Save/read verify evidence per task to `.harness/evidence/` |
 | `parsers/vitest.ts` | Parse Vitest JSON reporter output into structured result |
 | `parsers/generic.ts` | Generic test output parser (pass/fail pattern matching) |
 
@@ -320,6 +322,8 @@ Frontmatter schema:
   - `src/lib/runtime.test.ts` (6 tests)
   - `src/lib/loop-guard.test.ts` (5 tests)
   - `src/lib/parsers/vitest.test.ts` (6 tests)
+  - `src/lib/git-diff.test.ts` (8 tests)
+  - `src/lib/evidence.test.ts` (5 tests)
 
 ### Smoke Test
 
@@ -361,7 +365,7 @@ Run these commands before every commit:
 # 1. Compile TypeScript (must pass with zero errors)
 npm run build
 
-# 2. Run unit tests (all 30 must pass)
+# 2. Run unit tests (all 43 must pass)
 npm test
 
 # 3. Run smoke test (MCP server boots and all tools respond)
@@ -413,6 +417,8 @@ harness-os/
 │       ├── runtime.ts        # Stack detection (node/dotnet/python/go/rust)
 │       ├── repo.ts           # .harness/ path resolver, repo hash, ensureDir
 │       ├── frontmatter.ts    # YAML frontmatter parser for SKILL.md
+│       ├── git-diff.ts       # Get changed files from git
+│       ├── evidence.ts       # Evidence persistence (save/read per task)
 │       └── parsers/
 │           ├── vitest.ts     # Vitest JSON output parser
 │           └── generic.ts    # Generic test output parser

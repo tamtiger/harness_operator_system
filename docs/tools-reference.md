@@ -61,7 +61,7 @@ Tiếp tục session (alias của `session_start` với semantics "continue").
 
 ```json
 // Response
-{ "closed": true, "session_id": "a3f1b2c4-..." }
+{ "session_id": "a3f1b2c4-...", "status": "closed", "duration_seconds": 1842 }
 ```
 
 ### `session_handoff`
@@ -74,11 +74,21 @@ Kết thúc session với handoff atomic: ghi handoff + progress + đóng sessio
 | `summary` | string | ✅ | Tóm tắt công việc đã làm |
 | `unfinished` | string[] | ✅ | Danh sách việc chưa xong |
 | `next_steps` | string[] | ✅ | Gợi ý cho session tiếp theo |
+| `verify_status` | object | ❌ | Kết quả verify cuối: `{ passed, steps_run, failed_step? }` |
 
 ```json
 // Response
-{ "handoff_written": true, "progress_logged": true, "session_closed": true }
+{
+  "session_id": "a3f1b2c4-...",
+  "handoff_path": "/path/to/.harness/handoff/last.json",
+  "progress_logged": true,
+  "duration_seconds": 1842
+}
 ```
+
+> **`verify_status`:** Ghi lại trạng thái verify cuối cùng vào handoff. Session sau sẽ biết session trước verify pass hay fail.
+
+> **`duration_seconds`:** Tự động tính từ `started_at` của session.
 
 ---
 
@@ -122,7 +132,7 @@ Kết thúc session với handoff atomic: ghi handoff + progress + đóng sessio
 
 ### `progress_log`
 
-Append entry vào `.harness/progress.md`.
+Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC+7).
 
 | Parameter | Type | Required | Mô tả |
 |-----------|------|----------|-------|
@@ -131,6 +141,7 @@ Append entry vào `.harness/progress.md`.
 | `entry.summary` | string | ✅ | Tóm tắt công việc |
 | `entry.status` | string | ✅ | `done` \| `in-progress` \| `blocked` |
 | `entry.evidence_ref` | string | ❌ | Tham chiếu tới evidence file |
+| `entry.files_changed` | string[] | ❌ | Danh sách files đã sửa |
 
 ### `feature_list_read`
 
@@ -222,23 +233,43 @@ Append entry vào `.harness/progress.md`.
 |-----------|------|----------|-------|
 | `repo_path` | string | ✅ | Đường dẫn repo |
 | `steps` | string[] | ❌ | Lệnh cụ thể (override auto-detect) |
+| `fail_fast` | boolean | ❌ | Dừng khi step đầu tiên fail (default true) |
+| `changed_only` | boolean | ❌ | Chỉ lint files đã thay đổi trong git (default false) |
+| `task_id` | string | ❌ | Nếu có, tự động lưu evidence vào `.harness/evidence/{task_id}/` |
 
 ```json
 // Response (pass)
 {
   "passed": true,
-  "steps_run": ["npm ci", "npm run build", "npm test", "npm run lint"],
+  "steps_run": ["install", "build", "test", "lint"],
+  "step_results": [
+    { "name": "install", "passed": true, "output": "...", "duration_ms": 1200 },
+    { "name": "build", "passed": true, "output": "...", "duration_ms": 3400 },
+    { "name": "test", "passed": true, "output": "...", "duration_ms": 5600 },
+    { "name": "lint", "passed": true, "output": "...", "duration_ms": 800 }
+  ],
   "output": "...(truncated to 8KB)...",
-  "test_results": { "passed": 42, "failed": 0, "skipped": 1, "duration_ms": 3200 }
+  "test_results": { "passed": 42, "failed": 0, "skipped": 1, "duration_ms": 3200 },
+  "evidence_path": "/path/to/.harness/evidence/task-123/verify.json"
 }
 
-// Response (fail)
+// Response (fail with changed_only)
 {
   "passed": false,
-  "failed_step": "npm test",
-  "test_results": { "passed": 40, "failed": 2, "failures": ["should handle timeout"] }
+  "steps_run": ["install", "build", "test", "lint"],
+  "step_results": [
+    { "name": "install", "passed": true, "output": "...", "duration_ms": 1200 },
+    { "name": "build", "passed": true, "output": "...", "duration_ms": 3400 },
+    { "name": "test", "passed": true, "output": "...", "duration_ms": 5600 },
+    { "name": "lint", "passed": false, "output": "...", "duration_ms": 400 }
+  ],
+  "changed_files": ["src/foo.ts", "src/bar.ts"]
 }
 ```
+
+> **`changed_only` mode:** Khi bật, chỉ lint các file đã thay đổi trong git (staged + unstaged). Giải quyết vấn đề pre-existing lint issues gây noise.
+
+> **`fail_fast: false`:** Chạy tất cả steps kể cả khi step trước fail. Hữu ích khi muốn thấy toàn bộ vấn đề cùng lúc.
 
 **Auto-detect commands theo stack:**
 

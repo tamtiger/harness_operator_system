@@ -7,6 +7,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-05-27
+
+### Phase 7 — Verify Intelligence & Evidence
+
+**Status:** ✅ Complete
+
+#### Added
+- `verify_run` enhanced with structured `step_results` array (per-step pass/fail + duration_ms)
+- `verify_run` `changed_only` mode — lint only git-changed files (solves pre-existing lint noise)
+- `verify_run` `fail_fast` option (default true) — set false to run all steps even on failure
+- `verify_run` `task_id` param — auto-saves evidence to `.harness/evidence/{task_id}/verify.json`
+- `src/lib/git-diff.ts` — helper to get changed files from git (8 unit tests)
+- `src/lib/evidence.ts` — evidence persistence save/read per task (5 unit tests)
+- `session_end` and `session_handoff` now return `duration_seconds`
+- `session_handoff` accepts optional `verify_status` field (passed, steps_run, failed_step)
+- `progress_log` accepts optional `files_changed` array
+- Handoff data now includes `verify_status` and `duration_seconds`
+
+#### Verified
+- `npm run build` passes (0 errors)
+- 43 unit tests pass (7 test files)
+- Smoke test passes (25 tools, enhanced params verified)
+
+---
+
 ### Review fixes
 
 **Status:** ✅ Complete
