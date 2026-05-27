@@ -131,3 +131,113 @@ export function skillList(
 
   return { skills };
 }
+
+export interface SkillCreateFromSessionResult {
+  draft: string;
+  event_count: number;
+}
+
+export function skillCreateFromSession(
+  sessionId: string,
+  theme: string,
+  db: unknown,
+  runtimeDetector: (path: string) => { runtime: string }
+): SkillCreateFromSessionResult {
+  const database = db as { prepare: (sql: string) => { get: (...args: unknown[]) => unknown; all: (...args: unknown[]) => unknown[] } };
+
+  // Get session info
+  const session = database
+    .prepare(`SELECT repo_path FROM sessions WHERE id = ?`)
+    .get(sessionId) as { repo_path: string } | undefined;
+
+  if (!session) {
+    return {
+      draft: `# Error\n\nSession not found: ${sessionId}`,
+      event_count: 0,
+    };
+  }
+
+  // Get audit events for this session
+  const events = database
+    .prepare(
+      `SELECT event_type, payload, created_at FROM audit_events WHERE payload LIKE ? ORDER BY created_at ASC`
+    )
+    .all(`%${sessionId}%`) as Array<{
+    event_type: string;
+    payload: string;
+    created_at: string;
+  }>;
+
+  if (events.length < 5) {
+    return {
+      draft: `# Not enough data\n\nSession ${sessionId} has only ${events.length} audit events. Need at least 5 to extract meaningful patterns.`,
+      event_count: events.length,
+    };
+  }
+
+  // Extract patterns from events
+  const toolCalls = events
+    .filter((e) => e.event_type === "tool_call" || e.event_type === "tool_success")
+    .map((e) => {
+      try {
+        return JSON.parse(e.payload);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
+  const toolNames = toolCalls
+    .map((c: Record<string, unknown>) => c.tool as string)
+    .filter(Boolean);
+  const uniqueTools = [...new Set(toolNames)];
+
+  // Detect stack from repo
+  const runtime = runtimeDetector(session.repo_path);
+  const date = new Date().toISOString().slice(0, 10);
+
+  const draft = `---
+name: ${theme.replace(/\s+/g, "-").toLowerCase()}
+version: "1.0"
+updated: ${date}
+applies_to: ["${runtime.runtime}"]
+triggers: ["session_start"]
+description: Patterns extracted from session ${sessionId.slice(0, 8)} — theme: ${theme}.
+---
+
+# ${theme}
+
+Patterns extracted from a coding session.
+
+## Context
+
+- **Session:** ${sessionId.slice(0, 8)}
+- **Repo:** ${session.repo_path}
+- **Stack:** ${runtime.runtime}
+- **Events analyzed:** ${events.length}
+
+## Tools Used
+
+${uniqueTools.length > 0 ? uniqueTools.map((t) => `- \`${t}\``).join("\n") : "- (no tool calls recorded)"}
+
+## Patterns Observed
+
+Based on ${events.length} events in this session, the following workflow emerged:
+
+${uniqueTools.length > 0 ? uniqueTools.slice(0, 10).map((t, i) => `${i + 1}. Used \`${t}\``).join("\n") : "- Review audit log for patterns"}
+
+## Recommendations
+
+Review and refine this skill draft. Add specific rules and anti-patterns
+based on what worked and what didn't in the session.
+
+## Notes
+
+- This is an auto-generated draft — do NOT save without review
+- Add concrete examples from the session
+- Remove generic advice, keep only session-specific insights
+`;
+
+  return { draft, event_count: events.length };
+}
+

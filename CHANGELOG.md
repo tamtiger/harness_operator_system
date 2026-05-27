@@ -7,6 +7,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Phase 5 — Continuous Learning
+
+**Status:** ✅ Complete
+
+#### Added
+- `instinct_add` expanded — supports `confidence` and `ttl_days` parameters
+- `instinct_get` expanded — returns `available_tags`, supports `min_confidence` filter, auto-bumps confidence on reference (+0.1)
+- `instinct_prune` — remove low-confidence/expired instincts with `dry_run` preview
+- `instinct_evolve` — group 5+ instincts by tag → generate SKILL.md draft
+- `instinct_promote` — remove TTL, boost confidence to permanent
+- `skill_create_from_session` — extract patterns from session audit log → draft SKILL.md
+- `scripts/seed-instincts.ts` — 10 starter instincts, idempotent
+- Total: 25 MCP tools registered
+
+#### Verified
+- `npm run build` passes
+- 19 unit tests passing
+- Smoke test passes (25 tools)
+- Seed script: inserts 10, second run skips all (idempotent)
+- Confidence bumps on instinct_get with tags
+
+---
+
 ### Phase 4 — Templates + CLI + IDE Adapters
 
 **Status:** ✅ Complete

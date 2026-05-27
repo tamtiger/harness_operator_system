@@ -5,8 +5,10 @@ import { z } from "zod";
 import { sessionStart, sessionEnd, sessionResume, sessionHandoff } from "./tools/session.js";
 import { taskCreate, taskUpdate, taskList } from "./tools/task.js";
 import { verifyRun } from "./tools/verify.js";
-import { skillLoad, skillList } from "./tools/skill.js";
-import { instinctAdd, instinctGet } from "./tools/instinct.js";
+import { skillLoad, skillList, skillCreateFromSession } from "./tools/skill.js";
+import { instinctAdd, instinctGet, instinctPrune, instinctEvolve, instinctPromote } from "./tools/instinct.js";
+import { getDb } from "./db/client.js";
+import { detectRuntime } from "./lib/runtime.js";
 import {
   progressLog,
   featureListRead,
@@ -183,6 +185,20 @@ server.tool(
   }
 );
 
+server.tool(
+  "skill_create_from_session",
+  "Generate a SKILL.md draft from a session's audit log. Returns draft only (does NOT auto-save).",
+  {
+    session_id: z.string().describe("Session ID to extract patterns from"),
+    theme: z.string().describe("Theme/name for the skill (e.g. 'refactoring-workflow')"),
+  },
+  async ({ session_id, theme }) => {
+    const db = getDb();
+    const result = skillCreateFromSession(session_id, theme, db, detectRuntime);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  }
+);
+
 // === Instinct tools ===
 
 server.tool(
@@ -191,25 +207,73 @@ server.tool(
   {
     description: z.string().describe("What the instinct captures"),
     tags: z.array(z.string()).describe("Tags for filtering (e.g. ['node', 'testing'])"),
+    confidence: z.number().optional().describe("Initial confidence (0-1, default 0.5)"),
+    ttl_days: z.number().optional().describe("Time-to-live in days (null = permanent)"),
   },
-  async ({ description, tags }) => {
-    const result = instinctAdd(description, tags);
+  async ({ description, tags, confidence, ttl_days }) => {
+    const result = instinctAdd(description, tags, confidence, ttl_days);
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   }
 );
 
 server.tool(
   "instinct_get",
-  "Get instincts, optionally filtered by tags.",
+  "Get instincts, optionally filtered by tags. Also returns available_tags for discovery.",
   {
     tags: z
       .array(z.string())
       .optional()
       .describe("Filter by tags (returns instincts matching any tag)"),
+    min_confidence: z.number().optional().describe("Minimum confidence threshold"),
   },
-  async ({ tags }) => {
-    const result = instinctGet(tags);
+  async ({ tags, min_confidence }) => {
+    const result = instinctGet(tags, min_confidence);
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  }
+);
+
+server.tool(
+  "instinct_prune",
+  "Remove low-confidence or expired instincts. Use dry_run to preview.",
+  {
+    confidence_below: z.number().optional().describe("Remove instincts below this confidence (default 0.2)"),
+    expired_only: z.boolean().optional().describe("Only remove expired instincts (past TTL)"),
+    dry_run: z.boolean().optional().describe("Preview what would be removed without deleting"),
+  },
+  async ({ confidence_below, expired_only, dry_run }) => {
+    const result = instinctPrune(confidence_below, expired_only, dry_run);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  }
+);
+
+server.tool(
+  "instinct_evolve",
+  "Group instincts by tag cluster and suggest a SKILL.md draft. Needs 5+ instincts.",
+  {
+    tag_cluster: z.string().optional().describe("Tag to cluster instincts by"),
+  },
+  async ({ tag_cluster }) => {
+    const result = instinctEvolve(tag_cluster);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  }
+);
+
+server.tool(
+  "instinct_promote",
+  "Promote an instinct from pending to permanent (removes TTL, boosts confidence).",
+  {
+    instinct_id: z.string().describe("Instinct ID to promote"),
+  },
+  async ({ instinct_id }) => {
+    try {
+      const result = instinctPromote(instinct_id);
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    } catch (err: unknown) {
+      return {
+        content: [{ type: "text", text: JSON.stringify({ error: String(err) }) }],
+        isError: true,
+      };
+    }
   }
 );
 
