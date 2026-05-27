@@ -1,6 +1,6 @@
 # harness-os — Implementation Tasks
 
-> Generated from `harness-mcp-plan.md` (v3 — greenfield, no prior code).
+> Generated from `HARNESS-OS-PLAN.md` (v3 — greenfield, no prior code).
 > Each task is independently executable with clear acceptance criteria.
 
 ---

@@ -1,120 +1,187 @@
 # harness-os
 
-Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
+> Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
+
+[![Status](https://img.shields.io/badge/status-stable-green)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-25-blue)](#)
+[![Tests](https://img.shields.io/badge/tests-30%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
 Một hệ thống có cấu trúc đảm bảo AI coding agent:
-- Không tuyên bố "done" khi chưa verify
-- Không edit file ngoài scope
-- Không mất context giữa các session
-- Không lặp lại sai lầm đã từng phạm
 
-Hoạt động với mọi IDE hỗ trợ MCP: Cursor, Claude Code, Kiro, VS Code, Antigravity, OpenCode.
+- ✅ Không tuyên bố "done" khi chưa verify
+- ✅ Không edit file ngoài scope
+- ✅ Không mất context giữa các session
+- ✅ Không lặp lại sai lầm đã từng phạm
 
-## Bắt đầu nhanh
+Hoạt động với mọi IDE hỗ trợ MCP: **Cursor, Claude Code, Kiro, VS Code, Antigravity, OpenCode**. Có instruction-only adapter cho **Codex** và **Copilot**.
+
+## Quick Start
 
 ```bash
-# Cài đặt
-npm install
+# 1. Cài đặt và build
+git clone <repo-url> && cd harness-os
+npm install && npm run build
 
-# Build
-npm run build
+# 2. Init harness cho repo của bạn
+node dist/cli/harness.js init /path/to/your/repo
 
-# Chạy MCP server (stdio transport)
-node dist/index.js
+# 3. Cài MCP cho IDE
+node dist/cli/harness.js install-mcp --ide cursor
+
+# 4. Mở IDE → agent đã biết phải làm gì
 ```
 
-## Kiến trúc
+📖 **Xem [docs/](./docs/README.md) để có hướng dẫn chi tiết.**
 
-Xây dựng trên 5 subsystem từ [harness engineering](https://github.com/walkinglabs/learn-harness-engineering):
+## Kiến trúc — 6 Subsystems
 
-| Subsystem | Mục đích | MCP Tools |
+| Subsystem | Mục đích | Tools chính |
 |---|---|---|
-| **Instructions** | Agent biết phải làm gì, hành xử thế nào | `skill_load`, `skill_list` |
+| **Instructions** | Agent biết phải làm gì | `skill_load`, `skill_list` |
 | **State** | Bộ nhớ xuyên session | `progress_log`, `handoff_write/read` |
 | **Verification** | Bằng chứng công việc đúng | `verify_run` |
 | **Scope** | Ranh giới ngăn drift | `scope_check`, `scope_get` |
-| **Lifecycle** | Luồng session từ đầu→cuối | `session_start/end/resume/handoff` |
+| **Lifecycle** | Luồng session từ đầu→cuối | `session_start/resume/end/handoff` |
+| **Continuous Learning** | Pattern tái sử dụng | `instinct_add/get/prune/evolve` |
 
-Cộng thêm layer thứ 6 — **Continuous Learning** — qua instincts (pattern tái sử dụng).
+## 25 MCP Tools
 
-## Tools hiện có (Phase 3 — 21 tools)
+<details>
+<summary><b>Session lifecycle (4 tools)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
-| `session_start` | Bắt đầu session, nhận context + handoff + applicable skills |
+| `session_start` | Bắt đầu session, trả về context + handoff + applicable skills |
 | `session_resume` | Tiếp tục session trước (alias session_start) |
 | `session_end` | Đóng session |
-| `session_handoff` | Kết thúc session với handoff (atomic: ghi handoff + progress + đóng) |
+| `session_handoff` | Kết thúc với handoff atomic (handoff + progress + đóng session) |
+
+</details>
+
+<details>
+<summary><b>Task management (3 tools)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
 | `task_create` | Tạo task với title + scope |
-| `task_update` | Cập nhật trạng thái task |
+| `task_update` | Cập nhật status (pending/in-progress/done/blocked) |
 | `task_list` | Liệt kê tasks (filter theo repo/status) |
-| `verify_run` | Chạy pipeline verify (hỗ trợ verify.yaml config) |
+
+</details>
+
+<details>
+<summary><b>State files (5 tools)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
+| `progress_log` | Append entry vào `.harness/progress.md` |
+| `feature_list_read` | Đọc `.harness/feature_list.json` |
+| `feature_list_update` | Upsert feature entry |
+| `handoff_write` | Ghi `.harness/handoff/last.json` |
+| `handoff_read` | Đọc handoff gần nhất |
+
+</details>
+
+<details>
+<summary><b>Scope & Verification (3 tools)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
+| `scope_get` | Lấy scope config từ `.harness/scope.yaml` |
+| `scope_check` | Kiểm tra file có trong scope không (glob patterns) |
+| `verify_run` | Chạy pipeline verify (install/build/test/lint) — hỗ trợ `verify.yaml` |
+
+</details>
+
+<details>
+<summary><b>Skills (3 tools)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
 | `skill_load` | Load skill theo tên (kèm metadata) |
-| `skill_list` | Liệt kê tất cả skills (filter theo stack) |
-| `instinct_add` | Thêm pattern đã học được |
-| `instinct_get` | Truy vấn instincts theo tags |
-| `progress_log` | Ghi entry vào `.harness/progress.md` |
-| `feature_list_read` | Đọc danh sách features |
-| `feature_list_update` | Cập nhật feature entry (upsert) |
-| `handoff_write` | Ghi handoff file cho session sau |
-| `handoff_read` | Đọc handoff file gần nhất |
-| `scope_get` | Lấy scope config (allowed/forbidden paths, definition of done) |
-| `scope_check` | Kiểm tra file có trong scope không |
-| `audit_log` | Ghi audit event (SQLite + JSONL) |
-| `harness_status` | Xem trạng thái tổng quan (session, tasks, verify, instincts) |
+| `skill_list` | Liệt kê skills (filter theo stack) |
+| `skill_create_from_session` | Sinh SKILL.md draft từ audit log session |
+
+</details>
+
+<details>
+<summary><b>Instincts (5 tools)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
+| `instinct_add` | Thêm pattern đã học (kèm confidence + TTL) |
+| `instinct_get` | Truy vấn theo tags + min_confidence |
+| `instinct_prune` | Xóa instincts low-confidence/expired (có dry_run) |
+| `instinct_evolve` | Group 5+ instincts cùng tag → suggest skill draft |
+| `instinct_promote` | Pending → permanent (xóa TTL, boost confidence) |
+
+</details>
+
+<details>
+<summary><b>Observability (2 tools)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
+| `audit_log` | Ghi event vào SQLite + `~/.harness/audit.jsonl` |
+| `harness_status` | Snapshot: active session, pending tasks, last verify, recent instincts |
+
+</details>
+
+## CLI Commands
+
+```bash
+harness init [path] [--stack auto|node|dotnet|python|go]   # Setup repo
+harness doctor                                              # Health check
+harness status [--repo path] [--format json|table]          # Snapshot
+harness verify [--repo path]                                # Run verify pipeline
+harness skills [--list | --show <name>]                     # Browse skills
+harness tasks [--repo path] [--status pending|done]         # List tasks
+harness instincts [--list | --export]                       # Browse instincts
+harness install-mcp --ide cursor|kiro|vscode|...           # Install MCP config
+```
+
+## Built-in Skills (8)
+
+| Skill | Mục đích |
+|---|---|
+| `karpathy-guidelines` | 4 nguyên tắc cốt lõi: Think, Simplicity, Surgical, Goal-Driven |
+| `harness-workflow` | 5-subsystem lifecycle |
+| `tdd-workflow` | Test-Driven Development |
+| `verification-loop` | Continuous verification loop |
+| `search-first` | Search trước khi viết code mới |
+| `goal-driven-execution` | Define success, iterate until verified |
+| `strategic-compact` | Quản lý context window |
+| `continuous-learning` | Capture & evolve patterns |
 
 ## Cấu trúc project
 
 ```
-src/
-├── index.ts              # MCP stdio server entry (21 tools)
-├── db/
-│   ├── client.ts         # SQLite + migrations
-│   └── audit.ts          # JSONL audit append helper
-├── tools/
-│   ├── session.ts        # session_start, session_resume, session_end, session_handoff
-│   ├── task.ts           # task_create, task_update, task_list
-│   ├── verify.ts         # verify_run (supports verify.yaml config)
-│   ├── skill.ts          # skill_load, skill_list
-│   ├── instinct.ts       # instinct_add, instinct_get
-│   ├── state.ts          # progress_log, feature_list_read/update, handoff_write/read
-│   ├── scope.ts          # scope_get, scope_check (glob patterns)
-│   └── observe.ts        # audit_log, harness_status
-└── lib/
-    ├── runtime.ts        # Nhận diện stack (node/dotnet/python/go/rust)
-    ├── repo.ts           # Resolve .harness/ dir, repo hash
-    └── frontmatter.ts    # Parse YAML frontmatter từ SKILL.md
-
-skills/                   # Built-in skills (định dạng SKILL.md)
-├── karpathy-guidelines/
-├── harness-workflow/
-├── tdd-workflow/
-├── verification-loop/
-├── search-first/
-├── goal-driven-execution/
-├── strategic-compact/
-└── continuous-learning/
-
-scripts/
-└── smoke-test.ts         # Test end-to-end MCP server
-```
-
-## Phát triển
-
-```bash
-# Dev mode (tsx, không cần build)
-npm run dev
-
-# Build
-npm run build
-
-# Unit tests
-npm test
-
-# Smoke test (cần build trước)
-npm run build && npm run smoke
+harness-os/
+├── src/
+│   ├── index.ts              # MCP stdio server (25 tools, all wrapped)
+│   ├── cli/harness.ts        # CLI entry point
+│   ├── db/
+│   │   ├── client.ts         # SQLite + migrations
+│   │   └── audit.ts          # JSONL append helper
+│   ├── tools/                # 8 tool modules
+│   └── lib/
+│       ├── runtime.ts        # Stack detection
+│       ├── repo.ts           # Path helpers
+│       ├── frontmatter.ts    # SKILL.md parser
+│       ├── wrapper.ts        # Tool decorator (audit + try/catch + loop guard)
+│       ├── loop-guard.ts     # Detect repeated calls
+│       ├── logger.ts         # Structured stderr logger
+│       └── parsers/          # Test output parsers (vitest, generic)
+├── skills/                   # 8 built-in skills
+├── templates/                # init.sh, AGENTS.md, verify.yaml templates
+├── ide-adapters/             # Configs cho 7 IDEs
+├── scripts/
+│   ├── smoke-test.ts         # End-to-end MCP test
+│   └── seed-instincts.ts     # 10 starter instincts
+├── docs/                     # Hướng dẫn chi tiết (10 files)
+└── CHANGELOG.md
 ```
 
 ## Stack công nghệ
@@ -123,19 +190,41 @@ npm run build && npm run smoke
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest
+- **Testing:** Vitest (30 tests passing)
+
+## Phát triển
+
+```bash
+npm run dev          # Dev mode (tsx, không cần build)
+npm run build        # Compile TypeScript
+npm test             # Unit tests (30 tests)
+npm run smoke        # End-to-end MCP test
+```
 
 ## Lộ trình
 
-- [x] Phase 1 — Project scaffold + first boot (9 tools, smoke test)
-- [x] Phase 2 — State files & lifecycle tools (17 tools, 8 skills)
-- [x] Phase 3 — Scope + verify + observe (21 tools)
-- [x] Phase 4 — Templates + CLI + IDE adapters
-- [x] Phase 5 — Continuous learning (25 tools)
-- [x] Phase 6 — Hardening & observability (loop guard, parsers, structured logging)
-- [ ] Phase 4 — Templates + CLI + IDE adapters
-- [ ] Phase 5 — Continuous learning
-- [ ] Phase 6 — Hardening & observability
+- [x] **Phase 1** — Project scaffold + first boot (9 tools, smoke test)
+- [x] **Phase 2** — State files & lifecycle tools (17 tools, 8 skills)
+- [x] **Phase 3** — Scope + verify config + observe (21 tools)
+- [x] **Phase 4** — Templates + CLI + IDE adapters
+- [x] **Phase 5** — Continuous learning (25 tools)
+- [x] **Phase 6** — Hardening & observability
+
+## Tài liệu
+
+- 📖 [docs/](./docs/README.md) — Hướng dẫn chi tiết cho người dùng
+  - [Bắt đầu](./docs/getting-started.md) — Cài đặt, yêu cầu hệ thống
+  - [Cấu hình IDE](./docs/ide-setup.md) — Setup cho 8 IDEs
+  - [Workflow](./docs/workflow.md) — Lifecycle hàng ngày
+  - [Tools Reference](./docs/tools-reference.md) — Chi tiết 25 MCP tools
+  - [CLI Reference](./docs/cli-reference.md) — 8 CLI commands
+  - [Skills](./docs/skills.md) — Hệ thống skills
+  - [Instincts](./docs/instincts.md) — Continuous learning
+  - [Troubleshooting](./docs/troubleshooting.md) — Xử lý lỗi & FAQ
+- 🤖 [AGENTS.md](./AGENTS.md) — Hướng dẫn cho AI agent phát triển source
+- 📋 [CHANGELOG.md](./CHANGELOG.md) — Lịch sử thay đổi
+- 🗺️ [HARNESS-OS-PLAN.md](./HARNESS-OS-PLAN.md) — Implementation plan
+- ✅ [TASK_IMPLEMENT.md](./TASK_IMPLEMENT.md) — Task breakdown
 
 ## License
 
