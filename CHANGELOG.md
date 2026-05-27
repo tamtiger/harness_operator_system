@@ -7,6 +7,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Phase 4 — Templates + CLI + IDE Adapters
+
+**Status:** ✅ Complete
+
+#### Added
+- `src/cli/harness.ts` — full CLI with subcommands: init, doctor, status, verify, skills, tasks, instincts, install-mcp
+- `templates/` — 5 templates (AGENTS.md, init.sh, verify.yaml, scope.yaml, feature_list.json) with stack-conditional rendering
+- `ide-adapters/` — configs for 7 IDEs: Cursor, Claude Code, Kiro, VS Code, Antigravity, OpenCode + instruction-only for Codex, Copilot
+- `harness init` auto-detects stack, renders templates, idempotent (--force to overwrite)
+- `harness doctor` checks Node version, SQLite, home dir, skills
+- `harness install-mcp --ide <name>` merges MCP config into IDE settings
+- CLI registered as `bin.harness` in package.json
+
+#### Verified
+- `npm run build` passes
+- 19 unit tests passing
+- Smoke test passes (21 tools)
+- `harness doctor` passes on current machine
+- `harness skills --list` shows all 8 skills
+- All IDE adapter JSON files are valid
+
+---
+
 ### Phase 3 — Scope + Verify + Observe
 
 **Status:** ✅ Complete

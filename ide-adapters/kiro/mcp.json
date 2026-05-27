@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "harness": {
+      "command": "node",
+      "args": ["<HARNESS_OS>/dist/index.js"],
+      "disabled": false,
+      "autoApprove": [
+        "session_start",
+        "session_resume",
+        "skill_load",
+        "skill_list",
+        "instinct_get",
+        "harness_status",
+        "scope_get",
+        "scope_check",
+        "handoff_read",
+        "feature_list_read",
+        "task_list"
+      ]
+    }
+  }
+}

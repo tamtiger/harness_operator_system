@@ -130,7 +130,8 @@ npm run build && npm run smoke
 - [x] Phase 1 — Project scaffold + first boot (9 tools, smoke test)
 - [x] Phase 2 — State files & lifecycle tools (17 tools, 8 skills)
 - [x] Phase 3 — Scope + verify + observe (21 tools)
-- [ ] Phase 4 — Templates + CLI + IDE adapters
+- [x] Phase 4 — Templates + CLI + IDE adapters
+- [ ] Phase 5 — Continuous learning
 - [ ] Phase 4 — Templates + CLI + IDE adapters
 - [ ] Phase 5 — Continuous learning
 - [ ] Phase 6 — Hardening & observability
