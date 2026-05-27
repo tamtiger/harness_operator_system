@@ -7,6 +7,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Phase 6 — Hardening & Observability
+
+**Status:** ✅ Complete
+
+#### Added
+- `src/lib/wrapper.ts` — `wrapTool()` decorator: try/catch + audit on success/error + loop detection
+- `src/lib/loop-guard.ts` — detect same tool+args called >5 times in 60s, emit advisory warning
+- `src/lib/logger.ts` — structured JSON stderr logger (only emits when `HARNESS_DEBUG=1`)
+- `src/lib/parsers/vitest.ts` — parse Vitest JSON reporter output into structured result
+- `src/lib/parsers/generic.ts` — generic test output parser (pass/fail pattern matching)
+- Unit tests for loop-guard (5 tests) and parsers (6 tests)
+- Total: 30 unit tests passing, 25 MCP tools
+
+#### Verified
+- `npm run build` passes
+- 30 unit tests passing (5 test files)
+- Smoke test passes
+- Loop guard triggers on 6th identical call, resets after 60s
+- Parsers handle vitest JSON, generic patterns, and unknown formats gracefully
+
+---
+
 ### Phase 5 — Continuous Learning
 
 **Status:** ✅ Complete

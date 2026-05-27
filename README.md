@@ -132,7 +132,7 @@ npm run build && npm run smoke
 - [x] Phase 3 — Scope + verify + observe (21 tools)
 - [x] Phase 4 — Templates + CLI + IDE adapters
 - [x] Phase 5 — Continuous learning (25 tools)
-- [ ] Phase 6 — Hardening & observability
+- [x] Phase 6 — Hardening & observability (loop guard, parsers, structured logging)
 - [ ] Phase 4 — Templates + CLI + IDE adapters
 - [ ] Phase 5 — Continuous learning
 - [ ] Phase 6 — Hardening & observability
