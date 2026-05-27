@@ -2,10 +2,13 @@ import { auditLog } from "../tools/observe.js";
 import { checkLoop } from "./loop-guard.js";
 import { log } from "./logger.js";
 
-type ToolHandler = (args: Record<string, unknown>) => Promise<{
-  content: Array<{ type: string; text: string }>;
+interface ToolResult {
+  [x: string]: unknown;
+  content: Array<{ type: "text"; text: string; [x: string]: unknown }>;
   isError?: boolean;
-}>;
+}
+
+type ToolHandler = (args: Record<string, unknown>) => Promise<ToolResult>;
 
 /**
  * Wrap a tool handler with:
@@ -14,25 +17,37 @@ type ToolHandler = (args: Record<string, unknown>) => Promise<{
  * - loop detection
  */
 export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
-  return async (args: Record<string, unknown>) => {
+  return async (args: Record<string, unknown>): Promise<ToolResult> => {
     // Loop guard
     const loopWarn = checkLoop(name, args);
     if (loopWarn) {
       log("warn", loopWarn, { tool: name });
-      auditLog("loop_warning", { tool: name, warning: loopWarn });
+      try {
+        auditLog("loop_warning", { tool: name, warning: loopWarn });
+      } catch {
+        // ignore audit failures — never break the tool
+      }
     }
 
     try {
       const result = await handler(args);
 
-      // Audit success
-      auditLog("tool_success", { tool: name, args_keys: Object.keys(args) });
+      // Audit success (best-effort)
+      try {
+        auditLog("tool_success", { tool: name, args_keys: Object.keys(args) });
+      } catch {
+        // ignore
+      }
 
       // Append loop warning if detected
       if (loopWarn && result.content.length > 0) {
-        const existing = JSON.parse(result.content[0].text);
-        existing._warn = loopWarn;
-        result.content[0].text = JSON.stringify(existing);
+        try {
+          const existing = JSON.parse(result.content[0].text);
+          existing._warn = loopWarn;
+          result.content[0].text = JSON.stringify(existing);
+        } catch {
+          // payload not JSON — skip
+        }
       }
 
       return result;
@@ -41,7 +56,11 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
       const stack = err instanceof Error ? err.stack : undefined;
 
       log("error", `Tool error: ${name}`, { error: errorMsg, stack });
-      auditLog("tool_error", { tool: name, error: errorMsg, stack });
+      try {
+        auditLog("tool_error", { tool: name, error: errorMsg, stack });
+      } catch {
+        // ignore
+      }
 
       return {
         content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }],

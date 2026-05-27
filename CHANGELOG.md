@@ -7,6 +7,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Review fixes
+
+**Status:** ✅ Complete
+
+#### Fixed
+- **Phase 6 acceptance gap:** `wrapTool` decorator now applied to ALL 25 MCP tool handlers (was defined but unused)
+- **Phase 6 acceptance gap:** verify output parsers (`parseVitestJson`, `parseGenericOutput`) now integrated into `verify_run` — returns structured `test_results`
+- **Phase 3.3 acceptance gap:** every tool call now emits `tool_success` audit event (verified: 3 tool calls → 3 JSONL entries)
+- Removed unused imports across `src/cli/harness.ts`, `src/tools/verify.ts`, `src/tools/session.ts`
+- Synced `package.json` version `0.1.0` → `0.6.0` to match server version
+- Smoke test expanded to verify 19 tools (was 17), now also tests `scope_check` and `harness_status`
+- Wrapper uses best-effort `try/catch` around audit calls — never breaks the tool
+
+#### Architecture improvements
+- `wrapTool` provides 3 layers per tool: try/catch, audit logging, loop detection
+- All tool errors now return `{ error }` JSON instead of throwing — never crashes MCP transport
+- Loop guard advisory warning appended to response payload
+
+---
+
 ### Phase 6 — Hardening & Observability
 
 **Status:** ✅ Complete

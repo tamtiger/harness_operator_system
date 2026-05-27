@@ -18,11 +18,27 @@ import {
 } from "./tools/state.js";
 import { scopeGet, scopeCheck } from "./tools/scope.js";
 import { auditLog, harnessStatus } from "./tools/observe.js";
+import { wrapTool } from "./lib/wrapper.js";
+import { log } from "./lib/logger.js";
 
 const server = new McpServer({
   name: "harness-os",
-  version: "0.3.0",
+  version: "0.6.0",
 });
+
+/**
+ * Helper: build a wrapped MCP tool handler from a sync function returning a value.
+ * The wrapper handles try/catch + audit + loop detection.
+ */
+function makeHandler<T extends Record<string, unknown>>(
+  name: string,
+  fn: (args: T) => unknown
+) {
+  return wrapTool(name, async (args) => {
+    const result = fn(args as T);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+}
 
 // === Session tools ===
 
@@ -30,37 +46,21 @@ server.tool(
   "session_start",
   "Start a new harness session for a repo. Returns session ID, last handoff, and pending tasks.",
   { repo_path: z.string().describe("Absolute or relative path to the repo") },
-  async ({ repo_path }) => {
-    const result = sessionStart(repo_path);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler("session_start", ({ repo_path }: { repo_path: string }) => sessionStart(repo_path))
 );
 
 server.tool(
   "session_resume",
   "Resume work on a repo (alias for session_start with 'continue' semantics).",
   { repo_path: z.string().describe("Absolute or relative path to the repo") },
-  async ({ repo_path }) => {
-    const result = sessionResume(repo_path);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler("session_resume", ({ repo_path }: { repo_path: string }) => sessionResume(repo_path))
 );
 
 server.tool(
   "session_end",
   "End an active harness session.",
   { session_id: z.string().describe("Session ID to close") },
-  async ({ session_id }) => {
-    try {
-      const result = sessionEnd(session_id);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    } catch (err: unknown) {
-      return {
-        content: [{ type: "text", text: JSON.stringify({ error: String(err) }) }],
-        isError: true,
-      };
-    }
-  }
+  makeHandler("session_end", ({ session_id }: { session_id: string }) => sessionEnd(session_id))
 );
 
 server.tool(
@@ -72,17 +72,20 @@ server.tool(
     unfinished: z.array(z.string()).describe("List of unfinished items"),
     next_steps: z.array(z.string()).describe("Suggested next steps for following session"),
   },
-  async ({ session_id, summary, unfinished, next_steps }) => {
-    try {
-      const result = sessionHandoff(session_id, summary, unfinished, next_steps);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    } catch (err: unknown) {
-      return {
-        content: [{ type: "text", text: JSON.stringify({ error: String(err) }) }],
-        isError: true,
-      };
-    }
-  }
+  makeHandler(
+    "session_handoff",
+    ({
+      session_id,
+      summary,
+      unfinished,
+      next_steps,
+    }: {
+      session_id: string;
+      summary: string;
+      unfinished: string[];
+      next_steps: string[];
+    }) => sessionHandoff(session_id, summary, unfinished, next_steps)
+  )
 );
 
 // === Task tools ===
@@ -95,10 +98,11 @@ server.tool(
     scope: z.string().optional().describe("Scope description or allowed paths"),
     session_id: z.string().optional().describe("Link task to a session"),
   },
-  async ({ title, scope, session_id }) => {
-    const result = taskCreate(title, scope, session_id);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "task_create",
+    ({ title, scope, session_id }: { title: string; scope?: string; session_id?: string }) =>
+      taskCreate(title, scope, session_id)
+  )
 );
 
 server.tool(
@@ -106,21 +110,12 @@ server.tool(
   "Update task status.",
   {
     task_id: z.string().describe("Task ID"),
-    status: z
-      .enum(["pending", "in-progress", "done", "blocked"])
-      .describe("New status"),
+    status: z.enum(["pending", "in-progress", "done", "blocked"]).describe("New status"),
   },
-  async ({ task_id, status }) => {
-    try {
-      const result = taskUpdate(task_id, status);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    } catch (err: unknown) {
-      return {
-        content: [{ type: "text", text: JSON.stringify({ error: String(err) }) }],
-        isError: true,
-      };
-    }
-  }
+  makeHandler(
+    "task_update",
+    ({ task_id, status }: { task_id: string; status: string }) => taskUpdate(task_id, status)
+  )
 );
 
 server.tool(
@@ -133,10 +128,10 @@ server.tool(
       .optional()
       .describe("Filter by status"),
   },
-  async ({ repo_path, status }) => {
-    const result = taskList(repo_path, status);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "task_list",
+    ({ repo_path, status }: { repo_path?: string; status?: string }) => taskList(repo_path, status)
+  )
 );
 
 // === Verify tools ===
@@ -151,10 +146,10 @@ server.tool(
       .optional()
       .describe("Explicit commands to run (overrides auto-detect)"),
   },
-  async ({ repo_path, steps }) => {
-    const result = verifyRun(repo_path, steps);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "verify_run",
+    ({ repo_path, steps }: { repo_path: string; steps?: string[] }) => verifyRun(repo_path, steps)
+  )
 );
 
 // === Skill tools ===
@@ -166,10 +161,10 @@ server.tool(
     name: z.string().describe("Skill name (e.g. 'karpathy-guidelines')"),
     repo_path: z.string().optional().describe("Repo path for repo-specific skill lookup"),
   },
-  async ({ name, repo_path }) => {
-    const result = skillLoad(name, repo_path);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "skill_load",
+    ({ name, repo_path }: { name: string; repo_path?: string }) => skillLoad(name, repo_path)
+  )
 );
 
 server.tool(
@@ -179,10 +174,11 @@ server.tool(
     stack_filter: z.string().optional().describe("Filter by stack (e.g. 'node', 'dotnet')"),
     repo_path: z.string().optional().describe("Include repo-specific skills"),
   },
-  async ({ stack_filter, repo_path }) => {
-    const result = skillList(stack_filter, repo_path);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "skill_list",
+    ({ stack_filter, repo_path }: { stack_filter?: string; repo_path?: string }) =>
+      skillList(stack_filter, repo_path)
+  )
 );
 
 server.tool(
@@ -192,11 +188,11 @@ server.tool(
     session_id: z.string().describe("Session ID to extract patterns from"),
     theme: z.string().describe("Theme/name for the skill (e.g. 'refactoring-workflow')"),
   },
-  async ({ session_id, theme }) => {
-    const db = getDb();
-    const result = skillCreateFromSession(session_id, theme, db, detectRuntime);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "skill_create_from_session",
+    ({ session_id, theme }: { session_id: string; theme: string }) =>
+      skillCreateFromSession(session_id, theme, getDb(), detectRuntime)
+  )
 );
 
 // === Instinct tools ===
@@ -210,26 +206,34 @@ server.tool(
     confidence: z.number().optional().describe("Initial confidence (0-1, default 0.5)"),
     ttl_days: z.number().optional().describe("Time-to-live in days (null = permanent)"),
   },
-  async ({ description, tags, confidence, ttl_days }) => {
-    const result = instinctAdd(description, tags, confidence, ttl_days);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "instinct_add",
+    ({
+      description,
+      tags,
+      confidence,
+      ttl_days,
+    }: {
+      description: string;
+      tags: string[];
+      confidence?: number;
+      ttl_days?: number;
+    }) => instinctAdd(description, tags, confidence, ttl_days)
+  )
 );
 
 server.tool(
   "instinct_get",
   "Get instincts, optionally filtered by tags. Also returns available_tags for discovery.",
   {
-    tags: z
-      .array(z.string())
-      .optional()
-      .describe("Filter by tags (returns instincts matching any tag)"),
+    tags: z.array(z.string()).optional().describe("Filter by tags (any match)"),
     min_confidence: z.number().optional().describe("Minimum confidence threshold"),
   },
-  async ({ tags, min_confidence }) => {
-    const result = instinctGet(tags, min_confidence);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "instinct_get",
+    ({ tags, min_confidence }: { tags?: string[]; min_confidence?: number }) =>
+      instinctGet(tags, min_confidence)
+  )
 );
 
 server.tool(
@@ -240,10 +244,18 @@ server.tool(
     expired_only: z.boolean().optional().describe("Only remove expired instincts (past TTL)"),
     dry_run: z.boolean().optional().describe("Preview what would be removed without deleting"),
   },
-  async ({ confidence_below, expired_only, dry_run }) => {
-    const result = instinctPrune(confidence_below, expired_only, dry_run);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "instinct_prune",
+    ({
+      confidence_below,
+      expired_only,
+      dry_run,
+    }: {
+      confidence_below?: number;
+      expired_only?: boolean;
+      dry_run?: boolean;
+    }) => instinctPrune(confidence_below, expired_only, dry_run)
+  )
 );
 
 server.tool(
@@ -252,10 +264,10 @@ server.tool(
   {
     tag_cluster: z.string().optional().describe("Tag to cluster instincts by"),
   },
-  async ({ tag_cluster }) => {
-    const result = instinctEvolve(tag_cluster);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "instinct_evolve",
+    ({ tag_cluster }: { tag_cluster?: string }) => instinctEvolve(tag_cluster)
+  )
 );
 
 server.tool(
@@ -264,17 +276,10 @@ server.tool(
   {
     instinct_id: z.string().describe("Instinct ID to promote"),
   },
-  async ({ instinct_id }) => {
-    try {
-      const result = instinctPromote(instinct_id);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    } catch (err: unknown) {
-      return {
-        content: [{ type: "text", text: JSON.stringify({ error: String(err) }) }],
-        isError: true,
-      };
-    }
-  }
+  makeHandler(
+    "instinct_promote",
+    ({ instinct_id }: { instinct_id: string }) => instinctPromote(instinct_id)
+  )
 );
 
 // === State tools ===
@@ -285,26 +290,29 @@ server.tool(
   {
     repo_path: z.string().describe("Path to the repo"),
     entry: z.object({
-      task_id: z.string().optional().describe("Related task ID"),
-      summary: z.string().describe("What was done"),
-      status: z.string().describe("done | in-progress | blocked"),
-      evidence_ref: z.string().optional().describe("Path to evidence file"),
+      task_id: z.string().optional(),
+      summary: z.string(),
+      status: z.string(),
+      evidence_ref: z.string().optional(),
     }),
   },
-  async ({ repo_path, entry }) => {
-    const result = progressLog(repo_path, entry);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "progress_log",
+    ({
+      repo_path,
+      entry,
+    }: {
+      repo_path: string;
+      entry: { task_id?: string; summary: string; status: string; evidence_ref?: string };
+    }) => progressLog(repo_path, entry)
+  )
 );
 
 server.tool(
   "feature_list_read",
   "Read the feature list from .harness/feature_list.json.",
   { repo_path: z.string().describe("Path to the repo") },
-  async ({ repo_path }) => {
-    const result = featureListRead(repo_path);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler("feature_list_read", ({ repo_path }: { repo_path: string }) => featureListRead(repo_path))
 );
 
 server.tool(
@@ -312,13 +320,21 @@ server.tool(
   "Update a feature entry in .harness/feature_list.json (upsert).",
   {
     repo_path: z.string().describe("Path to the repo"),
-    feature_id: z.string().describe("Feature ID to update or create"),
-    patch: z.record(z.string(), z.unknown()).describe("Fields to merge into the feature entry"),
+    feature_id: z.string().describe("Feature ID"),
+    patch: z.record(z.string(), z.unknown()).describe("Fields to merge"),
   },
-  async ({ repo_path, feature_id, patch }) => {
-    const result = featureListUpdate(repo_path, feature_id, patch);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "feature_list_update",
+    ({
+      repo_path,
+      feature_id,
+      patch,
+    }: {
+      repo_path: string;
+      feature_id: string;
+      patch: Record<string, unknown>;
+    }) => featureListUpdate(repo_path, feature_id, patch)
+  )
 );
 
 server.tool(
@@ -327,39 +343,48 @@ server.tool(
   {
     repo_path: z.string().describe("Path to the repo"),
     session_id: z.string().describe("Current session ID"),
-    next_steps: z.array(z.string()).describe("What the next session should do"),
-    unfinished: z.array(z.string()).describe("Items not completed"),
-    last_known_good: z.string().describe("Last verified good state description"),
+    next_steps: z.array(z.string()),
+    unfinished: z.array(z.string()),
+    last_known_good: z.string(),
   },
-  async ({ repo_path, session_id, next_steps, unfinished, last_known_good }) => {
-    const result = handoffWrite(repo_path, session_id, next_steps, unfinished, last_known_good);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "handoff_write",
+    ({
+      repo_path,
+      session_id,
+      next_steps,
+      unfinished,
+      last_known_good,
+    }: {
+      repo_path: string;
+      session_id: string;
+      next_steps: string[];
+      unfinished: string[];
+      last_known_good: string;
+    }) => handoffWrite(repo_path, session_id, next_steps, unfinished, last_known_good)
+  )
 );
 
 server.tool(
   "handoff_read",
   "Read the last handoff file from .harness/handoff/last.json.",
   { repo_path: z.string().describe("Path to the repo") },
-  async ({ repo_path }) => {
-    const result = handoffRead(repo_path);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler("handoff_read", ({ repo_path }: { repo_path: string }) => handoffRead(repo_path))
 );
 
 // === Scope tools ===
 
 server.tool(
   "scope_get",
-  "Get scope configuration for a task (allowed paths, forbidden paths, definition of done).",
+  "Get scope configuration for a task.",
   {
     repo_path: z.string().describe("Path to the repo"),
-    task_id: z.string().optional().describe("Task ID for task-specific scope"),
+    task_id: z.string().optional().describe("Task ID"),
   },
-  async ({ repo_path, task_id }) => {
-    const result = scopeGet(repo_path, task_id);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "scope_get",
+    ({ repo_path, task_id }: { repo_path: string; task_id?: string }) => scopeGet(repo_path, task_id)
+  )
 );
 
 server.tool(
@@ -368,12 +393,20 @@ server.tool(
   {
     repo_path: z.string().describe("Path to the repo"),
     task_id: z.string().optional().describe("Task ID"),
-    file_path: z.string().describe("File path to check (relative to repo)"),
+    file_path: z.string().describe("File path to check"),
   },
-  async ({ repo_path, task_id, file_path }) => {
-    const result = scopeCheck(repo_path, task_id, file_path);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "scope_check",
+    ({
+      repo_path,
+      task_id,
+      file_path,
+    }: {
+      repo_path: string;
+      task_id?: string;
+      file_path: string;
+    }) => scopeCheck(repo_path, task_id, file_path)
+  )
 );
 
 // === Observe tools ===
@@ -382,32 +415,32 @@ server.tool(
   "audit_log",
   "Log an audit event (stored in SQLite + JSONL).",
   {
-    event_type: z.string().describe("Event type (e.g. 'tool_call', 'verify_run', 'error')"),
-    payload: z.record(z.string(), z.unknown()).describe("Event payload data"),
+    event_type: z.string(),
+    payload: z.record(z.string(), z.unknown()),
   },
-  async ({ event_type, payload }) => {
-    const result = auditLog(event_type, payload);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler(
+    "audit_log",
+    ({ event_type, payload }: { event_type: string; payload: Record<string, unknown> }) =>
+      auditLog(event_type, payload)
+  )
 );
 
 server.tool(
   "harness_status",
   "Get current harness status: active session, pending tasks, last verify, recent instincts.",
   {
-    repo_path: z.string().optional().describe("Filter by repo path"),
+    repo_path: z.string().optional(),
   },
-  async ({ repo_path }) => {
-    const result = harnessStatus(repo_path);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
+  makeHandler("harness_status", ({ repo_path }: { repo_path?: string }) => harnessStatus(repo_path))
 );
 
 // === Start server ===
 
 async function main() {
+  log("info", "harness-os starting", { pid: process.pid });
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  log("info", "harness-os connected");
 }
 
 main().catch((err) => {

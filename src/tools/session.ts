@@ -1,8 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { getDb } from "../db/client.js";
-import { resolveHarnessDir } from "../lib/repo.js";
 import { detectRuntime } from "../lib/runtime.js";
 import { handoffRead, handoffWrite, progressLog, type HandoffData } from "./state.js";
 import { taskList } from "./task.js";

@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 import { resolve, join, basename, dirname } from "node:path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
 import { detectRuntime } from "../lib/runtime.js";
-import { resolveHarnessDir, resolveGlobalHome, ensureDir } from "../lib/repo.js";
+import { resolveGlobalHome, ensureDir } from "../lib/repo.js";
 import { skillLoad, skillList } from "../tools/skill.js";
 import { verifyRun } from "../tools/verify.js";
 import { harnessStatus } from "../tools/observe.js";

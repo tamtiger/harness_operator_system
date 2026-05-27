@@ -41,8 +41,12 @@ async function main() {
       "verify_run",
       "skill_load",
       "skill_list",
+      "skill_create_from_session",
       "instinct_add",
       "instinct_get",
+      "instinct_prune",
+      "instinct_evolve",
+      "instinct_promote",
       "progress_log",
       "feature_list_read",
       "feature_list_update",
@@ -188,6 +192,30 @@ async function main() {
       name: "session_end",
       arguments: { session_id: session3Data.session_id },
     });
+
+    // Test scope_check
+    const scopeResult = await client.callTool({
+      name: "scope_check",
+      arguments: { repo_path: ".", file_path: "src/index.ts" },
+    });
+    const scopeContent = scopeResult.content as Array<{ type: string; text: string }>;
+    const scopeData = JSON.parse(scopeContent[0].text);
+    if (typeof scopeData.in_scope !== "boolean") {
+      throw new Error("scope_check missing in_scope");
+    }
+    console.log(`✓ scope_check — in_scope: ${scopeData.in_scope}`);
+
+    // Test harness_status
+    const statusResult = await client.callTool({
+      name: "harness_status",
+      arguments: {},
+    });
+    const statusContent = statusResult.content as Array<{ type: string; text: string }>;
+    const statusData = JSON.parse(statusContent[0].text);
+    if (!Array.isArray(statusData.recent_instincts)) {
+      throw new Error("harness_status missing recent_instincts");
+    }
+    console.log(`✓ harness_status — pending_tasks: ${statusData.pending_tasks}`);
 
     console.log("\n✅ SMOKE TEST PASSED");
   } finally {

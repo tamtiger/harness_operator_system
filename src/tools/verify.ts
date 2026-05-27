@@ -2,12 +2,14 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { detectRuntime } from "../lib/runtime.js";
-import { resolveHarnessDir } from "../lib/repo.js";
+import { parseVitestJson, type ParsedTestResult } from "../lib/parsers/vitest.js";
+import { parseGenericOutput } from "../lib/parsers/generic.js";
 
 export interface VerifyResult {
   passed: boolean;
   output: string;
   steps_run: string[];
+  test_results?: ParsedTestResult | null;
 }
 
 interface VerifyConfig {
@@ -175,11 +177,18 @@ export function verifyRun(
   const outputs: string[] = [];
   const stepsRan: string[] = [];
   let allPassed = true;
+  let testResults: ParsedTestResult | null = null;
 
   for (const step of stepsToRun) {
     stepsRan.push(step.name);
     const { ok, output } = runCommand(step.cmd, absPath, step.timeout);
     outputs.push(`=== ${step.name} (${ok ? "PASS" : "FAIL"}) ===\n${output}`);
+
+    // Parse test output if this is the test step
+    if (step.name === "test") {
+      testResults = parseVitestJson(output) || parseGenericOutput(output);
+    }
+
     if (!ok) {
       allPassed = false;
       break; // Stop on first failure
@@ -190,5 +199,6 @@ export function verifyRun(
     passed: allPassed,
     output: truncate(outputs.join("\n\n"), MAX_OUTPUT),
     steps_run: stepsRan,
+    test_results: testResults,
   };
 }
