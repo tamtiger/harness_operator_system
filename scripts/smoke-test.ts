@@ -146,8 +146,8 @@ async function main() {
     });
     const skillListContent = skillListResult.content as Array<{ type: string; text: string }>;
     const skillListData = JSON.parse(skillListContent[0].text);
-    if (!skillListData.skills || skillListData.skills.length < 8) {
-      throw new Error(`skill_list expected ≥8 skills, got ${skillListData.skills?.length}`);
+    if (!skillListData.skills || skillListData.skills.length < 13) {
+      throw new Error(`skill_list expected ≥13 skills, got ${skillListData.skills?.length}`);
     }
     console.log(`✓ skill_list — ${skillListData.skills.length} skills found`);
 

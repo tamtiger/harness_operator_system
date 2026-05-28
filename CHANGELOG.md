@@ -7,6 +7,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [1.0.0] — 2026-05-28
 
+### Phase C — Skill standardization + 5 new C# skills
+
+**Status:** ✅ Complete
+
+#### Added
+- `skills/csharp-baseline/SKILL.md` — routing guide for 9 C# stack rulebooks
+- `skills/csharp-feature/SKILL.md` — 7-step feature implementation workflow
+- `skills/csharp-bugfix/SKILL.md` — Reproduce → Root Cause → Minimal Fix → Regression Test → Validate
+- `skills/csharp-code-review/SKILL.md` — 6-dimension review checklist with Must Fix / Should Fix / Observations output
+- `skills/csharp-repair/SKILL.md` — merged guide for compile errors, runtime errors, test failures
+
+#### Changed
+- `scripts/smoke-test.ts` — updated to expect ≥13 skills (was ≥8)
+
+#### Verified
+- 13 total skills (8 existing + 5 new), all agentskills.io compliant
+- 83 unit tests pass, build + smoke pass
+
 ### Phase B — Port C# rulebooks + payment-hub content
 
 **Status:** ✅ Complete
