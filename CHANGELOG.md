@@ -7,6 +7,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [1.0.0] — 2026-05-28
 
+### Phase D — Workflow upgrade: CTR Gate + Artifacts + EPCC mapping
+
+**Status:** ✅ Complete
+
+#### Changed
+- `skills/harness-workflow/SKILL.md` rewritten to v2.0 (320 lines) — CTR Gate, Five Subsystems, Lifecycle Phases, Artifact Formats (Plan/Research/Review), Mapping với EPCC
+- `docs/workflow.md` — added CTR Gate section, Artifacts section, EPCC mapping, AGENT_MEMORY.md deprecation note
+
+#### Added
+- `skills/harness-workflow/references/artifact-formats-detailed.md` — extended examples for each artifact type
+- `test-fixtures/sample-repo/.harness/artifacts/plans/20260527_1430_sample.md`
+- `test-fixtures/sample-repo/.harness/artifacts/research/20260527_1530_sample.md`
+- `test-fixtures/sample-repo/.harness/artifacts/reviews/20260527_1600_sample.md`
+
+#### Verified
+- SKILL.md ≤500 lines (320), all required sections present
+- 83 unit tests pass, build + smoke pass
+
 ### Phase C — Skill standardization + 5 new C# skills
 
 **Status:** ✅ Complete
