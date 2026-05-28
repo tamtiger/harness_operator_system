@@ -3,8 +3,10 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-25-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-43%20passing-brightgreen)](#)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-26-blue)](#)
+[![Skills](https://img.shields.io/badge/skills-13-blue)](#)
+[![Tests](https://img.shields.io/badge/tests-97%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -46,7 +48,7 @@ node dist/cli/harness.js install-mcp --ide cursor
 | **Lifecycle** | Luồng session từ đầu→cuối | `session_start/resume/end/handoff` |
 | **Continuous Learning** | Pattern tái sử dụng | `instinct_add/get/prune/evolve` |
 
-## 25 MCP Tools
+## 26 MCP Tools
 
 <details>
 <summary><b>Session lifecycle (4 tools)</b></summary>
@@ -120,6 +122,15 @@ node dist/cli/harness.js install-mcp --ide cursor
 </details>
 
 <details>
+<summary><b>Repo Intelligence (1 tool)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
+| `repo_summary_read` | Đọc/tự sinh repo summary với tree structure và stack info |
+
+</details>
+
+<details>
 <summary><b>Observability (2 tools)</b></summary>
 
 | Tool | Mô tả |
@@ -129,20 +140,25 @@ node dist/cli/harness.js install-mcp --ide cursor
 
 </details>
 
-## CLI Commands
+## CLI Commands (13)
 
 ```bash
 harness init [path] [--stack auto|node|dotnet|python|go]   # Setup repo
-harness doctor                                              # Health check
+harness doctor [--check-skills-frontmatter] [--fix]        # Health check
 harness status [--repo path] [--format json|table]          # Snapshot
 harness verify [--repo path]                                # Run verify pipeline
 harness skills [--list | --show <name>]                     # Browse skills
 harness tasks [--repo path] [--status pending|done]         # List tasks
 harness instincts [--list | --export]                       # Browse instincts
 harness install-mcp --ide cursor|kiro|vscode|...           # Install MCP config
+harness tree [--path .] [--depth 4] [--exclude PATTERN]    # Generate directory tree
+harness summary [--path .] [--force]                        # Generate repo summary
+harness reindex [--path .]                                  # Force reindex repo
+harness export [--repo .] [--output FILE]                   # Export harness state
+harness import <file.json>                                  # Import harness state
 ```
 
-## Built-in Skills (8)
+## Built-in Skills (13)
 
 | Skill | Mục đích |
 |---|---|
@@ -154,13 +170,18 @@ harness install-mcp --ide cursor|kiro|vscode|...           # Install MCP config
 | `goal-driven-execution` | Define success, iterate until verified |
 | `strategic-compact` | Quản lý context window |
 | `continuous-learning` | Capture & evolve patterns |
+| `csharp-baseline` | C# / .NET / ABP baseline conventions |
+| `csharp-bugfix` | C# bug fix workflow |
+| `csharp-code-review` | C# code review checklist |
+| `csharp-feature` | C# feature implementation workflow |
+| `csharp-repair` | C# repair/hotfix workflow |
 
 ## Cấu trúc project
 
 ```
 harness-os/
 ├── src/
-│   ├── index.ts              # MCP stdio server (25 tools, all wrapped)
+│   ├── index.ts              # MCP stdio server (26 tools, all wrapped)
 │   ├── cli/harness.ts        # CLI entry point
 │   ├── db/
 │   │   ├── client.ts         # SQLite + migrations
@@ -176,13 +197,13 @@ harness-os/
 │       ├── git-diff.ts       # Get changed files from git
 │       ├── evidence.ts       # Evidence persistence (save/read per task)
 │       └── parsers/          # Test output parsers (vitest, generic)
-├── skills/                   # 8 built-in skills
+├── skills/                   # 13 built-in skills
 ├── templates/                # init.sh, AGENTS.md, verify.yaml templates
 ├── ide-adapters/             # Configs cho 7 IDEs
 ├── scripts/
 │   ├── smoke-test.ts         # End-to-end MCP test
 │   └── seed-instincts.ts     # 10 starter instincts
-├── docs/                     # Hướng dẫn chi tiết (10 files)
+├── docs/                     # Hướng dẫn chi tiết
 └── CHANGELOG.md
 ```
 
@@ -192,14 +213,14 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (43 tests passing)
+- **Testing:** Vitest (97+ tests passing)
 
 ## Phát triển
 
 ```bash
 npm run dev          # Dev mode (tsx, không cần build)
 npm run build        # Compile TypeScript
-npm test             # Unit tests (43 tests)
+npm test             # Unit tests (97+ tests)
 npm run smoke        # End-to-end MCP test
 ```
 
@@ -216,14 +237,14 @@ npm run smoke        # End-to-end MCP test
 ## Tài liệu
 
 - 📖 [docs/](./docs/README.md) — Hướng dẫn chi tiết cho người dùng
-  - [Bắt đầu](./docs/getting-started.md) — Cài đặt, yêu cầu hệ thống
-  - [Cấu hình IDE](./docs/ide-setup.md) — Setup cho 8 IDEs
-  - [Workflow](./docs/workflow.md) — Lifecycle hàng ngày
-  - [Tools Reference](./docs/tools-reference.md) — Chi tiết 25 MCP tools
-  - [CLI Reference](./docs/cli-reference.md) — 8 CLI commands
-  - [Skills](./docs/skills.md) — Hệ thống skills
-  - [Instincts](./docs/instincts.md) — Continuous learning
-  - [Troubleshooting](./docs/troubleshooting.md) — Xử lý lỗi & FAQ
+  - [Bắt đầu](./docs/01-getting-started.md) — Cài đặt, yêu cầu hệ thống
+  - [Cấu hình IDE](./docs/02-ide-setup.md) — Setup cho 8 IDEs
+  - [Workflow](./docs/04-workflow.md) — Lifecycle hàng ngày
+  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 26 MCP tools
+  - [CLI Reference](./docs/06-cli-reference.md) — 13 CLI commands
+  - [Skills](./docs/07-skills.md) — Hệ thống skills
+  - [Instincts](./docs/08-instincts.md) — Continuous learning
+  - [Troubleshooting](./docs/10-troubleshooting.md) — Xử lý lỗi & FAQ
 - 🤖 [AGENTS.md](./AGENTS.md) — Hướng dẫn cho AI agent phát triển source
 - 📋 [CHANGELOG.md](./CHANGELOG.md) — Lịch sử thay đổi
 - 🗺️ [HARNESS-OS-PLAN.md](./HARNESS-OS-PLAN.md) — Implementation plan

@@ -24,7 +24,7 @@ import { log } from "./lib/logger.js";
 
 const server = new McpServer({
   name: "harness-os",
-  version: "0.7.0",
+  version: "1.0.0",
 });
 
 /**

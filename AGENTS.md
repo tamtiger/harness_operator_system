@@ -12,9 +12,9 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 0.7.0
-- **Tools:** 25 MCP tools across 8 modules
-- **Tests:** 43 unit tests (vitest) + smoke test
+- **Version:** 1.0.0
+- **Tools:** 26 MCP tools across 9 modules
+- **Tests:** 97 unit tests (vitest) + smoke test
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, and observability.
 
@@ -30,7 +30,7 @@ npm install
 # Build (TypeScript → dist/)
 npm run build
 
-# Run unit tests (43 tests)
+# Run unit tests (97 tests)
 npm test
 
 # Run smoke test (boots MCP server, calls all tools)
@@ -51,7 +51,7 @@ Requirements:
 
 ### 3.1 MCP Server Entry — `src/index.ts`
 
-The main entry point. Creates an `McpServer` instance, registers all 25 tools with Zod schemas, and connects via `StdioServerTransport`.
+The main entry point. Creates an `McpServer` instance, registers all 26 tools with Zod schemas, and connects via `StdioServerTransport`.
 
 Key patterns:
 - Each tool is registered with `server.tool(name, description, zodSchema, handler)`
@@ -329,7 +329,7 @@ Frontmatter schema:
 
 - Run: `npm run smoke`
 - Script: `scripts/smoke-test.ts`
-- What it does: spawns `node dist/index.js` as child process → sends JSON-RPC `initialize` → calls `tools/list` → verifies all 25 tools are registered → calls key tools → asserts valid response shapes
+- What it does: spawns `node dist/index.js` as child process → sends JSON-RPC `initialize` → calls `tools/list` → verifies all 26 tools are registered → calls key tools → asserts valid response shapes
 
 ### What to Test
 
@@ -395,7 +395,7 @@ harness-os/
 ├── TASK_IMPLEMENT.md                  # Task breakdown
 │
 ├── src/
-│   ├── index.ts              # MCP stdio server entry — registers all 25 tools
+│   ├── index.ts              # MCP stdio server entry — registers all 26 tools
 │   ├── cli/
 │   │   └── harness.ts        # CLI entry point (init, doctor, status, verify, etc.)
 │   ├── db/

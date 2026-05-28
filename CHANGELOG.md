@@ -7,6 +7,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [1.0.0] — 2026-05-28
 
+### Phase F — Documentation polish + version bump
+
+**Status:** ✅ Complete
+
+#### Changed
+- `package.json` version bumped to `"1.0.0"`
+- `src/index.ts` McpServer version bumped to `"1.0.0"`
+- `README.md` — updated to reflect 26 tools, 13 skills, 97 tests, 13 CLI commands
+- `templates/AGENTS.md.tpl` — rewritten with Agentic AI Foundation spec compliance (Project Overview, Build Commands, Test Commands, Conventions, Boundaries, Routing Table, Non-Negotiable Rules)
+- `docs/README.md` — added links to 6 new documentation files
+- `docs/tools-reference.md` — updated to 26 tools
+- `docs/cli-reference.md` — updated to 13 commands
+- `docs/skills.md` — updated to 13 skills
+
+#### Added
+- `docs/agents-md-spec.md` — AGENTS.md specification and harness-os extensions
+- `docs/skill-format.md` — agentskills.io spec, frontmatter fields, folder structure, migration
+- `docs/glossary.md` — harness-os terms + rulebook concepts with precedence rules
+- `docs/rulebooks.md` — when/how to create project rulebooks, scaffolding
+- `docs/artifacts.md` — 3 artifact types (Plan+CTR, Research, Review), format reference
+- `docs/state-architecture.md` — hybrid model, UUID identity, export/import, backup strategy
+
+#### Verified
+- `package.json` version is "1.0.0"
+- 97 unit tests pass (12 test files)
+- Smoke test passes (26 tools, 13 skills)
+- All doc links resolve
+
 ### Phase E — CLI utilities + repo summary + export/import
 
 **Status:** ✅ Complete

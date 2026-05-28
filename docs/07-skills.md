@@ -8,6 +8,8 @@
 
 Skills là tài liệu hướng dẫn có cấu trúc mà agent đọc để biết cách làm việc. Mỗi skill là một file `SKILL.md` với YAML frontmatter chứa metadata.
 
+> 📖 Xem [skill-format.md](./skill-format.md) để biết chi tiết đặc tả agentskills.io spec.
+
 ---
 
 ## Thứ tự ưu tiên
@@ -20,7 +22,7 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 
 ---
 
-## 8 Built-in Skills
+## 13 Built-in Skills
 
 | Skill | Mục đích | Triggers |
 |-------|----------|----------|
@@ -32,6 +34,11 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 | `goal-driven-execution` | Define success criteria, iterate until verified | `session_start` |
 | `strategic-compact` | Quản lý context window hiệu quả | `session_start` |
 | `continuous-learning` | Capture patterns → instincts → evolve to skills | `session_end`, `task_update` |
+| `csharp-baseline` | C# / .NET / ABP baseline conventions | `session_start` |
+| `csharp-bugfix` | C# bug fix workflow | `task_create` |
+| `csharp-code-review` | C# code review checklist | `task_update` |
+| `csharp-feature` | C# feature implementation workflow | `task_create` |
+| `csharp-repair` | C# repair/hotfix workflow | `task_create` |
 
 ---
 

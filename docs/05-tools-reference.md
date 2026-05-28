@@ -1,4 +1,4 @@
-# 25 MCP Tools Reference
+# 26 MCP Tools Reference
 
 [← Mục lục](./README.md) | [← Workflow](./workflow.md) | [CLI Reference →](./cli-reference.md)
 
@@ -14,8 +14,9 @@
 | [Scope & Verification](#scope--verification) | `scope_get`, `scope_check`, `verify_run` | 3 |
 | [Skills](#skills) | `skill_load`, `skill_list`, `skill_create_from_session` | 3 |
 | [Instincts](#instincts) | `instinct_add`, `instinct_get`, `instinct_prune`, `instinct_evolve`, `instinct_promote` | 5 |
+| [Repo Intelligence](#repo-intelligence) | `repo_summary_read` | 1 |
 | [Observability](#observability) | `audit_log`, `harness_status` | 2 |
-| **Tổng** | | **25** |
+| **Tổng** | | **26** |
 
 ---
 
@@ -389,6 +390,30 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
 // Response
 { "promoted": true, "id": "inst-a1b2c3d4", "confidence": 0.9, "ttl_days": null }
 ```
+
+---
+
+## Repo Intelligence
+
+### `repo_summary_read`
+
+Đọc hoặc tự sinh repo summary với tree structure và stack info. Tự động reindex khi phát hiện code thay đổi.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `repo_path` | string | ✅ | Đường dẫn tới repo |
+
+```json
+// Response
+{
+  "stack": "node",
+  "tree_hash": "abc123...",
+  "summary_path": "/path/to/.harness/repo-summary.md",
+  "reindexed": false
+}
+```
+
+> Summary được cache và chỉ regenerate khi tree hash thay đổi (file added/removed/renamed).
 
 ---
 

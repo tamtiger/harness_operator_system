@@ -20,6 +20,11 @@ harness <command> [options]
 | `tasks` | Liệt kê tasks |
 | `instincts` | Duyệt/export instincts |
 | `install-mcp` | Cài MCP config cho IDE |
+| `tree` | Sinh directory tree |
+| `summary` | Sinh repo summary |
+| `reindex` | Force reindex repo |
+| `export` | Export harness state |
+| `import` | Import harness state |
 
 ---
 
@@ -212,3 +217,113 @@ harness install-mcp --ide claude-code
 ```
 
 > **Lưu ý:** `install-mcp` merge config vào file hiện có (không overwrite toàn bộ). An toàn nếu đã có MCP servers khác.
+
+---
+
+## `harness tree`
+
+Sinh directory tree cho repo.
+
+```bash
+harness tree [--path .] [--depth 4] [--exclude PATTERN] [--output FILE]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--path` | Đường dẫn repo (default: `.`) |
+| `--depth` | Độ sâu tối đa (default: 4) |
+| `--exclude` | Patterns loại trừ (comma-separated) |
+| `--output` | Ghi ra file thay vì stdout |
+
+**Ví dụ:**
+
+```bash
+harness tree
+harness tree --depth 2 --exclude node_modules,dist
+harness tree --output tree.txt
+```
+
+---
+
+## `harness summary`
+
+Sinh repo summary (tree + stack info + key files).
+
+```bash
+harness summary [--path .] [--force]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--path` | Đường dẫn repo (default: `.`) |
+| `--force` | Force regenerate (bỏ qua cache) |
+
+**Ví dụ:**
+
+```bash
+harness summary
+harness summary --force
+```
+
+---
+
+## `harness reindex`
+
+Force reindex repo (invalidate cache + regenerate summary).
+
+```bash
+harness reindex [--path .]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--path` | Đường dẫn repo (default: `.`) |
+
+**Ví dụ:**
+
+```bash
+harness reindex
+harness reindex --path ~/projects/my-api
+```
+
+---
+
+## `harness export`
+
+Export harness state ra file JSON.
+
+```bash
+harness export [--repo .] [--output FILE]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--repo` | Đường dẫn repo (default: `.`) |
+| `--output` | File output (default: `harness-export-{timestamp}.json`) |
+
+**Ví dụ:**
+
+```bash
+harness export
+harness export --output backup.json
+harness export --repo ~/projects/my-api --output my-api-state.json
+```
+
+---
+
+## `harness import`
+
+Import harness state từ file JSON.
+
+```bash
+harness import <file.json>
+```
+
+**Ví dụ:**
+
+```bash
+harness import backup.json
+harness import ~/backups/harness-export-1234567890.json
+```
+
+> **Lưu ý:** Import ghi đè files trong `.harness/` của repo hiện tại. Backup trước nếu cần.
