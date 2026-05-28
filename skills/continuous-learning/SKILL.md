@@ -1,10 +1,11 @@
 ---
 name: continuous-learning
-version: "1.0"
-updated: 2026-05-26
-applies_to: ["*"]
-triggers: ["session_end", "task_update"]
-description: Extract and persist patterns from experience — instincts evolve into skills over time.
+description: "Extract and persist patterns from experience — instincts evolve into skills over time."
+metadata:
+  version: "1.0"
+  updated: "2026-05-26"
+  applies_to: ["*"]
+  triggers: ["session_end", "task_update"]
 ---
 
 # Continuous Learning

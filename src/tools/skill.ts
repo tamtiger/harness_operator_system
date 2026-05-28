@@ -1,13 +1,15 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseFrontmatter, type SkillMeta } from "../lib/frontmatter.js";
+import { parseFrontmatter, type SkillFrontmatter } from "../lib/frontmatter.js";
 import { resolveHarnessDir, resolveGlobalHome } from "../lib/repo.js";
+import { log } from "../lib/logger.js";
 
 export interface SkillLoadResult {
   name: string;
   content: string;
-  meta: SkillMeta | null;
+  meta: SkillFrontmatter | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SkillLoadError {
@@ -19,6 +21,7 @@ export interface SkillListEntry {
   version: string | null;
   description: string | null;
   applies_to: string[];
+  metadata?: Record<string, unknown>;
 }
 
 function getBuiltinSkillsDir(): string {
@@ -61,6 +64,21 @@ function getSearchDirs(repoPath?: string): string[] {
   return dirs;
 }
 
+/** Deprecated top-level fields that should be moved into `metadata` */
+const DEPRECATED_TOP_LEVEL_FIELDS = ["version", "updated", "applies_to", "triggers"];
+
+function emitDeprecationWarning(skillName: string, meta: SkillFrontmatter | null): void {
+  if (!meta || meta.metadata) return;
+
+  const hasOldFields = DEPRECATED_TOP_LEVEL_FIELDS.some(
+    (f) => f in meta && meta[f] !== undefined
+  );
+
+  if (hasOldFields) {
+    log("warn", `skill "${skillName}" uses deprecated top-level fields (version, updated, applies_to, triggers). Migrate to metadata object. See agentskills.io spec.`, { skill: skillName });
+  }
+}
+
 export function skillLoad(
   name: string,
   repoPath?: string
@@ -75,7 +93,11 @@ export function skillLoad(
   const raw = readFileSync(filePath, "utf-8");
   const { meta, content } = parseFrontmatter(raw);
 
-  return { name, content: raw, meta };
+  emitDeprecationWarning(name, meta);
+
+  const metadata = (meta?.metadata as Record<string, unknown>) ?? undefined;
+
+  return { name, content: raw, meta, metadata };
 }
 
 export function skillList(
@@ -113,7 +135,14 @@ export function skillList(
       const raw = readFileSync(filePath, "utf-8");
       const { meta } = parseFrontmatter(raw);
 
-      const appliesTo = (meta?.applies_to as string[]) || ["*"];
+      emitDeprecationWarning(skillName, meta);
+
+      // New schema: metadata.applies_to; fallback: top-level applies_to
+      const metadataObj = meta?.metadata as Record<string, unknown> | undefined;
+      const appliesTo =
+        (metadataObj?.applies_to as string[]) ||
+        (meta?.applies_to as string[]) ||
+        ["*"];
 
       // Filter by stack if requested
       if (stackFilter && !appliesTo.includes("*") && !appliesTo.includes(stackFilter)) {
@@ -125,6 +154,7 @@ export function skillList(
         version: (meta?.version as string) ?? null,
         description: (meta?.description as string) ?? null,
         applies_to: appliesTo,
+        metadata: metadataObj,
       });
     }
   }

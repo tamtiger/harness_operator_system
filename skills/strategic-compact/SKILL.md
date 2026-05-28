@@ -1,10 +1,11 @@
 ---
 name: strategic-compact
-version: "1.0"
-updated: 2026-05-26
-applies_to: ["*"]
-triggers: ["session_start"]
-description: Manage context window strategically — summarize, compact, and preserve critical information.
+description: "Manage context window strategically — summarize, compact, and preserve critical information."
+metadata:
+  version: "1.0"
+  updated: "2026-05-26"
+  applies_to: ["*"]
+  triggers: ["session_start"]
 ---
 
 # Strategic Compact

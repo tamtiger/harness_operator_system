@@ -1,10 +1,11 @@
 ---
 name: verification-loop
-version: "1.0"
-updated: 2026-05-26
-applies_to: ["*"]
-triggers: ["task_update"]
-description: Continuous verification loop — never claim done without proof.
+description: "Continuous verification loop — never claim done without proof."
+metadata:
+  version: "1.0"
+  updated: "2026-05-26"
+  applies_to: ["*"]
+  triggers: ["task_update"]
 ---
 
 # Verification Loop

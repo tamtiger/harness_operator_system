@@ -1,10 +1,11 @@
 ---
 name: karpathy-guidelines
-version: "1.0"
-updated: 2026-05-26
-applies_to: ["*"]
-triggers: ["session_start"]
-description: Four core principles for agentic coding — Think, Simplicity, Surgical, Goal-Driven.
+description: "Four core principles for agentic coding — Think, Simplicity, Surgical, Goal-Driven."
+metadata:
+  version: "1.0"
+  updated: "2026-05-26"
+  applies_to: ["*"]
+  triggers: ["session_start"]
 ---
 
 # Karpathy Guidelines

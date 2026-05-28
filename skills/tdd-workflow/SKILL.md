@@ -1,10 +1,11 @@
 ---
 name: tdd-workflow
-version: "1.0"
-updated: 2026-05-26
-applies_to: ["*"]
-triggers: ["task_create"]
-description: Test-Driven Development workflow — write tests first, then implement to pass.
+description: "Test-Driven Development workflow — write tests first, then implement to pass."
+metadata:
+  version: "1.0"
+  updated: "2026-05-26"
+  applies_to: ["*"]
+  triggers: ["task_create"]
 ---
 
 # TDD Workflow

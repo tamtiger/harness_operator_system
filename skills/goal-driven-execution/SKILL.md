@@ -1,10 +1,11 @@
 ---
 name: goal-driven-execution
-version: "1.0"
-updated: 2026-05-26
-applies_to: ["*"]
-triggers: ["task_create"]
-description: Define success criteria upfront, iterate until verified — don't follow steps blindly.
+description: "Define success criteria upfront, iterate until verified — don't follow steps blindly."
+metadata:
+  version: "1.0"
+  updated: "2026-05-26"
+  applies_to: ["*"]
+  triggers: ["task_create"]
 ---
 
 # Goal-Driven Execution

@@ -5,7 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-## [Unreleased]
+## [1.0.0] — 2026-05-28
+
+### Phase A1 — Frontmatter migration to agentskills.io spec
+
+**Status:** ✅ Complete
+
+#### Changed
+- `src/lib/frontmatter.ts` rewritten — new `SkillFrontmatter` interface, `validateFrontmatter()` function, nested YAML object parsing for `metadata` field
+- `src/tools/skill.ts` — `skillLoad` returns `metadata` passthrough, `skillList` checks `metadata.applies_to` with fallback to top-level, deprecation warnings for v0.7 fields
+- All 8 built-in skills migrated from v0.7 flat format to v1.0 nested `metadata` format
+
+#### Added
+- `validateFrontmatter(fm, parentDirName?)` — validates name regex, description length, compatibility length, metadata type, allowed-tools type
+- `scripts/migrate-frontmatter.ts` — standalone migration script with `--dry-run`, atomic writes, summary reporting
+- 27 new spec compliance tests in `frontmatter.test.ts` (total: 33 in file, 70 across project)
+
+#### Verified
+- `npm run build` passes (0 errors)
+- 70 unit tests pass (7 test files)
+- Smoke test passes (25 tools, 8 skills)
 
 ## [0.7.0] — 2026-05-27
 

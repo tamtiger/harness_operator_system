@@ -1,10 +1,11 @@
 ---
 name: harness-workflow
-version: "1.0"
-updated: 2026-05-26
-applies_to: ["*"]
-triggers: ["session_start", "task_create"]
-description: Five-subsystem harness lifecycle for any agentic coding session.
+description: "Five-subsystem harness lifecycle for any agentic coding session."
+metadata:
+  version: "1.0"
+  updated: "2026-05-26"
+  applies_to: ["*"]
+  triggers: ["session_start", "task_create"]
 ---
 
 # Harness Workflow

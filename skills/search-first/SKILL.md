@@ -1,10 +1,11 @@
 ---
 name: search-first
-version: "1.0"
-updated: 2026-05-26
-applies_to: ["*"]
-triggers: ["session_start", "task_create"]
-description: Search existing code before writing new code — avoid duplication and respect patterns.
+description: "Search existing code before writing new code — avoid duplication and respect patterns."
+metadata:
+  version: "1.0"
+  updated: "2026-05-26"
+  applies_to: ["*"]
+  triggers: ["session_start", "task_create"]
 ---
 
 # Search First
