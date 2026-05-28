@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { resolve, join, basename, dirname } from "node:path";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { detectRuntime } from "../lib/runtime.js";
-import { resolveGlobalHome, ensureDir } from "../lib/repo.js";
+import { resolveGlobalHome, ensureDir, resolveHarnessDir } from "../lib/repo.js";
 import { createRepoConfig, resolveGlobalRepoPath } from "../lib/repo-identity.js";
 import { registerRepo } from "../db/client.js";
 import { skillLoad, skillList } from "../tools/skill.js";
@@ -13,6 +13,9 @@ import { harnessStatus } from "../tools/observe.js";
 import { taskList } from "../tools/task.js";
 import { instinctGet } from "../tools/instinct.js";
 import { getDb } from "../db/client.js";
+import { generateTree } from "../lib/tree.js";
+import { generateSummary, writeSummary } from "../lib/repo-summary.js";
+import { invalidateTreeHashCache } from "../lib/stale-cache.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -150,6 +153,10 @@ function renderTemplate(
 function cmdDoctor() {
   console.log("\n=== harness doctor ===\n");
   let allPass = true;
+  const checkSkillsFrontmatter = hasFlag("check-skills-frontmatter") || !hasAnyDoctorFlag();
+  const checkRouting = hasFlag("check-routing") || !hasAnyDoctorFlag();
+  const checkOrphans = hasFlag("check-orphans") || !hasAnyDoctorFlag();
+  const fix = hasFlag("fix");
 
   // Node version
   const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
@@ -187,6 +194,94 @@ function cmdDoctor() {
     allPass = false;
   }
 
+  // Check skills frontmatter (validate against spec)
+  if (checkSkillsFrontmatter) {
+    try {
+      const { skills } = skillList();
+      let frontmatterIssues = 0;
+      for (const skill of skills) {
+        const missing: string[] = [];
+        if (!skill.name) missing.push("name");
+        if (!skill.version) missing.push("version");
+        if (!skill.applies_to || skill.applies_to.length === 0) missing.push("applies_to");
+        if (!skill.description) missing.push("description");
+        if (missing.length > 0) {
+          console.log(`  ⚠ Skill "${skill.name || "unknown"}": missing ${missing.join(", ")}`);
+          frontmatterIssues++;
+        }
+      }
+      if (frontmatterIssues === 0) {
+        console.log("  ✓ All skills have valid frontmatter");
+      } else {
+        allPass = false;
+      }
+    } catch (err) {
+      console.log(`  ✗ Skills frontmatter check failed: ${err}`);
+      allPass = false;
+    }
+  }
+
+  // Check routing (AGENTS.md references)
+  if (checkRouting) {
+    const repoPath = resolve(".");
+    const agentsPath = join(repoPath, "AGENTS.md");
+    if (existsSync(agentsPath)) {
+      const content = readFileSync(agentsPath, "utf-8");
+      // Extract file references from markdown links and backtick paths
+      const refs = content.match(/`([^`]+\.(ts|js|md|yaml|json))`/g) || [];
+      let missingRefs = 0;
+      for (const ref of refs) {
+        const cleanRef = ref.replace(/`/g, "");
+        const refPath = join(repoPath, cleanRef);
+        if (!existsSync(refPath) && !cleanRef.includes("{") && !cleanRef.startsWith("~")) {
+          // Only warn for paths that look like they should exist locally
+          if (!cleanRef.includes("/") || cleanRef.startsWith("src/") || cleanRef.startsWith("scripts/")) {
+            missingRefs++;
+          }
+        }
+      }
+      if (missingRefs === 0) {
+        console.log("  ✓ AGENTS.md routing references valid");
+      } else {
+        console.log(`  ⚠ AGENTS.md has ${missingRefs} potentially broken reference(s)`);
+      }
+    } else {
+      console.log("  ~ AGENTS.md not found (skipping routing check)");
+    }
+  }
+
+  // Check orphans (repos in DB vs filesystem)
+  if (checkOrphans) {
+    try {
+      const db = getDb();
+      const rows = db.prepare("SELECT id, repo_path FROM sessions WHERE status = 'active'").all() as Array<{ id: string; repo_path: string }>;
+      let orphans = 0;
+      for (const row of rows) {
+        if (!existsSync(row.repo_path)) {
+          orphans++;
+          if (fix) {
+            db.prepare("UPDATE sessions SET status = 'ended', ended_at = ? WHERE id = ?").run(
+              new Date().toISOString(),
+              row.id
+            );
+            console.log(`  🔧 Fixed orphan session: ${row.id} (${row.repo_path})`);
+          } else {
+            console.log(`  ⚠ Orphan session: ${row.id} → ${row.repo_path}`);
+          }
+        }
+      }
+      if (orphans === 0) {
+        console.log("  ✓ No orphan sessions");
+      } else if (!fix) {
+        console.log(`    Use --fix to remove ${orphans} orphan(s)`);
+        allPass = false;
+      }
+    } catch (err) {
+      console.log(`  ✗ Orphan check failed: ${err}`);
+      allPass = false;
+    }
+  }
+
   console.log("");
   if (allPass) {
     console.log("  ✅ All checks passed\n");
@@ -195,6 +290,10 @@ function cmdDoctor() {
     console.log("  ❌ Some checks failed\n");
     process.exit(1);
   }
+}
+
+function hasAnyDoctorFlag(): boolean {
+  return hasFlag("check-skills-frontmatter") || hasFlag("check-routing") || hasFlag("check-orphans");
 }
 
 // === harness status ===
@@ -450,6 +549,149 @@ function cmdInstallMcp() {
   console.log(`\n  Restart ${ide} to activate harness.\n`);
 }
 
+// === harness tree ===
+
+function cmdTree() {
+  const path = resolve(getFlag("path") || ".");
+  const depth = parseInt(getFlag("depth") || "4", 10);
+  const excludeArg = getFlag("exclude");
+  const output = getFlag("output");
+
+  const exclude = excludeArg ? excludeArg.split(",").map((s) => s.trim()) : undefined;
+
+  const tree = generateTree({ path, depth, exclude });
+
+  if (output) {
+    ensureDir(dirname(resolve(output)));
+    writeFileSync(resolve(output), tree, "utf-8");
+    console.log(`✓ Tree written to ${output}`);
+  } else {
+    console.log(tree);
+  }
+}
+
+// === harness summary ===
+
+function cmdSummary() {
+  const repoPath = resolve(getFlag("path") || ".");
+  const force = hasFlag("force");
+
+  if (force) {
+    invalidateTreeHashCache(repoPath);
+  }
+
+  console.log(`\nGenerating summary for: ${repoPath}\n`);
+  const data = generateSummary({ repoPath, force });
+  const harnessDir = resolveHarnessDir(repoPath);
+  writeSummary(data, harnessDir);
+
+  console.log(`  Stack: ${data.stack}`);
+  console.log(`  Tree hash: ${data.tree_hash}`);
+  console.log(`  Written to: ${harnessDir}/repo-summary.md`);
+  console.log(`\n✓ Summary generated\n`);
+}
+
+// === harness reindex ===
+
+function cmdReindex() {
+  const repoPath = resolve(getFlag("path") || ".");
+  invalidateTreeHashCache(repoPath);
+
+  console.log(`\nReindexing: ${repoPath}\n`);
+  const data = generateSummary({ repoPath, force: true });
+  const harnessDir = resolveHarnessDir(repoPath);
+  writeSummary(data, harnessDir);
+
+  console.log(`  Stack: ${data.stack}`);
+  console.log(`  Tree hash: ${data.tree_hash}`);
+  console.log(`\n✓ Reindex complete\n`);
+}
+
+// === harness export ===
+
+function cmdExport() {
+  const repoPath = resolve(getFlag("repo") || ".");
+  const outputFile = getFlag("output") || `harness-export-${Date.now()}.json`;
+  const exportAll = hasFlag("all");
+
+  const exportData: Record<string, unknown> = {
+    manifest: {
+      version: "1.0",
+      exported_at: new Date().toISOString(),
+      source: exportAll ? "all" : repoPath,
+    },
+    state: {} as Record<string, unknown>,
+  };
+
+  const state = exportData.state as Record<string, unknown>;
+
+  // Export .harness directory contents
+  const harnessDir = join(repoPath, ".harness");
+  if (existsSync(harnessDir)) {
+    const files = readdirSync(harnessDir).filter((f) => f.endsWith(".json") || f.endsWith(".md") || f.endsWith(".yaml"));
+    for (const file of files) {
+      const filePath = join(harnessDir, file);
+      try {
+        state[file] = readFileSync(filePath, "utf-8");
+      } catch {
+        // skip unreadable files
+      }
+    }
+
+    // Export handoff
+    const handoffPath = join(harnessDir, "handoff", "last.json");
+    if (existsSync(handoffPath)) {
+      state["handoff/last.json"] = readFileSync(handoffPath, "utf-8");
+    }
+  }
+
+  const outputPath = resolve(outputFile);
+  ensureDir(dirname(outputPath));
+  writeFileSync(outputPath, JSON.stringify(exportData, null, 2), "utf-8");
+  console.log(`\n✓ Exported to: ${outputPath}\n`);
+}
+
+// === harness import ===
+
+function cmdImport() {
+  const inputFile = args[1];
+  if (!inputFile || !existsSync(inputFile)) {
+    console.error("  ✗ Usage: harness import <file.json>");
+    console.error("    File must exist.");
+    process.exit(1);
+  }
+
+  let data: { manifest: { version: string; source: string; exported_at?: string }; state: Record<string, string> };
+  try {
+    data = JSON.parse(readFileSync(resolve(inputFile), "utf-8"));
+  } catch (err) {
+    console.error(`  ✗ Failed to parse import file: ${err}`);
+    process.exit(1);
+  }
+
+  if (!data.manifest || !data.state) {
+    console.error("  ✗ Invalid export file format (missing manifest or state)");
+    process.exit(1);
+  }
+
+  // Determine target directory
+  const targetRepo = resolve(".");
+  const harnessDir = join(targetRepo, ".harness");
+  ensureDir(harnessDir);
+
+  let restored = 0;
+  for (const [filename, content] of Object.entries(data.state)) {
+    const targetPath = join(harnessDir, filename);
+    ensureDir(dirname(targetPath));
+    writeFileSync(targetPath, content, "utf-8");
+    restored++;
+  }
+
+  console.log(`\n✓ Imported ${restored} files from ${inputFile}`);
+  console.log(`  Source: ${data.manifest.source}`);
+  console.log(`  Exported at: ${data.manifest.exported_at || "unknown"}\n`);
+}
+
 // === Main dispatch ===
 
 switch (command) {
@@ -477,6 +719,21 @@ switch (command) {
   case "install-mcp":
     cmdInstallMcp();
     break;
+  case "tree":
+    cmdTree();
+    break;
+  case "summary":
+    cmdSummary();
+    break;
+  case "reindex":
+    cmdReindex();
+    break;
+  case "export":
+    cmdExport();
+    break;
+  case "import":
+    cmdImport();
+    break;
   default:
     console.log(`
 harness-os — Local harness operator system for agentic coding
@@ -490,6 +747,11 @@ Usage:
   harness tasks [--repo path] [--status pending|in-progress|done]
   harness instincts [--list] [--export]
   harness install-mcp --ide <cursor|claude-code|kiro|vscode|antigravity|opencode>
+  harness tree [--path .] [--depth 4] [--exclude PATTERN] [--output FILE]
+  harness summary [--path .] [--force]
+  harness reindex [--path .]
+  harness export [--repo .] [--output FILE]
+  harness import <file.json>
 `);
     break;
 }

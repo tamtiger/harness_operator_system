@@ -18,6 +18,7 @@ import {
 } from "./tools/state.js";
 import { scopeGet, scopeCheck } from "./tools/scope.js";
 import { auditLog, harnessStatus } from "./tools/observe.js";
+import { repoSummaryRead } from "./tools/repo_summary.js";
 import { wrapTool } from "./lib/wrapper.js";
 import { log } from "./lib/logger.js";
 
@@ -449,6 +450,20 @@ server.tool(
     repo_path: z.string().optional(),
   },
   makeHandler("harness_status", ({ repo_path }: { repo_path?: string }) => harnessStatus(repo_path))
+);
+
+// === Repo Summary tool ===
+
+server.tool(
+  "repo_summary_read",
+  "Read or auto-generate a repo summary with tree structure and stack info. Auto-reindexes if code changes detected.",
+  {
+    repo_path: z.string().describe("Path to the repo"),
+  },
+  makeHandler(
+    "repo_summary_read",
+    ({ repo_path }: { repo_path: string }) => repoSummaryRead({ repo_path })
+  )
 );
 
 // === Start server ===

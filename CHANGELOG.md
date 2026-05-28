@@ -7,6 +7,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [1.0.0] — 2026-05-28
 
+### Phase E — CLI utilities + repo summary + export/import
+
+**Status:** ✅ Complete
+
+#### Added
+- `src/lib/tree.ts` — ASCII directory tree generator with depth/exclude support
+- `src/lib/tree-hash.ts` — SHA-256 hash of git-tracked code file paths (structural change detection)
+- `src/lib/stale-cache.ts` — 30s TTL cache for tree-hash computation
+- `src/lib/repo-summary.ts` — generate/read/write repo summary + metadata
+- `src/tools/repo_summary.ts` — MCP tool `repo_summary_read` with auto-reindex, 8KB truncation
+- CLI commands: `tree`, `summary`, `reindex`, `export`, `import`
+- `harness doctor` extended: `--check-skills-frontmatter`, `--check-routing`, `--check-orphans`, `--fix`
+- 14 new unit tests (tree, tree-hash, stale-cache)
+
+#### Changed
+- `src/index.ts` — registered `repo_summary_read` (26 tools total)
+- `scripts/smoke-test.ts` — expects 26 tools
+
+#### Verified
+- 97 unit tests pass (12 test files)
+- Smoke test passes (26 tools, 13 skills)
+- `harness tree --depth 2` prints correct ASCII tree
+
 ### Phase D — Workflow upgrade: CTR Gate + Artifacts + EPCC mapping
 
 **Status:** ✅ Complete

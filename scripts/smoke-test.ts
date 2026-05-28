@@ -56,6 +56,7 @@ async function main() {
       "scope_check",
       "audit_log",
       "harness_status",
+      "repo_summary_read",
     ];
 
     for (const name of expected) {
