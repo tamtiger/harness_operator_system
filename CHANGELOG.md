@@ -7,6 +7,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [1.0.0] — 2026-05-28
 
+### Phase B — Port C# rulebooks + payment-hub content
+
+**Status:** ✅ Complete
+
+#### Added
+- `rulebooks/csharp/` — 9 stack rulebook files (architecture, dependency, naming, anti-patterns, api-contract, error-code, testing, ci, abp-conventions)
+- `rulebooks/csharp/projects/payment-hub/` — 13 project rulebook files (README, module-map, adapter-rules, api-contract-rules, ci-rules, data-rules, glossary, idempotency-rules, messaging-rules, observability-rules, security-rules, state-machine, testing-rules)
+- `templates/csharp-project-rulebook/` — 7 template files with `{{PROJECT_NAME}}`, `{{STACK}}`, `{{DATE}}` variables
+- `scripts/validate-rulebook-links.ts` — validates all internal markdown links in rulebooks resolve
+
+#### Verified
+- 22+ markdown files in rulebooks (9 stack + 13 project)
+- No broken internal links
+- No references to dropped artifacts (feature-manifest.json, prompt-spec.md, feature-template.md)
+- 83 unit tests pass, build + smoke pass
+
 ### Phase A2 — State architecture: hybrid per-repo + global
 
 **Status:** ✅ Complete
