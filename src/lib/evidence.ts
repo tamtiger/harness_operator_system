@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { resolveStateDir } from "./repo.js";
 
 /**
  * Shape of evidence data stored per task.
@@ -22,8 +23,8 @@ export interface SaveResult {
  * Resolve the evidence file path for a given repo + task.
  */
 function evidencePath(repoPath: string, taskId: string): string {
-  const absPath = resolve(repoPath);
-  return join(absPath, ".harness", "evidence", taskId, "verify.json");
+  const stateDir = resolveStateDir(repoPath);
+  return join(stateDir, "evidence", taskId, "verify.json");
 }
 
 /**

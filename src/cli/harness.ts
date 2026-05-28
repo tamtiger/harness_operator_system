@@ -5,6 +5,8 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { detectRuntime } from "../lib/runtime.js";
 import { resolveGlobalHome, ensureDir } from "../lib/repo.js";
+import { createRepoConfig, resolveGlobalRepoPath } from "../lib/repo-identity.js";
+import { registerRepo } from "../db/client.js";
 import { skillLoad, skillList } from "../tools/skill.js";
 import { verifyRun } from "../tools/verify.js";
 import { harnessStatus } from "../tools/observe.js";
@@ -96,6 +98,15 @@ function cmdInit() {
     writeFileSync(progressPath, "# Progress Log\n", "utf-8");
     created.push(".harness/progress.md");
   }
+
+  // v1.0: Create config.yaml and register repo globally
+  const repoConfig = createRepoConfig(repoPath);
+  registerRepo(repoConfig);
+  const globalRepoDir = resolveGlobalRepoPath(repoConfig.repo_id);
+  ensureDir(join(globalRepoDir, "artifacts", "plans"));
+  ensureDir(join(globalRepoDir, "artifacts", "research"));
+  ensureDir(join(globalRepoDir, "artifacts", "reviews"));
+  created.push(".harness/config.yaml");
 
   console.log(`\n✓ harness init — ${repoName} (${stack})\n`);
   if (created.length > 0) {

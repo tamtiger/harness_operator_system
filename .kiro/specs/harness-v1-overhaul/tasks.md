@@ -71,8 +71,8 @@ Upgrade harness-os from v0.7.0 to v1.0.0 across 7 phases (A1 → A2 → B → C 
   - Verify: `npm run build && npm test && npm run smoke`
   - Expected: frontmatter.ts rewritten, migration script works, 8 skills migrated, 32 empty skill subfolders created
 
-- [ ] 3. Phase A2 — State architecture: hybrid per-repo + global
-  - [ ] 3.1 Create `src/lib/repo-identity.ts`
+- [x] 3. Phase A2 — State architecture: hybrid per-repo + global
+  - [x] 3.1 Create `src/lib/repo-identity.ts`
     - Implement `RepoConfig` interface with fields: `repo_name`, `repo_id`, `harness_home`, `registered_at`, `remote_url`
     - Implement `readRepoConfig(repoPath): RepoConfig | null` — reads `.harness/config.yaml`
     - Implement `createRepoConfig(repoPath): RepoConfig` — generates UUID, writes config.yaml
@@ -81,7 +81,7 @@ Upgrade harness-os from v0.7.0 to v1.0.0 across 7 phases (A1 → A2 → B → C 
     - _Requirements: 4.1, 4.2, 4.3_
 
 
-  - [ ] 3.2 Create `src/lib/state-migration.ts`
+  - [x] 3.2 Create `src/lib/state-migration.ts`
     - Implement `migrateRepoState(repoPath, repoId): MigrationResult`
     - Copy `progress.md`, `feature_list.json`, `handoff/last.json` from per-repo to global
     - Strategy: COPY first (not move), original files preserved
@@ -90,41 +90,41 @@ Upgrade harness-os from v0.7.0 to v1.0.0 across 7 phases (A1 → A2 → B → C 
     - Return `{ migrated, files_copied, skipped, errors }`
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ]* 3.3 Write property tests for migration
+  - [ ]* 3.3 (SKIPPED — optional) Write property tests for migration
     - **Property 7: Migration Preserves Source Files** — after migration, ALL original `.harness/` files still exist with unchanged content
     - **Property 8: Migration Idempotency** — calling migration twice produces same final state as calling once; existing global files listed in `skipped[]`
     - **Validates: Requirements 5.3, 5.4, 23.3**
 
-  - [ ] 3.4 Add `repos` table to DB migrations in `src/db/client.ts`
+  - [x] 3.4 Add `repos` table to DB migrations in `src/db/client.ts`
     - Add `CREATE TABLE IF NOT EXISTS repos (repo_id TEXT PK, repo_name TEXT NOT NULL, repo_path TEXT, remote_url TEXT, registered_at TEXT NOT NULL, last_active TEXT)`
     - Implement `registerRepo(config: RepoConfig): void`
     - Implement `updateRepoLastActive(repoId: string): void`
     - Additive only — no drops or alters of existing tables
     - _Requirements: 7.1, 7.2, 7.3_
 
-  - [ ]* 3.5 Write property test for backward compatibility — data preservation
+  - [ ]* 3.5 (SKIPPED — optional) Write property test for backward compatibility — data preservation
     - **Property 15: Data Preservation** — after running v1.0 migrations, ALL pre-existing rows in sessions, tasks, instincts, audit_events remain intact
     - **Validates: Requirements 23.2, 23.4**
 
-  - [ ] 3.6 Update `src/lib/repo.ts` — dual path resolution
+  - [x] 3.6 Update `src/lib/repo.ts` — dual path resolution
     - Add `resolveLocalHarnessDir(repoPath): string` (unchanged from v0.7)
     - Add `resolveStateDir(repoPath): string` — reads config.yaml → repo_id → global path; falls back to per-repo if no config.yaml
     - Deprecate alias: `resolveHarnessDir = resolveLocalHarnessDir`
     - _Requirements: 4.2, 4.3, 6.1, 6.2, 6.3, 6.4_
 
 
-  - [ ]* 3.7 Write property test for global path resolution determinism
+  - [ ]* 3.7 (SKIPPED — optional) Write property test for global path resolution determinism
     - **Property 6: Global Path Resolution Determinism** — for any repo with config.yaml containing repo_id=R, `resolveStateDir` returns path ending in `repos/{R}/`; all state tools read/write exclusively within this path
     - **Validates: Requirements 4.2, 6.1, 6.2, 6.3, 6.4**
 
-  - [ ] 3.8 Update all state tools to use `resolveStateDir()`
+  - [x] 3.8 Update all state tools to use `resolveStateDir()`
     - Update `src/tools/state.ts` — `progressLog`, `featureListRead/Update`, `handoffWrite/Read`
     - Update `src/tools/session.ts` — `sessionStart` triggers migration if needed
     - Update `src/tools/verify.ts` — evidence path uses global
     - Update `src/tools/observe.ts` — `harnessStatus` reads from global
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [ ] 3.9 Update `session_start` to trigger auto-migration
+  - [x] 3.9 Update `session_start` to trigger auto-migration
     - Step 1: Check/create config.yaml (auto-migration trigger for v0.7 repos)
     - Step 2: Register/update repo in DB (`registerRepo`, `updateRepoLastActive`)
     - Step 3: Auto-migrate state files (copy, idempotent)
@@ -132,19 +132,19 @@ Upgrade harness-os from v0.7.0 to v1.0.0 across 7 phases (A1 → A2 → B → C 
     - Step 5: Continue with existing session logic
     - _Requirements: 5.1, 5.2, 6.5, 7.3_
 
-  - [ ] 3.10 Update `harness init` to create config.yaml
+  - [x] 3.10 Update `harness init` to create config.yaml
     - Generate UUID → write `.harness/config.yaml`
     - Create global dirs: `~/.harness/repos/{repo_id}/artifacts/{plans,research,reviews}/`
     - Register in `repos` table
     - Create `~/.harness/config.json` global registry entry
     - _Requirements: 4.1, 4.4_
 
-  - [ ] 3.11 Write unit tests for repo-identity and state-migration
+  - [x] 3.11 Write unit tests for repo-identity and state-migration
     - `src/lib/repo-identity.test.ts` — UUID generation, config.yaml read/write, global path resolution
     - `src/lib/state-migration.test.ts` — copy logic, idempotency, error handling, missing source files
     - _Requirements: 4.1, 4.2, 5.2, 5.3, 5.4_
 
-- [ ] 4. Phase A2 Checkpoint
+- [x] 4. Phase A2 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
   - Verify: `npm run build && npm test && npm run smoke`
   - Expected: hybrid state model working, session_start auto-migrates v0.7 repos, all 25 tools still work via global paths

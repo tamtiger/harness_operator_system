@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { getDb } from "../db/client.js";
+import { join } from "node:path";
+import { getDb, registerRepo, updateRepoLastActive } from "../db/client.js";
 import { detectRuntime } from "../lib/runtime.js";
+import { readRepoConfig, createRepoConfig, resolveGlobalRepoPath } from "../lib/repo-identity.js";
+import { migrateRepoState } from "../lib/state-migration.js";
+import { ensureDir } from "../lib/repo.js";
 import { handoffRead, handoffWrite, progressLog, type HandoffData } from "./state.js";
 import { taskList } from "./task.js";
 import { skillList } from "./skill.js";
@@ -27,6 +31,21 @@ export interface SessionHandoffResult {
 }
 
 export function sessionStart(repoPath: string): SessionStartResult {
+  // --- v1.0 auto-migration: config, register, migrate, ensure dirs ---
+  let config = readRepoConfig(repoPath);
+  if (!config) config = createRepoConfig(repoPath);
+
+  registerRepo(config);
+  updateRepoLastActive(config.repo_id);
+
+  migrateRepoState(repoPath, config.repo_id);
+
+  const globalRepoDir = resolveGlobalRepoPath(config.repo_id);
+  ensureDir(join(globalRepoDir, "artifacts", "plans"));
+  ensureDir(join(globalRepoDir, "artifacts", "research"));
+  ensureDir(join(globalRepoDir, "artifacts", "reviews"));
+  // --- end v1.0 auto-migration ---
+
   const db = getDb();
   const id = randomUUID();
   const now = new Date().toISOString();

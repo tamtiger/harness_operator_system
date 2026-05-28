@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import type { RepoConfig } from "../lib/repo-identity.js";
 
 const HARNESS_HOME = process.env.HARNESS_HOME || join(homedir(), ".harness");
 const DB_PATH = join(HARNESS_HOME, "harness.sqlite");
@@ -49,6 +50,15 @@ function runMigrations(db: Database.Database): void {
       payload TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS repos (
+      repo_id TEXT PRIMARY KEY,
+      repo_name TEXT NOT NULL,
+      repo_path TEXT,
+      remote_url TEXT,
+      registered_at TEXT NOT NULL,
+      last_active TEXT
+    );
   `);
 }
 
@@ -76,4 +86,27 @@ export function getDbPath(): string {
 
 export function getHarnessHome(): string {
   return HARNESS_HOME;
+}
+
+export function registerRepo(config: RepoConfig): void {
+  const db = getDb();
+  db.prepare(`
+    INSERT OR REPLACE INTO repos (repo_id, repo_name, repo_path, remote_url, registered_at, last_active)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    config.repo_id,
+    config.repo_name,
+    null,
+    config.remote_url || null,
+    config.registered_at,
+    new Date().toISOString(),
+  );
+}
+
+export function updateRepoLastActive(repoId: string): void {
+  const db = getDb();
+  db.prepare(`UPDATE repos SET last_active = ? WHERE repo_id = ?`).run(
+    new Date().toISOString(),
+    repoId,
+  );
 }

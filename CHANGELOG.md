@@ -7,6 +7,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [1.0.0] — 2026-05-28
 
+### Phase A2 — State architecture: hybrid per-repo + global
+
+**Status:** ✅ Complete
+
+#### Added
+- `src/lib/repo-identity.ts` — UUID-based repo identity with `config.yaml` read/write, `resolveGlobalRepoPath()`
+- `src/lib/state-migration.ts` — copy per-repo state files to global `~/.harness/repos/{repoId}/`, idempotent, preserves originals
+- `repos` table in SQLite DB (additive migration) with `registerRepo()`, `updateRepoLastActive()`
+- `resolveStateDir(repoPath)` in `repo.ts` — dual path resolution (global if config.yaml exists, fallback to local)
+- `resolveLocalHarnessDir()` alias for explicit naming
+- `session_start` auto-migration: creates config.yaml, registers repo, migrates state, ensures global artifact dirs
+- `harness init` creates config.yaml and registers repo globally
+- 13 new unit tests: `repo-identity.test.ts` (8), `state-migration.test.ts` (5)
+
+#### Changed
+- `src/tools/state.ts` — all state tools (`progressLog`, `featureListRead/Update`, `handoffWrite/Read`) now use `resolveStateDir()`
+- `src/lib/evidence.ts` — evidence path uses `resolveStateDir()`
+- `src/tools/session.ts` — `sessionStart` triggers auto-migration before session creation
+
+#### Verified
+- `npm run build` passes (0 errors)
+- 83 unit tests pass (9 test files)
+- Smoke test passes (25 tools, 8 skills)
+
 ### Phase A1 — Frontmatter migration to agentskills.io spec
 
 **Status:** ✅ Complete

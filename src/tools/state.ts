@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { resolveHarnessDir, ensureDir } from "../lib/repo.js";
+import { resolveStateDir, ensureDir } from "../lib/repo.js";
 
 // === progress_log ===
 
@@ -16,8 +16,8 @@ export function progressLog(
   repoPath: string,
   entry: ProgressEntry
 ): { ok: true } {
-  const harnessDir = resolveHarnessDir(repoPath);
-  const progressFile = join(harnessDir, "progress.md");
+  const stateDir = resolveStateDir(repoPath);
+  const progressFile = join(stateDir, "progress.md");
 
   const now = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh", hour12: false }).slice(0, 16).replace("T", " ");
   const taskRef = entry.task_id ? ` — task ${entry.task_id}` : "";
@@ -55,8 +55,8 @@ export interface Feature {
 export function featureListRead(
   repoPath: string
 ): { features: Feature[] } {
-  const harnessDir = resolveHarnessDir(repoPath);
-  const filePath = join(harnessDir, "feature_list.json");
+  const stateDir = resolveStateDir(repoPath);
+  const filePath = join(stateDir, "feature_list.json");
 
   if (!existsSync(filePath)) {
     return { features: [] };
@@ -76,8 +76,8 @@ export function featureListUpdate(
   featureId: string,
   patch: Record<string, unknown>
 ): { feature: Feature } {
-  const harnessDir = resolveHarnessDir(repoPath);
-  const filePath = join(harnessDir, "feature_list.json");
+  const stateDir = resolveStateDir(repoPath);
+  const filePath = join(stateDir, "feature_list.json");
 
   let data: { features: Feature[] } = { features: [] };
 
@@ -126,8 +126,8 @@ export function handoffWrite(
   verifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string },
   durationSeconds?: number
 ): { path: string } {
-  const harnessDir = resolveHarnessDir(repoPath);
-  const handoffDir = join(harnessDir, "handoff");
+  const stateDir = resolveStateDir(repoPath);
+  const handoffDir = join(stateDir, "handoff");
   ensureDir(handoffDir);
 
   const filePath = join(handoffDir, "last.json");
@@ -148,8 +148,8 @@ export function handoffWrite(
 export function handoffRead(
   repoPath: string
 ): { handoff: HandoffData | null } {
-  const harnessDir = resolveHarnessDir(repoPath);
-  const filePath = join(harnessDir, "handoff", "last.json");
+  const stateDir = resolveStateDir(repoPath);
+  const filePath = join(stateDir, "handoff", "last.json");
 
   if (!existsSync(filePath)) {
     return { handoff: null };
