@@ -3,6 +3,7 @@ set -euo pipefail
 
 # harness-os init script for {{REPO_NAME}} ({{STACK}})
 # Generated on {{DATE}}
+# Package manager: {{PM_NAME}}
 
 echo "=== harness init: {{REPO_NAME}} ({{STACK}}) ==="
 
@@ -21,12 +22,23 @@ echo "✓ Node.js $(node -v)"
 
 # 2. Stack-specific checks
 {{#if_node}}
-if [ -f package-lock.json ]; then
-  npm ci
-elif [ -f package.json ]; then
-  npm install
+# Waterfall: Bun → npm → fail
+if command -v bun &> /dev/null; then
+  bun install
+  echo "✓ Dependencies installed (bun)"
+elif command -v npm &> /dev/null; then
+  if [ -f package-lock.json ]; then
+    npm ci
+  else
+    npm install
+  fi
+  echo "✓ Dependencies installed (npm)"
+else
+  echo "✗ No JS package manager found."
+  echo "  Install Bun: https://bun.sh"
+  echo "  Or Node.js:  https://nodejs.org"
+  exit 1
 fi
-echo "✓ Node dependencies installed"
 {{/if_node}}
 {{#if_dotnet}}
 if command -v dotnet &> /dev/null; then

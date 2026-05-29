@@ -1,8 +1,11 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+export type PackageManager = "bun" | "npm" | "pnpm";
+
 export interface RuntimeInfo {
   runtime: string;
+  packageManager: PackageManager;
   commands: {
     install: string | null;
     build: string | null;
@@ -11,10 +14,65 @@ export interface RuntimeInfo {
   };
 }
 
+/**
+ * Detect which package manager the repo uses based on lockfile presence.
+ * Priority: bun.lockb > pnpm-lock.yaml > package-lock.json > npm (default)
+ */
+export function detectPackageManager(repoPath: string): PackageManager {
+  if (existsSync(join(repoPath, "bun.lockb"))) {
+    return "bun";
+  }
+  if (existsSync(join(repoPath, "pnpm-lock.yaml"))) {
+    return "pnpm";
+  }
+  // Default to npm (either has package-lock.json or nothing)
+  return "npm";
+}
+
+/**
+ * Get commands for a specific package manager.
+ * Note: Does NOT use --if-present (not supported by all PMs).
+ * Missing scripts should be handled at runtime by checking package.json.
+ */
+export function getPmCommands(pm: PackageManager, repoPath?: string): {
+  install: string;
+  build: string;
+  test: string;
+  lint: string;
+} {
+  switch (pm) {
+    case "bun":
+      return {
+        install: "bun install",
+        build: "bun run build",
+        test: "bun run test",
+        lint: "bun run lint",
+      };
+    case "pnpm":
+      return {
+        install: "pnpm install --frozen-lockfile",
+        build: "pnpm run build",
+        test: "pnpm run test",
+        lint: "pnpm run lint",
+      };
+    case "npm":
+    default:
+      // For npm, check if lockfile exists
+      const hasNpmLock = repoPath && existsSync(join(repoPath, "package-lock.json"));
+      return {
+        install: hasNpmLock ? "npm ci" : "npm install",
+        build: "npm run build",
+        test: "npm run test",
+        lint: "npm run lint",
+      };
+  }
+}
+
 export function detectRuntime(repoPath: string): RuntimeInfo {
   if (!existsSync(repoPath)) {
     return {
       runtime: "unknown",
+      packageManager: "npm",
       commands: { install: null, build: null, test: null, lint: null },
     };
   }
@@ -27,6 +85,7 @@ export function detectRuntime(repoPath: string): RuntimeInfo {
   if (hasSln || hasCsproj) {
     return {
       runtime: "dotnet",
+      packageManager: "npm", // Not applicable
       commands: {
         install: "dotnet restore",
         build: "dotnet build --no-restore",
@@ -36,17 +95,14 @@ export function detectRuntime(repoPath: string): RuntimeInfo {
     };
   }
 
-  // Check for Node.js
+  // Check for Node.js (check package.json first)
   if (existsSync(join(repoPath, "package.json"))) {
-    const hasLock = existsSync(join(repoPath, "package-lock.json"));
+    const pm = detectPackageManager(repoPath);
+    const pmCommands = getPmCommands(pm, repoPath);
     return {
       runtime: "node",
-      commands: {
-        install: hasLock ? "npm ci" : "npm install",
-        build: "npm run build --if-present",
-        test: "npm test --if-present",
-        lint: "npm run lint --if-present",
-      },
+      packageManager: pm,
+      commands: pmCommands,
     };
   }
 
@@ -57,6 +113,7 @@ export function detectRuntime(repoPath: string): RuntimeInfo {
   ) {
     return {
       runtime: "python",
+      packageManager: "npm",
       commands: {
         install: existsSync(join(repoPath, "pyproject.toml"))
           ? "pip install -e ."
@@ -72,6 +129,7 @@ export function detectRuntime(repoPath: string): RuntimeInfo {
   if (existsSync(join(repoPath, "go.mod"))) {
     return {
       runtime: "go",
+      packageManager: "npm",
       commands: {
         install: "go mod download",
         build: "go build ./...",
@@ -85,6 +143,7 @@ export function detectRuntime(repoPath: string): RuntimeInfo {
   if (existsSync(join(repoPath, "Cargo.toml"))) {
     return {
       runtime: "rust",
+      packageManager: "npm",
       commands: {
         install: null,
         build: "cargo build",
@@ -97,6 +156,7 @@ export function detectRuntime(repoPath: string): RuntimeInfo {
   // Unknown
   return {
     runtime: "unknown",
+    packageManager: "npm",
     commands: {
       install: null,
       build: null,

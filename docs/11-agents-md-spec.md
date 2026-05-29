@@ -63,7 +63,7 @@ Stack-specific content uses conditional blocks:
 
 ```
 {{#if_node}}
-npm ci && npm run build
+bun install && bun run build
 {{/if_node}}
 ```
 

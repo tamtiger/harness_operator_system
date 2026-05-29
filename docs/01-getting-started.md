@@ -35,7 +35,7 @@ harness-os là một hệ thống có cấu trúc giúp kiểm soát AI coding a
 | Yêu cầu | Chi tiết |
 |----------|----------|
 | **Node.js** | ≥ 20.0.0 (bắt buộc) |
-| **npm** | ≥ 9.x (đi kèm Node 20) |
+| **Bun** | ≥ 1.0.0 (khuyến nghị) |
 | **OS** | Windows 10/11, macOS 12+, Linux (Ubuntu 20.04+) |
 | **Disk** | ~100MB cho dependencies + SQLite data |
 | **IDE** | Bất kỳ IDE hỗ trợ MCP (xem [Cấu hình IDE](./ide-setup.md)) |
@@ -58,18 +58,18 @@ git clone <repo-url> harness-os
 cd harness-os
 ```
 
-### Bước 2: Cài dependencies
+### Bước 2: Cài dependencies (dùng Bun)
 
 ```bash
-npm install
+bun install
 ```
 
-> **Lưu ý Windows:** `better-sqlite3` cần native binary. Nếu `npm install` báo lỗi build, đảm bảo đã cài [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) hoặc chạy `npm install --build-from-source`.
+> **Lưu ý:** Dự án này dùng Bun thay cho npm. Nếu chưa cài Bun, xem [hướng dẫn cài Bun](https://bun.sh).
 
 ### Bước 3: Build
 
 ```bash
-npm run build
+bun run build
 ```
 
 Kết quả: thư mục `dist/` chứa compiled JavaScript.
@@ -77,7 +77,7 @@ Kết quả: thư mục `dist/` chứa compiled JavaScript.
 ### Bước 4: Verify cài đặt
 
 ```bash
-node dist/cli/harness.js doctor
+bun run dev -- doctor
 ```
 
 Output mong đợi:

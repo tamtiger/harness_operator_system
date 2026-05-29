@@ -23,26 +23,26 @@ The server exposes tools for session lifecycle, task management, verification, s
 ## 2. Development Setup
 
 ```bash
-# Clone and install
+# Clone and install (using Bun)
 git clone <repo-url> && cd harness-os
-npm install
+bun install
 
 # Build (TypeScript → dist/)
-npm run build
+bun run build
 
-# Run unit tests (97 tests)
-npm test
+# Run unit tests (99 tests)
+bun test
 
 # Run smoke test (boots MCP server, calls all tools)
-npm run smoke
+bun run smoke
 
 # Dev mode (tsx, no build needed)
-npm run dev
+bun run dev
 ```
 
 Requirements:
 - Node.js ≥ 20.0.0
-- npm (comes with Node)
+- Bun (https://bun.sh)
 - No other global dependencies needed — `better-sqlite3` ships prebuilt binaries
 
 ---
@@ -248,9 +248,9 @@ Edit `scripts/smoke-test.ts` — add the new tool name to the expected tools lis
 ### Step 4: Verify
 
 ```bash
-npm run build
-npm test
-npm run smoke
+bun run build
+bun test
+bun run smoke
 ```
 
 Rules:
@@ -295,7 +295,7 @@ After the frontmatter closing `---`, write the skill content in markdown. Struct
 npm run build
 npm test
 # Confirm skill appears:
-node dist/cli/harness.js skills --list
+bun run dev -- skills --list
 ```
 
 Frontmatter schema:
@@ -365,13 +365,13 @@ Run these commands before every commit:
 
 ```bash
 # 1. Compile TypeScript (must pass with zero errors)
-npm run build
+bun run build
 
-# 2. Run unit tests (all 43 must pass)
-npm test
+# 2. Run unit tests (all 99 must pass)
+bun test
 
 # 3. Run smoke test (MCP server boots and all tools respond)
-npm run smoke
+bun run smoke
 ```
 
 All three must pass. Do not commit if any fails.

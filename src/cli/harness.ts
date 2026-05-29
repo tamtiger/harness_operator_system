@@ -45,6 +45,7 @@ function cmdInit() {
   }
   const repoPath = resolve(rawPath);
   const stackArg = getFlag("stack") || "auto";
+  const pmArg = getFlag("pm") || "auto";
   const force = hasFlag("force");
 
   if (!existsSync(repoPath)) {
@@ -53,13 +54,45 @@ function cmdInit() {
     process.exit(1);
   }
 
+  // Detect stack
   const runtime = stackArg === "auto" ? detectRuntime(repoPath) : { runtime: stackArg };
   const stack = runtime.runtime;
+
+  // Detect package manager (only relevant for Node.js repos)
+  let packageManager: string = "npm";
+  if (stack === "node" || stack === "auto") {
+    if (pmArg !== "auto") {
+      packageManager = pmArg; // bun, npm, or pnpm
+    } else if ("packageManager" in runtime) {
+      packageManager = (runtime as { packageManager: string }).packageManager;
+    }
+  }
+
   const repoName = basename(repoPath);
   const date = new Date().toISOString().slice(0, 10);
 
   const projectRoot = getProjectRoot();
   const templatesDir = join(projectRoot, "templates");
+
+  // Get PM commands for template rendering
+  let pmInstall = "npm ci";
+  let pmRun = "npm run";
+  let pmName = "npm";
+  
+  if (packageManager === "bun") {
+    pmInstall = "bun install";
+    pmRun = "bun run";
+    pmName = "bun";
+  } else if (packageManager === "pnpm") {
+    pmInstall = "pnpm install --frozen-lockfile";
+    pmRun = "pnpm run";
+    pmName = "pnpm";
+  } else {
+    // npm (default)
+    pmInstall = existsSync(join(repoPath, "package-lock.json")) ? "npm ci" : "npm install";
+    pmRun = "npm run";
+    pmName = "npm";
+  }
 
   const files: Array<{ path: string; template: string }> = [
     { path: "AGENTS.md", template: "AGENTS.md.tpl" },
@@ -86,7 +119,15 @@ function cmdInit() {
     }
 
     let content = readFileSync(tplPath, "utf-8");
-    content = renderTemplate(content, { REPO_NAME: repoName, STACK: stack, DATE: date });
+    // Pass all template variables
+    content = renderTemplate(content, { 
+      REPO_NAME: repoName, 
+      STACK: stack, 
+      DATE: date,
+      PM_NAME: pmName,
+      PM_INSTALL: pmInstall,
+      PM_RUN: pmRun,
+    });
 
     const dir = dirname(targetPath);
     ensureDir(dir);

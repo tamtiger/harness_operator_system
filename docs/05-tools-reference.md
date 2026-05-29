@@ -279,7 +279,8 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
 
 | Stack | Install | Build | Test | Lint |
 |-------|---------|-------|------|------|
-| node | `npm ci` | `npm run build` | `npm test` | `npm run lint` |
+| node (bun) | `bun install` | `bun run build` | `bun run test` | `bun run lint` |
+| node (npm) | `npm ci` / `npm install` | `npm run build` | `npm run test` | `npm run lint` |
 | dotnet | `dotnet restore` | `dotnet build --no-restore` | `dotnet test --no-build` | `dotnet format --verify-no-changes` |
 | python | `pip install -e .` | — | `pytest` | `ruff check .` |
 | go | `go mod download` | `go build ./...` | `go test ./...` | `golangci-lint run` |

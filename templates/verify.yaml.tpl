@@ -1,10 +1,10 @@
 {{#if_node}}
-runtime: node
+runtime: {{PM_NAME}}
 commands:
-  install: "npm ci"
-  build: "npm run build --if-present"
-  test: "npm test --if-present"
-  lint: "npm run lint --if-present"
+  install: "{{PM_INSTALL}}"
+  build: "{{PM_RUN}} build"
+  test: "{{PM_RUN}} test"
+  lint: "{{PM_RUN}} lint"
   typecheck: null
 timeouts:
   build: 120

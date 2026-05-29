@@ -3,10 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)](#)
+[![Bun](https://img.shields.io/badge/Bun-v1.2.0-f9f2f4)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-26-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-23-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-97%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-99%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -22,15 +23,15 @@ Hoạt động với mọi IDE hỗ trợ MCP: **Cursor, Claude Code, Kiro, VS C
 ## Quick Start
 
 ```bash
-# 1. Cài đặt và build
+# 1. Cài đặt và build (dùng Bun)
 git clone <repo-url> && cd harness-os
-npm install && npm run build
+bun install && bun run build
 
 # 2. Init harness cho repo của bạn
-node dist/cli/harness.js init /path/to/your/repo
+bun run dev -- init /path/to/your/repo
 
 # 3. Cài MCP cho IDE
-node dist/cli/harness.js install-mcp --ide cursor
+bun run dev -- install-mcp --ide cursor
 
 # 4. Mở IDE → agent đã biết phải làm gì
 ```
@@ -228,11 +229,14 @@ harness-os/
 ## Phát triển
 
 ```bash
-npm run dev          # Dev mode (tsx, không cần build)
-npm run build        # Compile TypeScript
-npm test             # Unit tests (97+ tests)
-npm run smoke        # End-to-end MCP test
+bun install          # Install dependencies (tạo bun.lockb)
+bun run dev          # Dev mode (tsx, không cần build)
+bun run build        # Compile TypeScript
+bun test             # Unit tests (97+ tests)
+bun run smoke        # End-to-end MCP test
 ```
+
+> **Lưu ý:** Dự án này dùng Bun thay cho npm. Xem [Bun Migration Plan](./docs/plans/2026-05-29-bun-migration.md) để biết thêm chi tiết.
 
 ## Lộ trình
 
