@@ -24,7 +24,7 @@ import { log } from "./lib/logger.js";
 
 const server = new McpServer({
   name: "harness-os",
-  version: "1.0.0",
+  version: "1.1.0",
 });
 
 /**
@@ -43,31 +43,38 @@ function makeHandler<T extends Record<string, unknown>>(
 
 // === Session tools ===
 
-server.tool(
+server.registerTool(
   "session_start",
-  "Start a new harness session for a repo. Returns session ID, last handoff, and pending tasks.",
-  { repo_path: z.string().describe("Absolute or relative path to the repo") },
+  {
+    description: "Start a new harness session for a repo. Returns session ID, last handoff, and pending tasks.",
+    inputSchema: { repo_path: z.string().describe("Absolute or relative path to the repo") },
+  },
   makeHandler("session_start", ({ repo_path }: { repo_path: string }) => sessionStart(repo_path))
 );
 
-server.tool(
+server.registerTool(
   "session_resume",
-  "Resume work on a repo (alias for session_start with 'continue' semantics).",
-  { repo_path: z.string().describe("Absolute or relative path to the repo") },
+  {
+    description: "Resume work on a repo (alias for session_start with 'continue' semantics).",
+    inputSchema: { repo_path: z.string().describe("Absolute or relative path to the repo") },
+  },
   makeHandler("session_resume", ({ repo_path }: { repo_path: string }) => sessionResume(repo_path))
 );
 
-server.tool(
+server.registerTool(
   "session_end",
-  "End an active harness session.",
-  { session_id: z.string().describe("Session ID to close") },
+  {
+    description: "End an active harness session.",
+    inputSchema: { session_id: z.string().describe("Session ID to close") },
+  },
   makeHandler("session_end", ({ session_id }: { session_id: string }) => sessionEnd(session_id))
 );
 
-server.tool(
+server.registerTool(
   "session_handoff",
-  "End session with handoff: write handoff file + progress log + close session atomically.",
   {
+    description: "End session with handoff: write handoff file + progress log + close session atomically.",
+    inputSchema: {
     session_id: z.string().describe("Session ID"),
     summary: z.string().describe("Summary of what was accomplished"),
     unfinished: z.array(z.string()).describe("List of unfinished items"),
@@ -77,6 +84,8 @@ server.tool(
       steps_run: z.array(z.string()),
       failed_step: z.string().optional(),
     }).optional().describe("Last verify_run result summary"),
+    suggested_skills: z.array(z.string()).optional().describe("Names of skills suggested for the next session"),
+  },
   },
   makeHandler(
     "session_handoff",
@@ -86,25 +95,29 @@ server.tool(
       unfinished,
       next_steps,
       verify_status,
+      suggested_skills,
     }: {
       session_id: string;
       summary: string;
       unfinished: string[];
       next_steps: string[];
       verify_status?: { passed: boolean; steps_run: string[]; failed_step?: string };
-    }) => sessionHandoff(session_id, summary, unfinished, next_steps, verify_status)
+      suggested_skills?: string[];
+    }) => sessionHandoff(session_id, summary, unfinished, next_steps, verify_status, suggested_skills)
   )
 );
 
 // === Task tools ===
 
-server.tool(
+server.registerTool(
   "task_create",
-  "Create a new task with title and optional scope.",
   {
+    description: "Create a new task with title and optional scope.",
+    inputSchema: {
     title: z.string().describe("Task title"),
     scope: z.string().optional().describe("Scope description or allowed paths"),
     session_id: z.string().optional().describe("Link task to a session"),
+  },
   },
   makeHandler(
     "task_create",
@@ -113,12 +126,14 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "task_update",
-  "Update task status.",
   {
+    description: "Update task status.",
+    inputSchema: {
     task_id: z.string().describe("Task ID"),
     status: z.enum(["pending", "in-progress", "done", "blocked"]).describe("New status"),
+  },
   },
   makeHandler(
     "task_update",
@@ -126,15 +141,17 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "task_list",
-  "List tasks, optionally filtered by repo or status.",
   {
+    description: "List tasks, optionally filtered by repo or status.",
+    inputSchema: {
     repo_path: z.string().optional().describe("Filter by repo path"),
     status: z
       .enum(["pending", "in-progress", "done", "blocked"])
       .optional()
       .describe("Filter by status"),
+  },
   },
   makeHandler(
     "task_list",
@@ -144,10 +161,11 @@ server.tool(
 
 // === Verify tools ===
 
-server.tool(
+server.registerTool(
   "verify_run",
-  "Run verification pipeline for a repo (install, build, test, lint).",
   {
+    description: "Run verification pipeline for a repo (install, build, test, lint).",
+    inputSchema: {
     repo_path: z.string().describe("Path to the repo to verify"),
     steps: z
       .array(z.string())
@@ -156,6 +174,7 @@ server.tool(
     fail_fast: z.boolean().optional().describe("Stop on first failure (default true)"),
     changed_only: z.boolean().optional().describe("Lint only changed files (default false)"),
     task_id: z.string().optional().describe("If provided, auto-save evidence for this task"),
+  },
   },
   makeHandler(
     "verify_run",
@@ -171,12 +190,14 @@ server.tool(
 
 // === Skill tools ===
 
-server.tool(
+server.registerTool(
   "skill_load",
-  "Load a skill by name. Returns skill content and metadata.",
   {
+    description: "Load a skill by name. Returns skill content and metadata.",
+    inputSchema: {
     name: z.string().describe("Skill name (e.g. 'karpathy-guidelines')"),
     repo_path: z.string().optional().describe("Repo path for repo-specific skill lookup"),
+  },
   },
   makeHandler(
     "skill_load",
@@ -184,12 +205,14 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "skill_list",
-  "List all available skills with metadata. Optionally filter by stack.",
   {
+    description: "List all available skills with metadata. Optionally filter by stack.",
+    inputSchema: {
     stack_filter: z.string().optional().describe("Filter by stack (e.g. 'node', 'dotnet')"),
     repo_path: z.string().optional().describe("Include repo-specific skills"),
+  },
   },
   makeHandler(
     "skill_list",
@@ -198,12 +221,14 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "skill_create_from_session",
-  "Generate a SKILL.md draft from a session's audit log. Returns draft only (does NOT auto-save).",
   {
+    description: "Generate a SKILL.md draft from a session's audit log. Returns draft only (does NOT auto-save).",
+    inputSchema: {
     session_id: z.string().describe("Session ID to extract patterns from"),
     theme: z.string().describe("Theme/name for the skill (e.g. 'refactoring-workflow')"),
+  },
   },
   makeHandler(
     "skill_create_from_session",
@@ -214,14 +239,16 @@ server.tool(
 
 // === Instinct tools ===
 
-server.tool(
+server.registerTool(
   "instinct_add",
-  "Add a new instinct (reusable pattern learned from experience).",
   {
+    description: "Add a new instinct (reusable pattern learned from experience).",
+    inputSchema: {
     description: z.string().describe("What the instinct captures"),
     tags: z.array(z.string()).describe("Tags for filtering (e.g. ['node', 'testing'])"),
     confidence: z.number().optional().describe("Initial confidence (0-1, default 0.5)"),
     ttl_days: z.number().optional().describe("Time-to-live in days (null = permanent)"),
+  },
   },
   makeHandler(
     "instinct_add",
@@ -239,12 +266,14 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "instinct_get",
-  "Get instincts, optionally filtered by tags. Also returns available_tags for discovery.",
   {
+    description: "Get instincts, optionally filtered by tags. Also returns available_tags for discovery.",
+    inputSchema: {
     tags: z.array(z.string()).optional().describe("Filter by tags (any match)"),
     min_confidence: z.number().optional().describe("Minimum confidence threshold"),
+  },
   },
   makeHandler(
     "instinct_get",
@@ -253,13 +282,15 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "instinct_prune",
-  "Remove low-confidence or expired instincts. Use dry_run to preview.",
   {
+    description: "Remove low-confidence or expired instincts. Use dry_run to preview.",
+    inputSchema: {
     confidence_below: z.number().optional().describe("Remove instincts below this confidence (default 0.2)"),
     expired_only: z.boolean().optional().describe("Only remove expired instincts (past TTL)"),
     dry_run: z.boolean().optional().describe("Preview what would be removed without deleting"),
+  },
   },
   makeHandler(
     "instinct_prune",
@@ -275,11 +306,13 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "instinct_evolve",
-  "Group instincts by tag cluster and suggest a SKILL.md draft. Needs 5+ instincts.",
   {
+    description: "Group instincts by tag cluster and suggest a SKILL.md draft. Needs 5+ instincts.",
+    inputSchema: {
     tag_cluster: z.string().optional().describe("Tag to cluster instincts by"),
+  },
   },
   makeHandler(
     "instinct_evolve",
@@ -287,11 +320,13 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "instinct_promote",
-  "Promote an instinct from pending to permanent (removes TTL, boosts confidence).",
   {
+    description: "Promote an instinct from pending to permanent (removes TTL, boosts confidence).",
+    inputSchema: {
     instinct_id: z.string().describe("Instinct ID to promote"),
+  },
   },
   makeHandler(
     "instinct_promote",
@@ -301,10 +336,11 @@ server.tool(
 
 // === State tools ===
 
-server.tool(
+server.registerTool(
   "progress_log",
-  "Append a progress entry to .harness/progress.md.",
   {
+    description: "Append a progress entry to .harness/progress.md.",
+    inputSchema: {
     repo_path: z.string().describe("Path to the repo"),
     entry: z.object({
       task_id: z.string().optional(),
@@ -313,6 +349,7 @@ server.tool(
       evidence_ref: z.string().optional(),
       files_changed: z.array(z.string()).optional().describe("List of files modified"),
     }),
+  },
   },
   makeHandler(
     "progress_log",
@@ -326,20 +363,24 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "feature_list_read",
-  "Read the feature list from .harness/feature_list.json.",
-  { repo_path: z.string().describe("Path to the repo") },
+  {
+    description: "Read the feature list from .harness/feature_list.json.",
+    inputSchema: { repo_path: z.string().describe("Path to the repo") },
+  },
   makeHandler("feature_list_read", ({ repo_path }: { repo_path: string }) => featureListRead(repo_path))
 );
 
-server.tool(
+server.registerTool(
   "feature_list_update",
-  "Update a feature entry in .harness/feature_list.json (upsert).",
   {
+    description: "Update a feature entry in .harness/feature_list.json (upsert).",
+    inputSchema: {
     repo_path: z.string().describe("Path to the repo"),
     feature_id: z.string().describe("Feature ID"),
     patch: z.record(z.string(), z.unknown()).describe("Fields to merge"),
+  },
   },
   makeHandler(
     "feature_list_update",
@@ -355,15 +396,18 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "handoff_write",
-  "Write a handoff file for the next session.",
   {
+    description: "Write a handoff file for the next session.",
+    inputSchema: {
     repo_path: z.string().describe("Path to the repo"),
     session_id: z.string().describe("Current session ID"),
     next_steps: z.array(z.string()),
     unfinished: z.array(z.string()),
     last_known_good: z.string(),
+    suggested_skills: z.array(z.string()).optional().describe("Suggested skills"),
+  },
   },
   makeHandler(
     "handoff_write",
@@ -373,31 +417,37 @@ server.tool(
       next_steps,
       unfinished,
       last_known_good,
+      suggested_skills,
     }: {
       repo_path: string;
       session_id: string;
       next_steps: string[];
       unfinished: string[];
       last_known_good: string;
-    }) => handoffWrite(repo_path, session_id, next_steps, unfinished, last_known_good)
+      suggested_skills?: string[];
+    }) => handoffWrite(repo_path, session_id, next_steps, unfinished, last_known_good, undefined, undefined, suggested_skills)
   )
 );
 
-server.tool(
+server.registerTool(
   "handoff_read",
-  "Read the last handoff file from .harness/handoff/last.json.",
-  { repo_path: z.string().describe("Path to the repo") },
+  {
+    description: "Read the last handoff file from .harness/handoff_last.json.",
+    inputSchema: { repo_path: z.string().describe("Path to the repo") },
+  },
   makeHandler("handoff_read", ({ repo_path }: { repo_path: string }) => handoffRead(repo_path))
 );
 
 // === Scope tools ===
 
-server.tool(
+server.registerTool(
   "scope_get",
-  "Get scope configuration for a task.",
   {
+    description: "Get scope configuration for a task.",
+    inputSchema: {
     repo_path: z.string().describe("Path to the repo"),
     task_id: z.string().optional().describe("Task ID"),
+  },
   },
   makeHandler(
     "scope_get",
@@ -405,13 +455,15 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "scope_check",
-  "Check if a file path is within scope for a task.",
   {
+    description: "Check if a file path is within scope for a task.",
+    inputSchema: {
     repo_path: z.string().describe("Path to the repo"),
     task_id: z.string().optional().describe("Task ID"),
     file_path: z.string().describe("File path to check"),
+  },
   },
   makeHandler(
     "scope_check",
@@ -429,12 +481,14 @@ server.tool(
 
 // === Observe tools ===
 
-server.tool(
+server.registerTool(
   "audit_log",
-  "Log an audit event (stored in SQLite + JSONL).",
   {
+    description: "Log an audit event (stored in SQLite + JSONL).",
+    inputSchema: {
     event_type: z.string(),
     payload: z.record(z.string(), z.unknown()),
+  },
   },
   makeHandler(
     "audit_log",
@@ -443,22 +497,26 @@ server.tool(
   )
 );
 
-server.tool(
+server.registerTool(
   "harness_status",
-  "Get current harness status: active session, pending tasks, last verify, recent instincts.",
   {
+    description: "Get current harness status: active session, pending tasks, last verify, recent instincts.",
+    inputSchema: {
     repo_path: z.string().optional(),
+  },
   },
   makeHandler("harness_status", ({ repo_path }: { repo_path?: string }) => harnessStatus(repo_path))
 );
 
 // === Repo Summary tool ===
 
-server.tool(
+server.registerTool(
   "repo_summary_read",
-  "Read or auto-generate a repo summary with tree structure and stack info. Auto-reindexes if code changes detected.",
   {
+    description: "Read or auto-generate a repo summary with tree structure and stack info. Auto-reindexes if code changes detected.",
+    inputSchema: {
     repo_path: z.string().describe("Path to the repo"),
+  },
   },
   makeHandler(
     "repo_summary_read",

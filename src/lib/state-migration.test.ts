@@ -8,13 +8,17 @@ import { tmpdir } from "node:os";
 describe("state-migration.ts", () => {
   let tempDir: string;
   let repoId: string;
+  let originalHarnessHome: string | undefined;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "harness-migration-test-"));
     repoId = generateRepoId();
+    originalHarnessHome = process.env.HARNESS_HOME;
+    process.env.HARNESS_HOME = join(tempDir, "harness_home");
   });
 
   afterEach(() => {
+    process.env.HARNESS_HOME = originalHarnessHome;
     try {
       rmSync(tempDir, { recursive: true, force: true });
     } catch {
@@ -91,15 +95,14 @@ describe("state-migration.ts", () => {
       expect(original).toBe(content);
     });
 
-    it("copies handoff/last.json when it exists", () => {
+    it("copies handoff_last.json when it exists", () => {
       const harnessDir = join(tempDir, ".harness");
-      const handoffDir = join(harnessDir, "handoff");
-      mkdirSync(handoffDir, { recursive: true });
-      writeFileSync(join(handoffDir, "last.json"), '{"next_steps":[]}', "utf-8");
+      mkdirSync(harnessDir, { recursive: true });
+      writeFileSync(join(harnessDir, "handoff_last.json"), '{"next_steps":[]}', "utf-8");
 
       const result = migrateRepoState(tempDir, repoId);
 
-      expect(result.files_copied).toContain("handoff/last.json");
+      expect(result.files_copied).toContain("handoff_last.json");
     });
   });
 });

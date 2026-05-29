@@ -187,7 +187,7 @@ rm ~/.harness/harness.sqlite
 rm ~/.harness/audit.jsonl
 
 # Xóa per-repo state
-rm -rf .harness/handoff/
+rm .harness/handoff_last.json
 rm .harness/progress.md
 
 # Giữ lại scope.yaml và verify.yaml (config, không phải data)
@@ -231,7 +231,7 @@ harness instincts --export > instincts.json
 
 **A:** Kiểm tra:
 1. `.harness/progress.md` có entries mới sau mỗi session
-2. `.harness/handoff/last.json` được update
+2. `.harness/handoff_last.json` được update
 3. `harness status` cho thấy active session khi agent đang làm việc
 4. Audit log (`~/.harness/audit.jsonl`) ghi lại mọi tool call
 
@@ -252,7 +252,7 @@ allowed_per_task:
 
 ### Q: Version hiện tại và roadmap?
 
-**A:** Version 0.6.0. Tất cả 6 phases hoàn thành:
+**A:** Version 1.1.0. Tất cả các phases cốt lõi đã hoàn thành:
 - ✅ Phase 1-3: Core tools (session, task, state, scope, verify, observe)
 - ✅ Phase 4: CLI + IDE adapters
 - ✅ Phase 5: Continuous learning (instincts)

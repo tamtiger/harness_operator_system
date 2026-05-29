@@ -185,7 +185,7 @@ Agent gọi: session_handoff({
 ```
 
 **Kết quả:**
-- `.harness/handoff/last.json` được ghi
+- `.harness/handoff_last.json` được ghi
 - `.harness/progress.md` được append entry mới
 - Session đóng trong database
 

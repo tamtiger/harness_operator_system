@@ -172,7 +172,7 @@ harness install-mcp --ide opencode
 Codex không hỗ trợ MCP. Thay vào đó, `harness init` tạo file `AGENTS.md` tại root repo chứa các quy tắc tương đương:
 
 - Đọc `.harness/progress.md` để biết context
-- Đọc `.harness/handoff/last.json` để tiếp tục
+- Đọc `.harness/handoff_last.json` để tiếp tục
 - Kiểm tra `.harness/scope.yaml` trước khi edit
 - Chạy verify pipeline trước khi claim done
 

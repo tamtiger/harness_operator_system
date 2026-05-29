@@ -3,9 +3,9 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-26-blue)](#)
-[![Skills](https://img.shields.io/badge/skills-13-blue)](#)
+[![Skills](https://img.shields.io/badge/skills-23-blue)](#)
 [![Tests](https://img.shields.io/badge/tests-97%20passing-brightgreen)](#)
 
 ## Đây là gì?
@@ -81,7 +81,7 @@ node dist/cli/harness.js install-mcp --ide cursor
 | `progress_log` | Append entry vào `.harness/progress.md` |
 | `feature_list_read` | Đọc `.harness/feature_list.json` |
 | `feature_list_update` | Upsert feature entry |
-| `handoff_write` | Ghi `.harness/handoff/last.json` |
+| `handoff_write` | Ghi `.harness/handoff_last.json` |
 | `handoff_read` | Đọc handoff gần nhất |
 
 </details>
@@ -158,23 +158,33 @@ harness export [--repo .] [--output FILE]                   # Export harness sta
 harness import <file.json>                                  # Import harness state
 ```
 
-## Built-in Skills (13)
+## Built-in Skills (23)
 
 | Skill | Mục đích |
 |---|---|
 | `karpathy-guidelines` | 4 nguyên tắc cốt lõi: Think, Simplicity, Surgical, Goal-Driven |
-| `harness-workflow` | 5-subsystem lifecycle |
-| `tdd-workflow` | Test-Driven Development |
-| `verification-loop` | Continuous verification loop |
-| `search-first` | Search trước khi viết code mới |
-| `goal-driven-execution` | Define success, iterate until verified |
-| `strategic-compact` | Quản lý context window |
-| `continuous-learning` | Capture & evolve patterns |
-| `csharp-baseline` | C# / .NET / ABP baseline conventions |
-| `csharp-bugfix` | C# bug fix workflow |
-| `csharp-code-review` | C# code review checklist |
-| `csharp-feature` | C# feature implementation workflow |
-| `csharp-repair` | C# repair/hotfix workflow |
+| `harness-workflow` | Quy trình vòng đời session (CTR gate, artifacts, EPCC mapping) |
+| `tdd-workflow` | Quy trình Test-Driven Development (red-green-refactor) |
+| `verification-loop` | Luồng xác thực liên tục (không claim done khi chưa có bằng chứng) |
+| `search-first` | Tìm kiếm mã nguồn hiện tại trước khi viết code mới để tránh trùng lặp |
+| `goal-driven-execution` | Thực thi hướng mục tiêu, lặp lại cho tới khi verify |
+| `strategic-compact` | Quản lý dung lượng context window một cách chiến lược |
+| `continuous-learning` | Ghi nhận và phát triển các instincts thành skills lâu dài |
+| `design-grilling` | Phản biện thiết kế/kế hoạch triệt để cho đến khi mọi nhánh quyết định được giải quyết |
+| `prototype-first` | Xây dựng các bản thử nghiệm dùng một lần để giải đáp các câu hỏi thiết kế |
+| `architecture-review` | Đánh giá kiến trúc, phát hiện shallow modules và đề xuất chuyển đổi sang deep modules |
+| `caveman-mode` | Định dạng giao tiếp nén lược bỏ filler word để tiết kiệm 75% tokens |
+| `systematic-diagnosis` | Chẩn đoán lỗi có hệ thống (Phase 1: 10 methods tạo feedback loop, tối ưu loop, xử lý flake) |
+| `vertical-slicing` | Phân rã lát cắt dọc (tracer bullets), bước "Quiz user" và xây dựng Agent Brief |
+| `to-prd` | Tổng hợp thông tin hội thoại thành PRD tiêu chuẩn và định hướng tạo deep modules |
+| `triage` | Triage state machine cho issues/tasks và tự sinh Agent Brief khi bàn giao |
+| `zoom-out` | Tạm dừng sửa code mù quáng khi gặp code phức tạp/lạ để lùi lại lấy context rộng hơn |
+| `write-a-skill` | Meta-skill hướng dẫn chi tiết quy trình viết và cập nhật skill mới |
+| `csharp-baseline` | Các quy ước cơ bản cho stack C# / .NET / ABP |
+| `csharp-bugfix` | Quy trình sửa lỗi cụ thể cho các dự án C# |
+| `csharp-code-review` | Danh sách kiểm tra chất lượng code C# |
+| `csharp-feature` | Quy trình triển khai tính năng mới trong dự án C# |
+| `csharp-repair` | Khắc phục các lỗi biên dịch, runtime, test failure trong C# |
 
 ## Cấu trúc project
 

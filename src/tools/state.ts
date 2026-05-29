@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { resolveStateDir, ensureDir } from "../lib/repo.js";
+import { resolveStateDir } from "../lib/repo.js";
 
 // === progress_log ===
 
@@ -17,7 +17,6 @@ export function progressLog(
   entry: ProgressEntry
 ): { ok: true } {
   const stateDir = resolveStateDir(repoPath);
-  const progressFile = join(stateDir, "progress.md");
 
   const now = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh", hour12: false }).slice(0, 16).replace("T", " ");
   const taskRef = entry.task_id ? ` — task ${entry.task_id}` : "";
@@ -34,6 +33,8 @@ export function progressLog(
 - **Summary:** ${entry.summary}${evidenceRef}${filesRef}
 `;
 
+  // Write to state directory (global or local fallback)
+  const progressFile = join(stateDir, "progress.md");
   if (!existsSync(progressFile)) {
     writeFileSync(progressFile, `# Progress Log\n${block}`, "utf-8");
   } else {
@@ -77,8 +78,9 @@ export function featureListUpdate(
   patch: Record<string, unknown>
 ): { feature: Feature } {
   const stateDir = resolveStateDir(repoPath);
-  const filePath = join(stateDir, "feature_list.json");
+  const fileName = "feature_list.json";
 
+  const filePath = join(stateDir, fileName);
   let data: { features: Feature[] } = { features: [] };
 
   if (existsSync(filePath)) {
@@ -97,6 +99,7 @@ export function featureListUpdate(
   }
 
   writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+
   const feature = data.features.find((f) => f.id === featureId)!;
   return { feature };
 }
@@ -115,6 +118,7 @@ export interface HandoffData {
     failed_step?: string;
   };
   duration_seconds?: number;
+  suggested_skills?: string[];
 }
 
 export function handoffWrite(
@@ -124,13 +128,13 @@ export function handoffWrite(
   unfinished: string[],
   lastKnownGood: string,
   verifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string },
-  durationSeconds?: number
+  durationSeconds?: number,
+  suggestedSkills?: string[]
 ): { path: string } {
   const stateDir = resolveStateDir(repoPath);
-  const handoffDir = join(stateDir, "handoff");
-  ensureDir(handoffDir);
+  const fileName = "handoff_last.json";
 
-  const filePath = join(handoffDir, "last.json");
+  const filePath = join(stateDir, fileName);
   const data: HandoffData = {
     session_id: sessionId,
     next_steps: nextSteps,
@@ -139,9 +143,11 @@ export function handoffWrite(
     written_at: new Date().toISOString(),
     ...(verifyStatus !== undefined && { verify_status: verifyStatus }),
     ...(durationSeconds !== undefined && { duration_seconds: durationSeconds }),
+    ...(suggestedSkills !== undefined && { suggested_skills: suggestedSkills }),
   };
 
   writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+
   return { path: filePath };
 }
 
@@ -149,7 +155,7 @@ export function handoffRead(
   repoPath: string
 ): { handoff: HandoffData | null } {
   const stateDir = resolveStateDir(repoPath);
-  const filePath = join(stateDir, "handoff", "last.json");
+  const filePath = join(stateDir, "handoff_last.json");
 
   if (!existsSync(filePath)) {
     return { handoff: null };

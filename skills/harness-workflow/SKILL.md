@@ -90,7 +90,7 @@ Persistent memory across sessions.
 
 - **Progress log:** `.harness/progress.md` — human-readable session history
 - **Feature list:** `.harness/feature_list.json` — scope boundaries
-- **Handoff:** `.harness/handoff/last.json` — context for next session
+- **Handoff:** `.harness/handoff_last.json` — context for next session
 - **Artifacts:** `~/.harness/repos/{repo_id}/artifacts/` — plans, research, reviews
 
 State files bridge sessions. Without them, every session starts from zero.

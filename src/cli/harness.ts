@@ -639,9 +639,9 @@ function cmdExport() {
     }
 
     // Export handoff
-    const handoffPath = join(harnessDir, "handoff", "last.json");
+    const handoffPath = join(harnessDir, "handoff_last.json");
     if (existsSync(handoffPath)) {
-      state["handoff/last.json"] = readFileSync(handoffPath, "utf-8");
+      state["handoff_last.json"] = readFileSync(handoffPath, "utf-8");
     }
   }
 

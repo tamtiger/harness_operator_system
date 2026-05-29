@@ -35,8 +35,7 @@ your-repo/
     ├── skills/                   # Repo-specific skills (override global)
     │   └── repo-conventions/
     │       └── SKILL.md
-    └── handoff/
-        └── last.json             # Context cho session tiếp theo
+    └── handoff_last.json         # Context cho session tiếp theo
 ```
 
 ---
@@ -51,7 +50,7 @@ your-repo/
 | `.harness/feature_list.json` | Danh sách features + scope | Agent | Agent (qua `feature_list_update`) |
 | `.harness/scope.yaml` | Forbidden paths + allowed paths per task | Agent (qua `scope_check`) | Human |
 | `.harness/verify.yaml` | Lệnh verify (install/build/test/lint) | Agent (qua `verify_run`) | Human / `harness init` |
-| `.harness/handoff/last.json` | State cho session sau | Agent | Agent (qua `session_handoff`) |
+| `.harness/handoff_last.json` | State cho session sau | Agent | Agent (qua `session_handoff`) |
 | `~/.harness/harness.sqlite` | Sessions, tasks, instincts, audit | MCP server | MCP server |
 | `~/.harness/audit.jsonl` | Event stream (append-only) | Debug/trace | MCP server (auto) |
 
@@ -107,7 +106,7 @@ timeouts:
   test: 300
 ```
 
-### `.harness/handoff/last.json`
+### `.harness/handoff_last.json`
 
 ```json
 {
@@ -115,6 +114,7 @@ timeouts:
   "summary": "Implemented payment validation with unit tests",
   "unfinished": ["Integration test for refund path"],
   "next_steps": ["Write refund integration test", "Add error handling for timeout"],
+  "suggested_skills": ["tdd-workflow", "systematic-diagnosis"],
   "last_known_good": "All 42 tests passing, build clean",
   "written_at": "2026-05-26T14:32:00Z"
 }

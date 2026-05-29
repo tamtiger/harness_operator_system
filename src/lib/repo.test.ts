@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { resolveHarnessDir, repoHash, resolveGlobalHome, ensureDir } from "./repo.js";
 import { existsSync, rmSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
@@ -10,8 +10,18 @@ function makeTempDir(): string {
 
 describe("repo.ts", () => {
   const tempDirs: string[] = [];
+  let originalHarnessHome: string | undefined;
+
+  beforeEach(() => {
+    originalHarnessHome = process.env.HARNESS_HOME;
+    const baseTemp = mkdtempSync(join(tmpdir(), "harness-home-test-"));
+    const tempHome = join(baseTemp, ".harness");
+    process.env.HARNESS_HOME = tempHome;
+    tempDirs.push(baseTemp);
+  });
 
   afterEach(() => {
+    process.env.HARNESS_HOME = originalHarnessHome;
     for (const dir of tempDirs) {
       try {
         rmSync(dir, { recursive: true, force: true });

@@ -44,14 +44,6 @@ export function resolveGlobalHome(): string {
 }
 
 /**
- * Resolve the local `.harness/` directory for a given repo path.
- * Alias for resolveHarnessDir — explicit naming for v1.0 dual-path model.
- */
-export function resolveLocalHarnessDir(repoPath: string): string {
-  return resolveHarnessDir(repoPath);
-}
-
-/**
  * Resolve the state directory for a repo.
  * If the repo has a v1.0 config (`.harness/config.yaml`), returns the global path
  * (`~/.harness/repos/{repoId}/`). Otherwise falls back to the local `.harness/` dir.

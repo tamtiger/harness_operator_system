@@ -6,7 +6,7 @@
 ## Before Starting Work
 
 1. Read `.harness/progress.md` — understand what was done previously
-2. Read `.harness/handoff/last.json` — continue from where the last session left off
+2. Read `.harness/handoff_last.json` — continue from where the last session left off
 3. Check `.harness/scope.yaml` — know what files are off-limits
 
 ## Rules
@@ -14,7 +14,7 @@
 - **Never claim done without verification** — run the full verify pipeline first
 - **Stay in scope** — check scope.yaml before editing unexpected files
 - **Log progress** — append to `.harness/progress.md` after each change
-- **Handoff** — update `.harness/handoff/last.json` when finishing
+- **Handoff** — update `.harness/handoff_last.json` when finishing
 
 ## Verification
 

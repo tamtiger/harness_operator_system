@@ -6,12 +6,16 @@ import { tmpdir } from "node:os";
 
 describe("repo-identity.ts", () => {
   let tempDir: string;
+  let originalHarnessHome: string | undefined;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "harness-identity-test-"));
+    originalHarnessHome = process.env.HARNESS_HOME;
+    process.env.HARNESS_HOME = join(tempDir, "harness_home");
   });
 
   afterEach(() => {
+    process.env.HARNESS_HOME = originalHarnessHome;
     try {
       rmSync(tempDir, { recursive: true, force: true });
     } catch {

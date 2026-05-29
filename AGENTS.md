@@ -54,7 +54,7 @@ Requirements:
 The main entry point. Creates an `McpServer` instance, registers all 26 tools with Zod schemas, and connects via `StdioServerTransport`.
 
 Key patterns:
-- Each tool is registered with `server.tool(name, description, zodSchema, handler)`
+- Each tool is registered with `server.registerTool(name, config, handler)`
 - All handlers are wrapped with `makeHandler()` which calls `wrapTool()` for error handling + audit + loop detection
 - The server NEVER writes to stdout except JSON-RPC messages
 
@@ -226,11 +226,13 @@ Import the function and register it with the MCP server:
 ```typescript
 import { exampleDo } from "./tools/example.js";
 
-server.tool(
-  "example_do",                    // tool name (snake_case)
-  "Description of what it does.",  // shown to the agent
+server.registerTool(
+  "example_do",
   {
-    input: z.string().describe("What this parameter is"),
+    description: "Description of what it does.",  // shown to the agent
+    inputSchema: {
+      input: z.string().describe("What this parameter is"),
+    },
   },
   makeHandler(
     "example_do",
@@ -457,7 +459,7 @@ harness-os/
 ├── dist/                     # Build output (gitignored)
 └── .harness/                 # Local harness state for this repo
     ├── progress.md
-    └── handoff/last.json
+    └── handoff_last.json
 ```
 
 ---

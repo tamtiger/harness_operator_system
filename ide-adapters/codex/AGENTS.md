@@ -13,12 +13,12 @@
 ## Workflow
 
 1. Read `.harness/progress.md` for context from previous sessions
-2. Read `.harness/handoff/last.json` for where to continue
+2. Read `.harness/handoff_last.json` for where to continue
 3. Check `.harness/scope.yaml` for forbidden paths
 4. Work on the highest-priority pending task
 5. Verify: install → build → test → lint (all must pass)
 6. Update `.harness/progress.md` with what was accomplished
-7. Write `.harness/handoff/last.json` with next steps
+7. Write `.harness/handoff_last.json` with next steps
 
 ## Verification Commands
 

@@ -22,18 +22,28 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 
 ---
 
-## 13 Built-in Skills
+## 23 Built-in Skills
 
 | Skill | Mục đích | Triggers |
 |-------|----------|----------|
 | `karpathy-guidelines` | 4 nguyên tắc: Think, Simplicity, Surgical, Goal-Driven | `session_start` |
-| `harness-workflow` | 5-subsystem lifecycle (START→SELECT→EXECUTE→VERIFY→WRAP UP) | `session_start`, `task_create` |
-| `tdd-workflow` | Test-Driven Development: RED→GREEN→REFACTOR | `task_create` |
-| `verification-loop` | Continuous verification — never skip verify | `task_update` |
-| `search-first` | Search codebase trước khi viết code mới | `task_create` |
-| `goal-driven-execution` | Define success criteria, iterate until verified | `session_start` |
-| `strategic-compact` | Quản lý context window hiệu quả | `session_start` |
-| `continuous-learning` | Capture patterns → instincts → evolve to skills | `session_end`, `task_update` |
+| `harness-workflow` | Quy trình vòng đời session (CTR gate, artifacts, EPCC mapping) | `session_start`, `task_create` |
+| `tdd-workflow` | Quy trình Test-Driven Development (red-green-refactor) | `task_create` |
+| `verification-loop` | Luồng xác thực liên tục (không claim done khi chưa có bằng chứng) | `task_update` |
+| `search-first` | Tìm kiếm mã nguồn hiện tại trước khi viết code mới | `task_create` |
+| `goal-driven-execution` | Thực thi hướng mục tiêu, lặp lại cho tới khi verify | `session_start` |
+| `strategic-compact` | Quản lý dung lượng context window một cách chiến lược | `session_start` |
+| `continuous-learning` | Ghi nhận và phát triển các instincts thành skills lâu dài | `session_end`, `task_update` |
+| `design-grilling` | Phản biện thiết kế/kế hoạch triệt để cho đến khi mọi nhánh quyết định được giải quyết | `session_start` |
+| `prototype-first` | Xây dựng các bản thử nghiệm dùng một lần để giải đáp câu hỏi thiết kế | `task_create` |
+| `architecture-review` | Đánh giá kiến trúc, phát hiện shallow modules và đề xuất deep modules | `session_start` |
+| `caveman-mode` | Định dạng giao tiếp nén lược bỏ filler word để tiết kiệm 75% tokens | `session_start` |
+| `systematic-diagnosis` | Chẩn đoán lỗi có hệ thống (Phase 1: 10 methods tạo feedback loop, tối ưu loop, flake) | `task_create` |
+| `vertical-slicing` | Phân rã lát cắt dọc (tracer bullets), bước "Quiz user" và xây dựng Agent Brief | `task_create` |
+| `to-prd` | Tổng hợp thông tin hội thoại thành PRD tiêu chuẩn và định hướng tạo deep modules | `task_create` |
+| `triage` | Triage state machine cho issues/tasks và tự sinh Agent Brief khi bàn giao | `task_create` |
+| `zoom-out` | Tạm dừng sửa code mù quáng khi gặp code phức tạp/lạ để lùi lại lấy context rộng hơn | `session_start` |
+| `write-a-skill` | Meta-skill hướng dẫn chi tiết quy trình viết và cập nhật skill mới | `task_create` |
 | `csharp-baseline` | C# / .NET / ABP baseline conventions | `session_start` |
 | `csharp-bugfix` | C# bug fix workflow | `task_create` |
 | `csharp-code-review` | C# code review checklist | `task_update` |

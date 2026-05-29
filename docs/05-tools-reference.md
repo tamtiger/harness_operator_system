@@ -75,13 +75,14 @@ Kết thúc session với handoff atomic: ghi handoff + progress + đóng sessio
 | `summary` | string | ✅ | Tóm tắt công việc đã làm |
 | `unfinished` | string[] | ✅ | Danh sách việc chưa xong |
 | `next_steps` | string[] | ✅ | Gợi ý cho session tiếp theo |
+| `suggested_skills` | string[] | ❌ | Danh sách các skill gợi ý cho session tiếp theo |
 | `verify_status` | object | ❌ | Kết quả verify cuối: `{ passed, steps_run, failed_step? }` |
 
 ```json
 // Response
 {
   "session_id": "a3f1b2c4-...",
-  "handoff_path": "/path/to/.harness/handoff/last.json",
+  "handoff_path": "/path/to/.harness/handoff_last.json",
   "progress_logged": true,
   "duration_seconds": 1842
 }
@@ -171,6 +172,7 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
 | `session_id` | string | ✅ | Session ID hiện tại |
 | `next_steps` | string[] | ✅ | Bước tiếp theo |
 | `unfinished` | string[] | ✅ | Việc chưa xong |
+| `suggested_skills` | string[] | ❌ | Gợi ý các skill cần thiết cho session tiếp theo |
 | `last_known_good` | string | ✅ | Trạng thái tốt cuối cùng |
 
 ### `handoff_read`
@@ -185,6 +187,7 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
   "session_id": "...",
   "next_steps": [...],
   "unfinished": [...],
+  "suggested_skills": [...],
   "last_known_good": "All 42 tests passing",
   "written_at": "2026-05-26T14:32:00Z"
 }

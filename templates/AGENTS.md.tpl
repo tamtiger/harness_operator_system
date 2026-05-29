@@ -141,7 +141,7 @@ session_start → read instructions → select task → execute → verify → h
 - `.harness/feature_list.json` — scope boundaries
 - `.harness/scope.yaml` — forbidden/allowed paths
 - `.harness/verify.yaml` — verification commands
-- `.harness/handoff/last.json` — context for next session
+- `.harness/handoff_last.json` — context for next session
 - `.harness/config.yaml` — repo identity and configuration
 
 ---

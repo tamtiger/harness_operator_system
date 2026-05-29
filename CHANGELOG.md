@@ -5,6 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.1.0] — 2026-05-29
+
+### Added
+- **4 new agent skills**:
+  - `to-prd` (generating PRDs from context, designing deep modules)
+  - `triage` (issue triage state machine and durable Agent Brief creation)
+  - `zoom-out` (halting when stuck to obtain broader system design context)
+  - `write-a-skill` (meta-skill for writing custom harness-os skills)
+- Supported `suggested_skills` parameter in `session_handoff` and `handoff_write` tools to recommend skills for future sessions.
+
+### Changed
+- **Renamed handoff file**: Renamed `.harness/handoff/last.json` to `.harness/handoff_last.json` directly under the `.harness` directory and eliminated the redundant `handoff/` subdirectory.
+- **Skill improvements**:
+  - `systematic-diagnosis` — Expanded Phase 1 with Matt Pocock's 10-method feedback loop list, loop optimization rules, flake handling, and non-reproducible error fallbacks.
+  - `vertical-slicing` — Added detailed "Quiz user" phase and detailed Agent Brief templates/conventions.
+- Updated all adapters (`codex/AGENTS.md`, `copilot/copilot-instructions.md`), CLI export/import, templates (`AGENTS.md.tpl`), and docs files to use `.harness/handoff_last.json`.
+
+### Verified
+- Built successfully and all 97 unit tests passed.
+- Smoke tests passed, loading all 23 skills successfully.
+- Manual verification of CLI skills listing and initialization file output.
+
 ## [1.0.0] — 2026-05-28
 
 ### Phase F — Documentation polish + version bump
@@ -119,7 +141,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - `src/lib/state-migration.ts` — copy per-repo state files to global `~/.harness/repos/{repoId}/`, idempotent, preserves originals
 - `repos` table in SQLite DB (additive migration) with `registerRepo()`, `updateRepoLastActive()`
 - `resolveStateDir(repoPath)` in `repo.ts` — dual path resolution (global if config.yaml exists, fallback to local)
-- `resolveLocalHarnessDir()` alias for explicit naming
 - `session_start` auto-migration: creates config.yaml, registers repo, migrates state, ensures global artifact dirs
 - `harness init` creates config.yaml and registers repo globally
 - 13 new unit tests: `repo-identity.test.ts` (8), `state-migration.test.ts` (5)

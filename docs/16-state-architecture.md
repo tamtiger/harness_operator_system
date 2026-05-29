@@ -23,8 +23,7 @@ Each initialized repo has a `.harness/` directory containing:
 ├── feature_list.json     # Feature scope boundaries
 ├── scope.yaml            # Allowed/forbidden paths
 ├── verify.yaml           # Verification pipeline config
-├── handoff/
-│   └── last.json         # Last session handoff
+├── handoff_last.json     # Last session handoff
 └── evidence/
     └── {task_id}/
         └── verify.json   # Verification evidence per task
@@ -127,7 +126,7 @@ Restores exported state into the current repo's `.harness/` directory.
     "config.yaml": "...",
     "progress.md": "...",
     "feature_list.json": "...",
-    "handoff/last.json": "..."
+    "handoff_last.json": "..."
   }
 }
 ```
