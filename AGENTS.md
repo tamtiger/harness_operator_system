@@ -12,7 +12,7 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.0.0
+- **Version:** 1.2.0
 - **Tools:** 26 MCP tools across 9 modules
 - **Tests:** 97 unit tests (vitest) + smoke test
 

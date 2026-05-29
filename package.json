@@ -1,6 +1,6 @@
 {
   "name": "harness-os",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Local harness operator system for agentic coding. MCP-first, cross-IDE, multi-repo.",
   "type": "module",
   "main": "dist/index.js",
@@ -11,6 +11,7 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
+    "lint": "tsc --noEmit",
     "smoke": "tsx scripts/smoke-test.ts"
   },
   "keywords": [

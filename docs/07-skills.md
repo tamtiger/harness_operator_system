@@ -22,8 +22,9 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 
 ---
 
-## 23 Built-in Skills
+## 29 Built-in Skills
 
+### Core Workflow (8 skills)
 | Skill | Mục đích | Triggers |
 |-------|----------|----------|
 | `karpathy-guidelines` | 4 nguyên tắc: Think, Simplicity, Surgical, Goal-Driven | `session_start` |
@@ -34,21 +35,47 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 | `goal-driven-execution` | Thực thi hướng mục tiêu, lặp lại cho tới khi verify | `session_start` |
 | `strategic-compact` | Quản lý dung lượng context window một cách chiến lược | `session_start` |
 | `continuous-learning` | Ghi nhận và phát triển các instincts thành skills lâu dài | `session_end`, `task_update` |
+
+### Design & Architecture (4 skills)
+| Skill | Mục đích | Triggers |
+|-------|----------|----------|
 | `design-grilling` | Phản biện thiết kế/kế hoạch triệt để cho đến khi mọi nhánh quyết định được giải quyết | `session_start` |
 | `prototype-first` | Xây dựng các bản thử nghiệm dùng một lần để giải đáp câu hỏi thiết kế | `task_create` |
 | `architecture-review` | Đánh giá kiến trúc, phát hiện shallow modules và đề xuất deep modules | `session_start` |
+| `zoom-out` | Tạm dừng sửa code mù quáng khi gặp code phức tạp/lạ để lùi lại lấy context rộng hơn | `session_start` |
+
+### Specialized Workflows (4 skills)
+| Skill | Mục đích | Triggers |
+|-------|----------|----------|
 | `caveman-mode` | Định dạng giao tiếp nén lược bỏ filler word để tiết kiệm 75% tokens | `session_start` |
 | `systematic-diagnosis` | Chẩn đoán lỗi có hệ thống (Phase 1: 10 methods tạo feedback loop, tối ưu loop, flake) | `task_create` |
 | `vertical-slicing` | Phân rã lát cắt dọc (tracer bullets), bước "Quiz user" và xây dựng Agent Brief | `task_create` |
 | `to-prd` | Tổng hợp thông tin hội thoại thành PRD tiêu chuẩn và định hướng tạo deep modules | `task_create` |
+
+### Operations & Meta (3 skills)
+| Skill | Mục đích | Triggers |
+|-------|----------|----------|
 | `triage` | Triage state machine cho issues/tasks và tự sinh Agent Brief khi bàn giao | `task_create` |
-| `zoom-out` | Tạm dừng sửa code mù quáng khi gặp code phức tạp/lạ để lùi lại lấy context rộng hơn | `session_start` |
 | `write-a-skill` | Meta-skill hướng dẫn chi tiết quy trình viết và cập nhật skill mới | `task_create` |
+| `spec-driven-workflow` | RIPER-5 phases (Research → Innovate → Plan → Execute → Review) + harness-os integration | `session_start`, `task_create` |
+
+### C# Stack (5 skills)
+| Skill | Mục đích | Triggers |
+|-------|----------|----------|
 | `csharp-baseline` | C# / .NET / ABP baseline conventions | `session_start` |
 | `csharp-bugfix` | C# bug fix workflow | `task_create` |
 | `csharp-code-review` | C# code review checklist | `task_update` |
 | `csharp-feature` | C# feature implementation workflow | `task_create` |
 | `csharp-repair` | C# repair/hotfix workflow | `task_create` |
+
+### Bảo mật & Chất lượng (5 skills)
+| Skill | Mục đích | Triggers |
+|-------|----------|----------|
+| `security-audit` | STRIDE threat modeling + OWASP Top 10 security audit workflow | `verify_run`, `session_start` |
+| `edge-case-generation` | Sinh hệ thống các test case biên (boundary conditions), failure scenarios, adversarial inputs | `task_create`, `verify_run` |
+| `parallel-coordination` | Phân rã công việc thành các track độc lập chạy song song với quản lý dependencies | `task_create`, `session_start` |
+| `autonomous-optimizer` | Tối ưu hóa code tự động với measurement loops (đo → cải thiện → đo lại) | `verify_run` |
+| `deep-research` | Nghiên cứu có cấu trúc với xác thực nguồn và tổng hợp thông tin | `session_start` |
 
 ---
 

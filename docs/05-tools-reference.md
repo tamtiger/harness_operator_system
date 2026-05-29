@@ -233,6 +233,8 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
 
 ### `verify_run`
 
+Chạy pipeline verify với hỗ trợ cho 7 bước (install, build, test, lint, typecheck, security_audit, simplify).
+
 | Parameter | Type | Required | Mô tả |
 |-----------|------|----------|-------|
 | `repo_path` | string | ✅ | Đường dẫn repo |
@@ -241,35 +243,67 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
 | `changed_only` | boolean | ❌ | Chỉ lint files đã thay đổi trong git (default false) |
 | `task_id` | string | ❌ | Nếu có, tự động lưu evidence vào `.harness/evidence/{task_id}/` |
 
+**Canonical step order** (khi không cung cấp explicit steps):
+1. `install` — Cài dependencies
+2. `build` — Build project
+3. `test` — Chạy tests
+4. `lint` — Lint code
+5. `typecheck` — Type checking
+6. `security_audit` — Security audit (optional, skip nếu null)
+7. `simplify` — Simplify check (optional, skip nếu null)
+
 ```json
 // Response (pass)
 {
   "passed": true,
-  "steps_run": ["install", "build", "test", "lint"],
+  "steps_run": ["install", "build", "test", "lint", "typecheck"],
   "step_results": [
     { "name": "install", "passed": true, "output": "...", "duration_ms": 1200 },
     { "name": "build", "passed": true, "output": "...", "duration_ms": 3400 },
     { "name": "test", "passed": true, "output": "...", "duration_ms": 5600 },
-    { "name": "lint", "passed": true, "output": "...", "duration_ms": 800 }
+    { "name": "lint", "passed": true, "output": "...", "duration_ms": 800 },
+    { "name": "typecheck", "passed": true, "output": "...", "duration_ms": 600 }
   ],
   "output": "...(truncated to 8KB)...",
   "test_results": { "passed": 42, "failed": 0, "skipped": 1, "duration_ms": 3200 },
   "evidence_path": "/path/to/.harness/evidence/task-123/verify.json"
 }
 
-// Response (fail with changed_only)
+// Response (fail with security_audit)
 {
   "passed": false,
-  "steps_run": ["install", "build", "test", "lint"],
+  "steps_run": ["install", "build", "test", "lint", "typecheck", "security_audit"],
   "step_results": [
     { "name": "install", "passed": true, "output": "...", "duration_ms": 1200 },
     { "name": "build", "passed": true, "output": "...", "duration_ms": 3400 },
     { "name": "test", "passed": true, "output": "...", "duration_ms": 5600 },
-    { "name": "lint", "passed": false, "output": "...", "duration_ms": 400 }
-  ],
-  "changed_files": ["src/foo.ts", "src/bar.ts"]
+    { "name": "lint", "passed": true, "output": "...", "duration_ms": 800 },
+    { "name": "typecheck", "passed": true, "output": "...", "duration_ms": 600 },
+    { "name": "security_audit", "passed": false, "output": "...", "duration_ms": 400 }
+  ]
 }
 ```
+
+**Cấu hình qua `.harness/verify.yaml`:**
+
+```yaml
+runtime: node
+commands:
+  install: "npm install"
+  build: "npm run build"
+  test: "npm run test"
+  lint: "npm run lint"
+  typecheck: "npm run typecheck"
+  security_audit: "npm audit --audit-level=moderate"
+  simplify: null  # Skip simplify step
+timeouts:
+  build: 120
+  test: 300
+```
+
+> **Null command = skip step:** Nếu command là `null` hoặc không định nghĩa, bước đó sẽ bị bỏ qua.
+
+> **Backward compatibility:** Configs cũ (không có security_audit/simplify) vẫn hoạt động bình thường.
 
 > **`changed_only` mode:** Khi bật, chỉ lint các file đã thay đổi trong git (staged + unstaged). Giải quyết vấn đề pre-existing lint issues gây noise.
 
@@ -277,13 +311,13 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
 
 **Auto-detect commands theo stack:**
 
-| Stack | Install | Build | Test | Lint |
-|-------|---------|-------|------|------|
-| node (bun) | `bun install` | `bun run build` | `bun run test` | `bun run lint` |
-| node (npm) | `npm ci` / `npm install` | `npm run build` | `npm run test` | `npm run lint` |
-| dotnet | `dotnet restore` | `dotnet build --no-restore` | `dotnet test --no-build` | `dotnet format --verify-no-changes` |
-| python | `pip install -e .` | — | `pytest` | `ruff check .` |
-| go | `go mod download` | `go build ./...` | `go test ./...` | `golangci-lint run` |
+| Stack | Install | Build | Test | Lint | Typecheck | Security Audit | Simplify |
+|-------|---------|-------|------|------|-----------|---|---|
+| node (bun) | `bun install` | `bun run build` | `bun run test` | `bun run lint` | — | `npm audit --audit-level=moderate` | — |
+| node (npm) | `npm ci` / `npm install` | `npm run build` | `npm run test` | `npm run lint` | — | `npm audit --audit-level=moderate` | — |
+| dotnet | `dotnet restore` | `dotnet build --no-restore` | `dotnet test --no-build` | `dotnet format --verify-no-changes` | — | `dotnet list package --vulnerable` | — |
+| python | `pip install -e .` | — | `pytest` | `ruff check .` | `mypy .` | `bandit -r .` | — |
+| go | `go mod download` | `go build ./...` | `go test ./...` | `golangci-lint run` | — | `gosec ./...` | — |
 
 ---
 

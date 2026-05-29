@@ -19,7 +19,7 @@ async function main() {
     env: { ...process.env, HARNESS_HOME: TEST_HOME } as Record<string, string>,
   });
 
-  const client = new Client({ name: "smoke-test", version: "1.0.0" });
+  const client = new Client({ name: "smoke-test", version: "1.2.0" });
 
   try {
     await client.connect(transport);
@@ -147,8 +147,8 @@ async function main() {
     });
     const skillListContent = skillListResult.content as Array<{ type: string; text: string }>;
     const skillListData = JSON.parse(skillListContent[0].text);
-    if (!skillListData.skills || skillListData.skills.length < 13) {
-      throw new Error(`skill_list expected ≥13 skills, got ${skillListData.skills?.length}`);
+    if (!skillListData.skills || skillListData.skills.length < 29) {
+      throw new Error(`skill_list expected ≥29 skills, got ${skillListData.skills?.length}`);
     }
     console.log(`✓ skill_list — ${skillListData.skills.length} skills found`);
 

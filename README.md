@@ -6,8 +6,8 @@
 [![Version](https://img.shields.io/badge/version-1.2.0-blue)](#)
 [![Bun](https://img.shields.io/badge/Bun-v1.2.0-f9f2f4)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-26-blue)](#)
-[![Skills](https://img.shields.io/badge/skills-23-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-99%20passing-brightgreen)](#)
+[![Skills](https://img.shields.io/badge/skills-29-blue)](#)
+[![Tests](https://img.shields.io/badge/tests-251%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -159,8 +159,31 @@ harness export [--repo .] [--output FILE]                   # Export harness sta
 harness import <file.json>                                  # Import harness state
 ```
 
-## Built-in Skills (23)
+## Built-in Skills (29)
 
+### 📌 Khái niệm: PRD & Deep Modules
+
+**PRD (Product Requirements Document)** là tài liệu định nghĩa rõ ràng:
+- **Mục tiêu** — Vấn đề cần giải quyết, tại sao nó quan trọng
+- **Scope** — Ranh giới: cái gì được làm, cái gì không
+- **Acceptance Criteria** — Tiêu chí chấp nhận (testable, measurable)
+- **Dependencies** — Phụ thuộc vào hệ thống/module nào
+- **Constraints** — Giới hạn (performance, security, compatibility)
+
+**Deep Modules** (từ "A Philosophy of Software Design" - John Ousterhout):
+- Giao diện **đơn giản** (ít parameters, ít methods)
+- Chức năng **phức tạp** (xử lý nhiều logic bên trong)
+- Ví dụ: `FileSystem.read(path)` — giao diện đơn giản nhưng xử lý caching, permissions, I/O buffering bên trong
+- **Tránh:** Shallow modules (giao diện phức tạp, logic ít) — chỉ là wrapper mỏng
+
+Skill `to-prd` giúp:
+1. Tổng hợp thông tin từ hội thoại thành PRD chuẩn
+2. Định hướng thiết kế theo deep modules (không shallow)
+3. Xác định acceptance criteria rõ ràng để verify
+
+---
+
+### Core Workflow (8 skills)
 | Skill | Mục đích |
 |---|---|
 | `karpathy-guidelines` | 4 nguyên tắc cốt lõi: Think, Simplicity, Surgical, Goal-Driven |
@@ -171,21 +194,38 @@ harness import <file.json>                                  # Import harness sta
 | `goal-driven-execution` | Thực thi hướng mục tiêu, lặp lại cho tới khi verify |
 | `strategic-compact` | Quản lý dung lượng context window một cách chiến lược |
 | `continuous-learning` | Ghi nhận và phát triển các instincts thành skills lâu dài |
+
+### Design & Architecture (4 skills)
+| Skill | Mục đích |
+|---|---|
 | `design-grilling` | Phản biện thiết kế/kế hoạch triệt để cho đến khi mọi nhánh quyết định được giải quyết |
 | `prototype-first` | Xây dựng các bản thử nghiệm dùng một lần để giải đáp các câu hỏi thiết kế |
 | `architecture-review` | Đánh giá kiến trúc, phát hiện shallow modules và đề xuất chuyển đổi sang deep modules |
+| `zoom-out` | Tạm dừng sửa code mù quáng khi gặp code phức tạp/lạ để lùi lại lấy context rộng hơn |
+
+### Specialized Workflows (4 skills)
+| Skill | Mục đích |
+|---|---|
 | `caveman-mode` | Định dạng giao tiếp nén lược bỏ filler word để tiết kiệm 75% tokens |
 | `systematic-diagnosis` | Chẩn đoán lỗi có hệ thống (Phase 1: 10 methods tạo feedback loop, tối ưu loop, xử lý flake) |
 | `vertical-slicing` | Phân rã lát cắt dọc (tracer bullets), bước "Quiz user" và xây dựng Agent Brief |
-| `to-prd` | Tổng hợp thông tin hội thoại thành PRD tiêu chuẩn và định hướng tạo deep modules |
+| `to-prd` | **PRD = Product Requirements Document.** Tổng hợp thông tin từ hội thoại/context thành PRD tiêu chuẩn (mục tiêu, scope, acceptance criteria, dependencies). Định hướng thiết kế deep modules (tập trung vào abstraction, không shallow modules). |
+
+### Operations & Meta (3 skills)
+| Skill | Mục đích |
+|---|---|
 | `triage` | Triage state machine cho issues/tasks và tự sinh Agent Brief khi bàn giao |
-| `zoom-out` | Tạm dừng sửa code mù quáng khi gặp code phức tạp/lạ để lùi lại lấy context rộng hơn |
 | `write-a-skill` | Meta-skill hướng dẫn chi tiết quy trình viết và cập nhật skill mới |
-| `csharp-baseline` | Các quy ước cơ bản cho stack C# / .NET / ABP |
-| `csharp-bugfix` | Quy trình sửa lỗi cụ thể cho các dự án C# |
-| `csharp-code-review` | Danh sách kiểm tra chất lượng code C# |
-| `csharp-feature` | Quy trình triển khai tính năng mới trong dự án C# |
-| `csharp-repair` | Khắc phục các lỗi biên dịch, runtime, test failure trong C# |
+| `spec-driven-workflow` | **RIPER-5 phases:** Research (tìm hiểu) → Innovate (sáng tạo giải pháp) → Plan (lập kế hoạch) → Execute (thực thi) → Review (đánh giá). Tích hợp với harness-os lifecycle (session_start, task_create, verify_run, progress_log, session_handoff) |
+
+### Bảo mật & Chất lượng (5 skills)
+| Skill | Mục đích |
+|---|---|
+| `security-audit` | **STRIDE threat modeling** — Phân tích 6 loại mối đe dọa: Spoofing (giả mạo danh tính), Tampering (thay đổi dữ liệu), Repudiation (chối bỏ hành động), Information Disclosure (rò rỉ thông tin), Denial of Service (từ chối dịch vụ), Elevation of Privilege (nâng quyền). **OWASP Top 10** — Kiểm tra 10 lỗ hổng bảo mật phổ biến nhất (injection, broken auth, sensitive data exposure, XML external entities, broken access control, security misconfiguration, XSS, insecure deserialization, using components with known vulnerabilities, insufficient logging). |
+| `edge-case-generation` | Sinh hệ thống các test case biên (boundary conditions), failure scenarios, và adversarial inputs để phát hiện lỗi |
+| `parallel-coordination` | Phân rã công việc thành các track độc lập chạy song song với quản lý dependencies |
+| `autonomous-optimizer` | Tối ưu hóa code tự động với measurement loops (đo → cải thiện → đo lại) |
+| `deep-research` | Nghiên cứu có cấu trúc với xác thực nguồn và tổng hợp thông tin |
 
 ## Cấu trúc project
 
@@ -208,7 +248,7 @@ harness-os/
 │       ├── git-diff.ts       # Get changed files from git
 │       ├── evidence.ts       # Evidence persistence (save/read per task)
 │       └── parsers/          # Test output parsers (vitest, generic)
-├── skills/                   # 13 built-in skills
+├── skills/                   # 29 built-in skills
 ├── templates/                # init.sh, AGENTS.md, verify.yaml templates
 ├── ide-adapters/             # Configs cho 7 IDEs
 ├── scripts/
@@ -232,21 +272,11 @@ harness-os/
 bun install          # Install dependencies (tạo bun.lockb)
 bun run dev          # Dev mode (tsx, không cần build)
 bun run build        # Compile TypeScript
-bun test             # Unit tests (97+ tests)
-bun run smoke        # End-to-end MCP test
+bun test             # Unit tests (251+ tests)
+bun run smoke        # End-to-end MCP test (29 skills)
 ```
 
 > **Lưu ý:** Dự án này dùng Bun thay cho npm. Xem [Bun Migration Plan](./docs/plans/2026-05-29-bun-migration.md) để biết thêm chi tiết.
-
-## Lộ trình
-
-- [x] **Phase 1** — Project scaffold + first boot (9 tools, smoke test)
-- [x] **Phase 2** — State files & lifecycle tools (17 tools, 8 skills)
-- [x] **Phase 3** — Scope + verify config + observe (21 tools)
-- [x] **Phase 4** — Templates + CLI + IDE adapters
-- [x] **Phase 5** — Continuous learning (25 tools)
-- [x] **Phase 6** — Hardening & observability
-- [x] **Phase 7** — Verify intelligence & evidence (structured results, changed_only, evidence auto-save)
 
 ## Tài liệu
 

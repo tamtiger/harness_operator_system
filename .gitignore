@@ -4,6 +4,8 @@ dist/
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+package-lock.json
+pnpm-lock.yaml
 
 # Runtime data
 .harness/

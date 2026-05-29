@@ -5,6 +5,35 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.2.0] — 2026-05-29
+
+### Added
+- **6 new agent skills** from vibecode-skills-integration:
+  - `security-audit` — STRIDE threat modeling + OWASP Top 10 security audit workflow
+  - `edge-case-generation` — Systematic boundary, failure, and adversarial input generation
+  - `parallel-coordination` — Decompose work into parallel tracks with dependency management
+  - `autonomous-optimizer` — Self-improving code optimization with measurement loops
+  - `deep-research` — Structured research with source validation and synthesis
+  - `spec-driven-workflow` — RIPER-5 phases integrated with harness-os session lifecycle
+- **Verify pipeline extension** with 2 new optional steps:
+  - `security_audit` step — Run security audit commands (npm audit, dotnet list package --vulnerable, bandit, gosec, etc.)
+  - `simplify` step — Check for unnecessary complexity
+- `STEP_ORDER` constant defining canonical step ordering: install → build → test → lint → typecheck → security_audit → simplify
+- Exported `parseVerifyYaml` function for unit testability
+- 27 comprehensive unit tests for verify pipeline (`src/tools/verify.test.ts`)
+- Commented-out entries for security_audit and simplify in `templates/verify.yaml.tpl` for all runtimes (node, dotnet, python, go)
+
+### Changed
+- `VerifyConfig` interface extended with `security_audit?: string | null` and `simplify?: string | null` fields
+- `verifyRun()` refactored to iterate over `STEP_ORDER` constant instead of hardcoded if-chain
+- Smoke test skill count assertion updated from `< 13` to `< 29` (23 existing + 6 new)
+
+### Verified
+- `bun run build` — 0 TypeScript errors
+- `bun test` — 251 pass, 2 skip, 0 fail (includes 27 new verify.test.ts tests)
+- `bun run smoke` — PASSED with 29 skills confirmed
+- Full backward compatibility maintained (configs without new fields work identically)
+
 ## [1.1.0] — 2026-05-29
 
 ### Added

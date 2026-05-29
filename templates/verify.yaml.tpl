@@ -6,6 +6,8 @@ commands:
   test: "{{PM_RUN}} test"
   lint: "{{PM_RUN}} lint"
   typecheck: null
+  # security_audit: "npm audit --audit-level=moderate"
+  # simplify: null
 timeouts:
   build: 120
   test: 300
@@ -18,6 +20,8 @@ commands:
   test: "dotnet test --no-build"
   lint: "dotnet format --verify-no-changes"
   typecheck: null
+  # security_audit: "dotnet list package --vulnerable"
+  # simplify: null
 timeouts:
   build: 180
   test: 300
@@ -30,6 +34,8 @@ commands:
   test: "pytest"
   lint: "ruff check ."
   typecheck: "mypy ."
+  # security_audit: "bandit -r ."
+  # simplify: null
 timeouts:
   build: 60
   test: 300
@@ -42,6 +48,8 @@ commands:
   test: "go test ./..."
   lint: "golangci-lint run"
   typecheck: null
+  # security_audit: "gosec ./..."
+  # simplify: null
 timeouts:
   build: 120
   test: 300

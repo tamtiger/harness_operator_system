@@ -7,6 +7,16 @@ import { parseGenericOutput } from "../lib/parsers/generic.js";
 import { getChangedFiles } from "../lib/git-diff.js";
 import { saveEvidence } from "../lib/evidence.js";
 
+export const STEP_ORDER = [
+  "install",
+  "build",
+  "test",
+  "lint",
+  "typecheck",
+  "security_audit",
+  "simplify",
+] as const;
+
 export interface StepResult {
   name: string;
   passed: boolean;
@@ -39,6 +49,8 @@ interface VerifyConfig {
     test?: string | null;
     lint?: string | null;
     typecheck?: string | null;
+    security_audit?: string | null;
+    simplify?: string | null;
   };
   timeouts?: {
     build?: number;
@@ -98,7 +110,7 @@ function loadVerifyConfig(repoPath: string): VerifyConfig | null {
   }
 }
 
-function parseVerifyYaml(content: string): VerifyConfig {
+export function parseVerifyYaml(content: string): VerifyConfig {
   const config: VerifyConfig = { commands: {}, timeouts: {} };
   const lines = content.split("\n");
   let section = "";
@@ -192,24 +204,16 @@ export function verifyRun(
       stepsToRun.push({ name: step, cmd: step, timeout: DEFAULT_TIMEOUT });
     }
   } else if (verifyConfig?.commands) {
-    // Use verify.yaml config
+    // Use verify.yaml config — iterate over STEP_ORDER for canonical ordering
     const cmds = verifyConfig.commands;
     const timeouts = verifyConfig.timeouts || {};
 
-    if (cmds.install !== null && cmds.install !== undefined) {
-      stepsToRun.push({ name: "install", cmd: cmds.install, timeout: DEFAULT_TIMEOUT });
-    }
-    if (cmds.build !== null && cmds.build !== undefined) {
-      stepsToRun.push({ name: "build", cmd: cmds.build, timeout: timeouts.build || DEFAULT_TIMEOUT });
-    }
-    if (cmds.test !== null && cmds.test !== undefined) {
-      stepsToRun.push({ name: "test", cmd: cmds.test, timeout: timeouts.test || DEFAULT_TIMEOUT });
-    }
-    if (cmds.lint !== null && cmds.lint !== undefined) {
-      stepsToRun.push({ name: "lint", cmd: cmds.lint, timeout: DEFAULT_TIMEOUT });
-    }
-    if (cmds.typecheck !== null && cmds.typecheck !== undefined) {
-      stepsToRun.push({ name: "typecheck", cmd: cmds.typecheck, timeout: DEFAULT_TIMEOUT });
+    for (const step of STEP_ORDER) {
+      const cmd = cmds[step as keyof typeof cmds];
+      if (cmd !== null && cmd !== undefined) {
+        const timeout = (timeouts[step as keyof typeof timeouts] || DEFAULT_TIMEOUT);
+        stepsToRun.push({ name: step, cmd, timeout });
+      }
     }
   } else {
     // Fallback to auto-detected runtime commands
