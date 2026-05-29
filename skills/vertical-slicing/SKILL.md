@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-29"
   applies_to: ["*"]
   triggers: ["task_create"]
+  tier: 2
+  keywords: ["slice", "vertical", "tracer", "end-to-end", "thin", "increment", "lát cắt", "dọc", "đầu cuối", "mỏng", "tăng dần"]
 ---
 
 ## Core Principle

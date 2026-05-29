@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-28"
   applies_to: ["*"]
   triggers: ["task_create"]
+  tier: 2
+  keywords: ["prototype", "spike", "experiment", "poc", "proof-of-concept", "explore", "nguyên mẫu", "thử nghiệm", "khám phá"]
 ---
 
 # Prototype First

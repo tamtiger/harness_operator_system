@@ -5,6 +5,38 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.3.0] — 2026-05-29
+
+### Added
+- **Tiered Keyword Skill Matching System** — Hybrid tier + keyword-based skill suggestion
+  - `skill_suggest` MCP tool — Suggest relevant skills based on task title + keywords (tier 1 + tier 2 matched)
+  - `src/lib/skill-matcher.ts` — Skill matching engine with tokenization, scoring, and tier filtering
+  - 24 comprehensive unit tests for skill-matcher (`src/lib/skill-matcher.test.ts`)
+  - Bilingual keywords (English + Vietnamese) for all 21 tier 2 skills
+- **Skill Tier System** — 3-tier skill classification:
+  - **Tier 1 (Core):** 3 skills always suggested at session_start (karpathy-guidelines, harness-workflow, strategic-compact)
+  - **Tier 2 (Contextual):** 21 skills suggested when keywords match task context
+  - **Tier 3 (On-demand):** 2 skills never auto-suggested (write-a-skill, verification-loop)
+- **Metadata fields** in skill frontmatter:
+  - `metadata.tier` — Skill priority (1, 2, or 3; default: 2)
+  - `metadata.keywords` — Keywords for tier 2 matching (default: [])
+- **Reduced skill noise** — `session_start` now returns only 3 tier 1 skills instead of 21
+
+### Changed
+- All 25 built-in skills updated with `tier` and `keywords` metadata
+- `session_start` now filters applicable_skills to tier 1 only (3 skills)
+- `skill_list` returns skills with metadata including tier and keywords
+- `skill_suggest` replaces deprecated `triggers` field approach for contextual skill matching
+- Smoke test updated: session_start now shows "(3 skills)" instead of "(21 skills)"
+
+### Verified
+- `bun run build` — 0 TypeScript errors
+- `bun test` — 301 pass, 2 skip, 0 fail (includes 24 new skill-matcher tests)
+- `bun run smoke` — PASSED with 27 tools confirmed (26 existing + 1 new skill_suggest)
+- Full backward compatibility maintained (skills without tier/keywords default to tier 2, no keywords)
+
+---
+
 ## [1.2.0] — 2026-05-29
 
 ### Added

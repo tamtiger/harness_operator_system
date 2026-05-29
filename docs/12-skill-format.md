@@ -24,27 +24,32 @@ Directory name MUST match the `name` field in frontmatter.
 
 ---
 
-## Frontmatter Fields (v1.0)
+## Frontmatter Fields (v1.1)
 
 ```yaml
 ---
 name: my-skill-name
-version: "1.0"
-updated: 2026-01-15
-applies_to: ["node", "dotnet"]
-triggers: ["session_start"]
 description: One-line description of what this skill teaches.
+metadata:
+  version: "1.0"
+  updated: 2026-01-15
+  applies_to: ["node", "dotnet"]
+  triggers: ["task_create"]
+  tier: 2
+  keywords: ["keyword1", "keyword2"]
 ---
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | ✅ | Skill identifier, matches directory name |
-| `version` | string | ✅ | Semver version string |
-| `updated` | string | ✅ | ISO date (YYYY-MM-DD) |
-| `applies_to` | string[] | ✅ | Stack filters: `["*"]`, `["node"]`, `["dotnet", "nestjs"]` |
-| `triggers` | string[] | ✅ | Tool names that trigger suggestion |
-| `description` | string | ✅ | One-line summary |
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | string | ✅ | — | Skill identifier, matches directory name |
+| `description` | string | ✅ | — | One-line summary |
+| `metadata.version` | string | ✅ | — | Semver version string |
+| `metadata.updated` | string | ✅ | — | ISO date (YYYY-MM-DD) |
+| `metadata.applies_to` | string[] | ✅ | — | Stack filters: `["*"]`, `["node"]`, `["dotnet", "nestjs"]` |
+| `metadata.triggers` | string[] | ⚠️ | — | **Deprecated** — use `tier` + `keywords` instead |
+| `metadata.tier` | number | ❌ | 2 | Skill priority: 1 (core), 2 (contextual), 3 (on-demand) |
+| `metadata.keywords` | string[] | ❌ | [] | Keywords for tier 2 matching (English + Vietnamese) |
 
 ### Valid `applies_to` Values
 
@@ -52,12 +57,30 @@ description: One-line description of what this skill teaches.
 - `"node"`, `"dotnet"`, `"python"`, `"go"`, `"rust"`
 - Custom values for project-specific skills
 
-### Valid `triggers` Values
+### Tier Definitions
 
-- `"session_start"` — suggested when session begins
-- `"task_create"` — suggested when new task is created
-- `"task_update"` — suggested when task status changes
-- `"session_end"` — suggested at session end
+| Tier | Behavior | Example |
+|------|----------|---------|
+| **1** | Always suggested at session start | `karpathy-guidelines`, `harness-workflow` |
+| **2** | Suggested when keywords match task context | `systematic-diagnosis` (matches "bug", "fix") |
+| **3** | Never auto-suggested, only explicit load | `write-a-skill`, `verification-loop` |
+
+### Keywords Format
+
+Keywords should include both English and Vietnamese terms for better matching:
+
+```yaml
+keywords: ["bug", "fix", "error", "crash", "debug", "lỗi", "sửa", "sập", "gỡ lỗi"]
+```
+
+### Deprecated `triggers` Field
+
+The `triggers` field is deprecated in favor of `tier` + `keywords`:
+
+- **Old:** `triggers: ["task_create"]` — always suggest on task_create
+- **New:** `tier: 2` + `keywords: [...]` — suggest only when keywords match
+
+Backward compatibility: Skills with only `triggers` field still work (default to tier 2, no keywords).
 
 ---
 

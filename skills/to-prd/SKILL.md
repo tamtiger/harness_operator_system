@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-29"
   applies_to: ["*"]
   triggers: ["session_start", "task_create"]
+  tier: 2
+  keywords: ["prd", "requirements", "product", "feature", "user-story", "acceptance", "yêu cầu", "sản phẩm", "tính năng", "câu chuyện người dùng", "chấp nhận"]
 ---
 
 # Product Requirements Document (PRD) Generation

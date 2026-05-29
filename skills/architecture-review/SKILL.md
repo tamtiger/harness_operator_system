@@ -5,7 +5,9 @@ metadata:
   version: "1.0"
   updated: "2026-05-28"
   applies_to: ["*"]
-  triggers: ["session_start"]
+  triggers: ["task_create"]
+  tier: 2
+  keywords: ["architecture", "module", "refactor", "deep", "shallow", "coupling", "seam", "kiến trúc", "mô-đun", "tái cấu trúc", "sâu", "nông", "liên kết", "điểm nối"]
 ---
 
 # Architecture Review

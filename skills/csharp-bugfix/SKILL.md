@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-28"
   applies_to: ["dotnet"]
   triggers: ["task_create"]
+  tier: 2
+  keywords: ["csharp", "dotnet", "bug", "fix", "exception", "null", "ef-core", "c#", ".net", "lỗi", "sửa", "ngoại lệ", "entity-framework"]
 ---
 
 # C# Bugfix Workflow

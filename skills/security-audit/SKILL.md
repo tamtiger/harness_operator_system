@@ -5,7 +5,9 @@ metadata:
   version: "1.0"
   updated: "2026-05-29"
   applies_to: ["*"]
-  triggers: ["verify_run", "session_start"]
+  triggers: ["verify_run"]
+  tier: 2
+  keywords: ["security", "vulnerability", "owasp", "stride", "auth", "injection", "xss", "bảo mật", "lỗ hổng", "xác thực", "tiêm", "csrf"]
 ---
 
 # Security Audit Skill

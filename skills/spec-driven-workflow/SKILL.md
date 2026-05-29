@@ -5,7 +5,9 @@ metadata:
   version: "1.0"
   updated: "2026-05-29"
   applies_to: ["*"]
-  triggers: ["session_start"]
+  triggers: ["task_create"]
+  tier: 2
+  keywords: ["spec", "research", "innovate", "plan", "execute", "review", "phase", "đặc tả", "nghiên cứu", "đổi mới", "kế hoạch", "thực hiện", "xem xét", "giai đoạn"]
 ---
 
 # Spec-Driven Workflow Skill

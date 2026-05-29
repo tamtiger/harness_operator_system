@@ -5,7 +5,7 @@ import { z } from "zod";
 import { sessionStart, sessionEnd, sessionResume, sessionHandoff } from "./tools/session.js";
 import { taskCreate, taskUpdate, taskList } from "./tools/task.js";
 import { verifyRun } from "./tools/verify.js";
-import { skillLoad, skillList, skillCreateFromSession } from "./tools/skill.js";
+import { skillLoad, skillList, skillCreateFromSession, skillSuggest } from "./tools/skill.js";
 import { instinctAdd, instinctGet, instinctPrune, instinctEvolve, instinctPromote } from "./tools/instinct.js";
 import { getDb } from "./db/client.js";
 import { detectRuntime } from "./lib/runtime.js";
@@ -24,7 +24,7 @@ import { log } from "./lib/logger.js";
 
 const server = new McpServer({
   name: "harness-os",
-  version: "1.2.0",
+  version: "1.3.0",
 });
 
 /**
@@ -234,6 +234,36 @@ server.registerTool(
     "skill_create_from_session",
     ({ session_id, theme }: { session_id: string; theme: string }) =>
       skillCreateFromSession(session_id, theme, getDb(), detectRuntime)
+  )
+);
+
+server.registerTool(
+  "skill_suggest",
+  {
+    description: "Suggest relevant skills for a task based on title and context.",
+    inputSchema: {
+      task_title: z.string().optional().describe("Task title to match against"),
+      task_scope: z.string().optional().describe("Task scope for additional context"),
+      stack: z.string().optional().describe("Stack filter (node, dotnet, etc.)"),
+      max_results: z.number().optional().describe("Max skills to return (default 8)"),
+      repo_path: z.string().optional().describe("Repo path for repo-specific skills"),
+    },
+  },
+  makeHandler(
+    "skill_suggest",
+    ({
+      task_title,
+      task_scope,
+      stack,
+      max_results,
+      repo_path,
+    }: {
+      task_title?: string;
+      task_scope?: string;
+      stack?: string;
+      max_results?: number;
+      repo_path?: string;
+    }) => skillSuggest(task_title, task_scope, stack, max_results, repo_path)
   )
 );
 

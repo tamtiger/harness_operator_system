@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-29"
   applies_to: ["*"]
   triggers: ["task_create"]
+  tier: 2
+  keywords: ["bug", "fix", "error", "crash", "debug", "investigate", "diagnose", "reproduce", "regression", "broken", "lỗi", "sửa", "sập", "gỡ lỗi", "điều tra", "chẩn đoán", "tái tạo", "hồi quy"]
 ---
 
 # Systematic Diagnosis

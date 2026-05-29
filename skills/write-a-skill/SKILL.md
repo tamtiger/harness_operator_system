@@ -5,7 +5,9 @@ metadata:
   version: "1.0"
   updated: "2026-05-29"
   applies_to: ["*"]
-  triggers: ["session_start"]
+  triggers: ["task_create"]
+  tier: 3
+  keywords: []
 ---
 
 # Writing Skills in Harness-OS

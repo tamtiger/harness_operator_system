@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-29"
   applies_to: ["*"]
   triggers: ["task_create", "task_update"]
+  tier: 2
+  keywords: ["triage", "priority", "severity", "classify", "assign", "backlog", "phân loại", "ưu tiên", "mức độ", "phân lớp", "gán", "danh sách chờ"]
 ---
 
 # Issue Triage & Management

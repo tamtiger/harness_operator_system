@@ -3,9 +3,11 @@ name: csharp-repair
 description: "Guide for diagnosing and fixing compile errors, runtime errors, and test failures in C# projects."
 metadata:
   version: "1.0"
-  updated: "2026-05-28"
+  updated: "2026-05-29"
   applies_to: ["dotnet"]
-  triggers: ["session_start"]
+  triggers: ["task_create"]
+  tier: 2
+  keywords: ["csharp", "dotnet", "hotfix", "repair", "patch", "urgent", "c#", ".net", "sửa nóng", "sửa chữa", "vá", "khẩn cấp"]
 ---
 
 # C# Repair Guide

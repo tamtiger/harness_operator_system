@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-26"
   applies_to: ["*"]
   triggers: ["task_update"]
+  tier: 3
+  keywords: []
 ---
 
 # Verification Loop

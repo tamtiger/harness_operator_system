@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-29"
   applies_to: ["*"]
   triggers: ["session_start"]
+  tier: 2
+  keywords: ["optimize", "performance", "benchmark", "measure", "improve", "profile", "tối ưu", "hiệu suất", "chuẩn mực", "đo lường", "cải thiện", "hồ sơ"]
 ---
 
 # Autonomous Optimizer Skill

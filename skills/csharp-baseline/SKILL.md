@@ -3,9 +3,11 @@ name: csharp-baseline
 description: "C# stack baseline — architecture, naming, dependencies, testing, and CI rules for .NET/ABP projects."
 metadata:
   version: "1.0"
-  updated: "2026-05-28"
+  updated: "2026-05-29"
   applies_to: ["dotnet"]
-  triggers: ["session_start"]
+  triggers: ["task_create"]
+  tier: 2
+  keywords: ["csharp", "dotnet", "abp", "entity", "repository", "appservice", "c#", ".net", "thực thể", "kho lưu trữ", "dịch vụ ứng dụng"]
 ---
 
 # C# Stack Baseline

@@ -22,60 +22,118 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 
 ---
 
-## 29 Built-in Skills
+## 25 Built-in Skills
 
-### Core Workflow (8 skills)
-| Skill | Mục đích | Triggers |
-|-------|----------|----------|
-| `karpathy-guidelines` | 4 nguyên tắc: Think, Simplicity, Surgical, Goal-Driven | `session_start` |
-| `harness-workflow` | Quy trình vòng đời session (CTR gate, artifacts, EPCC mapping) | `session_start`, `task_create` |
-| `tdd-workflow` | Quy trình Test-Driven Development (red-green-refactor) | `task_create` |
-| `verification-loop` | Luồng xác thực liên tục (không claim done khi chưa có bằng chứng) | `task_update` |
-| `search-first` | Tìm kiếm mã nguồn hiện tại trước khi viết code mới | `task_create` |
-| `goal-driven-execution` | Thực thi hướng mục tiêu, lặp lại cho tới khi verify | `session_start` |
-| `strategic-compact` | Quản lý dung lượng context window một cách chiến lược | `session_start` |
-| `continuous-learning` | Ghi nhận và phát triển các instincts thành skills lâu dài | `session_end`, `task_update` |
+### Tier 1 — Core Workflow (3 skills, luôn gợi ý)
 
-### Design & Architecture (4 skills)
-| Skill | Mục đích | Triggers |
-|-------|----------|----------|
-| `design-grilling` | Phản biện thiết kế/kế hoạch triệt để cho đến khi mọi nhánh quyết định được giải quyết | `session_start` |
-| `prototype-first` | Xây dựng các bản thử nghiệm dùng một lần để giải đáp câu hỏi thiết kế | `task_create` |
-| `architecture-review` | Đánh giá kiến trúc, phát hiện shallow modules và đề xuất deep modules | `session_start` |
-| `zoom-out` | Tạm dừng sửa code mù quáng khi gặp code phức tạp/lạ để lùi lại lấy context rộng hơn | `session_start` |
+Những skill cốt lõi được gợi ý ở mỗi session_start, không phụ thuộc vào task.
 
-### Specialized Workflows (4 skills)
-| Skill | Mục đích | Triggers |
-|-------|----------|----------|
-| `caveman-mode` | Định dạng giao tiếp nén lược bỏ filler word để tiết kiệm 75% tokens | `session_start` |
-| `systematic-diagnosis` | Chẩn đoán lỗi có hệ thống (Phase 1: 10 methods tạo feedback loop, tối ưu loop, flake) | `task_create` |
-| `vertical-slicing` | Phân rã lát cắt dọc (tracer bullets), bước "Quiz user" và xây dựng Agent Brief | `task_create` |
-| `to-prd` | Tổng hợp thông tin hội thoại thành PRD tiêu chuẩn và định hướng tạo deep modules | `task_create` |
+| Skill | Tiếng Việt | Mục đích |
+|-------|-----------|----------|
+| `karpathy-guidelines` | Nguyên tắc Karpathy | 4 nguyên tắc cơ bản: Suy nghĩ trước, Đơn giản, Phẫu thuật, Hướng mục tiêu |
+| `harness-workflow` | Quy trình Harness | Vòng đời session (CTR gate, artifacts, EPCC mapping) |
+| `strategic-compact` | Quản lý Context Chiến lược | Quản lý dung lượng context window một cách hiệu quả |
 
-### Operations & Meta (3 skills)
-| Skill | Mục đích | Triggers |
-|-------|----------|----------|
-| `triage` | Triage state machine cho issues/tasks và tự sinh Agent Brief khi bàn giao | `task_create` |
-| `write-a-skill` | Meta-skill hướng dẫn chi tiết quy trình viết và cập nhật skill mới | `task_create` |
-| `spec-driven-workflow` | RIPER-5 phases (Research → Innovate → Plan → Execute → Review) + harness-os integration | `session_start`, `task_create` |
+---
 
-### C# Stack (5 skills)
-| Skill | Mục đích | Triggers |
-|-------|----------|----------|
-| `csharp-baseline` | C# / .NET / ABP baseline conventions | `session_start` |
-| `csharp-bugfix` | C# bug fix workflow | `task_create` |
-| `csharp-code-review` | C# code review checklist | `task_update` |
-| `csharp-feature` | C# feature implementation workflow | `task_create` |
-| `csharp-repair` | C# repair/hotfix workflow | `task_create` |
+### Tier 2 — Contextual Skills (21 skills, gợi ý theo keyword)
 
-### Bảo mật & Chất lượng (5 skills)
-| Skill | Mục đích | Triggers |
-|-------|----------|----------|
-| `security-audit` | STRIDE threat modeling + OWASP Top 10 security audit workflow | `verify_run`, `session_start` |
-| `edge-case-generation` | Sinh hệ thống các test case biên (boundary conditions), failure scenarios, adversarial inputs | `task_create`, `verify_run` |
-| `parallel-coordination` | Phân rã công việc thành các track độc lập chạy song song với quản lý dependencies | `task_create`, `session_start` |
-| `autonomous-optimizer` | Tối ưu hóa code tự động với measurement loops (đo → cải thiện → đo lại) | `verify_run` |
-| `deep-research` | Nghiên cứu có cấu trúc với xác thực nguồn và tổng hợp thông tin | `session_start` |
+Những skill được gợi ý dựa trên từ khóa trong task title/scope. Mỗi skill có keywords tiếng Anh + tiếng Việt.
+
+#### **Thiết kế & Kiến trúc (4 skills)**
+
+| Skill | Tiếng Việt | Mục đích | Keywords |
+|-------|-----------|----------|----------|
+| `design-grilling` | Phản biện Thiết kế | Phản biện thiết kế triệt để, đánh giá trade-off | design, architecture, plan, rfc, proposal, evaluate, tradeoff, thiết kế, kiến trúc, kế hoạch, đề xuất, đánh giá, cân nhắc |
+| `prototype-first` | Xây dựng Prototype Trước | Xây dựng bản thử nghiệm để giải đáp câu hỏi thiết kế | prototype, spike, experiment, poc, proof-of-concept, explore, mẫu, thử nghiệm, khám phá |
+| `architecture-review` | Đánh giá Kiến trúc | Đánh giá kiến trúc, phát hiện shallow modules, coupling | architecture, module, refactor, deep, shallow, coupling, seam, kiến trúc, mô-đun, tái cấu trúc, liên kết |
+| `spec-driven-workflow` | Quy trình Hướng Spec | RIPER-5 phases (Research → Innovate → Plan → Execute → Review) | spec, research, innovate, plan, execute, review, phase, đặc tả, nghiên cứu, đổi mới, thực hiện, giai đoạn |
+
+#### **Quy trình Phát triển (6 skills)**
+
+| Skill | Tiếng Việt | Mục đích | Keywords |
+|-------|-----------|----------|----------|
+| `tdd-workflow` | Test-Driven Development | Red-Green-Refactor: viết test trước, code sau, tái cấu trúc | test, tdd, red-green, refactor, unit-test, coverage, kiểm thử, bao phủ |
+| `read-first` | Đọc Trước | Đọc code trước khi viết, tìm patterns, tránh trùng lặp | search, find, existing, pattern, duplicate, understand, tìm kiếm, mẫu, trùng lặp, hiểu |
+| `systematic-diagnosis` | Chẩn đoán Có hệ thống | Chẩn đoán lỗi có hệ thống: tái tạo → nguyên nhân → fix | bug, fix, error, crash, debug, investigate, diagnose, reproduce, regression, lỗi, sửa, sập, gỡ lỗi, điều tra, chẩn đoán, tái tạo, hồi quy |
+| `vertical-slicing` | Phân rã Dọc | Phân rã lát cắt dọc (tracer bullets), end-to-end thin slices | slice, vertical, tracer, end-to-end, thin, increment, phân rã, dọc, mỏng, tăng dần |
+| `parallel-coordination` | Phối hợp Song song | Phân rã công việc thành track độc lập, quản lý dependencies | parallel, concurrent, decompose, independent, fan-out, stage, song song, độc lập, giai đoạn |
+| `edge-case-generation` | Sinh Test Biên | Sinh hệ thống test case biên (boundary, failure, adversarial) | edge-case, boundary, adversarial, fuzz, negative, overflow, biên, đối kháng, tràn |
+
+#### **Chất lượng & Bảo mật (3 skills)**
+
+| Skill | Tiếng Việt | Mục đích | Keywords |
+|-------|-----------|----------|----------|
+| `security-audit` | Kiểm toán Bảo mật | STRIDE threat modeling + OWASP Top 10 security audit | security, vulnerability, owasp, stride, auth, injection, xss, bảo mật, lỗ hổng, xác thực, tiêm |
+| `deep-research` | Nghiên cứu Sâu | Nghiên cứu có cấu trúc với xác thực nguồn và tổng hợp | research, investigate, compare, evaluate, benchmark, literature, nghiên cứu, so sánh, đánh giá, chuẩn mực |
+| `autonomous-optimizer` | Tối ưu Tự động | Tối ưu hóa code tự động với measurement loops | optimize, performance, benchmark, measure, improve, profile, tối ưu, hiệu năng, đo lường, cải thiện |
+
+#### **Yêu cầu & Lập kế hoạch (3 skills)**
+
+| Skill | Tiếng Việt | Mục đích | Keywords |
+|-------|-----------|----------|----------|
+| `to-prd` | Tổng hợp PRD | Tổng hợp thông tin thành PRD tiêu chuẩn | prd, requirements, product, feature, user-story, acceptance, yêu cầu, sản phẩm, tính năng, chấp nhận |
+| `triage` | Phân loại Issues | Triage state machine cho issues/tasks, tự sinh Agent Brief | triage, priority, severity, classify, assign, backlog, phân loại, ưu tiên, mức độ, gán |
+| `continuous-learning` | Học tập Liên tục | Ghi nhận và phát triển instincts thành skills lâu dài | learn, pattern, instinct, capture, evolve, học, mẫu, bắt giữ, phát triển |
+
+#### **C# / .NET Stack (5 skills)**
+
+| Skill | Tiếng Việt | Mục đích | Keywords |
+|-------|-----------|----------|----------|
+| `csharp-baseline` | C# Baseline | C# / .NET / ABP baseline conventions và architecture | csharp, dotnet, abp, entity, repository, appservice, c#, .net, thực thể, kho, dịch vụ |
+| `csharp-bugfix` | Fix Bug C# | Quy trình fix bug trong C# / ABP | csharp, dotnet, bug, fix, exception, null, ef-core, c#, .net, ngoại lệ, null |
+| `csharp-feature` | Tính năng C# | Quy trình implement feature trong C# / ABP | csharp, dotnet, feature, implement, service, controller, c#, .net, dịch vụ, bộ điều khiển |
+| `csharp-code-review` | Code Review C# | Code review checklist cho C# / ABP | csharp, dotnet, review, code-review, pr, merge-request, c#, .net, đánh giá, yêu cầu hợp nhất |
+| `csharp-repair` | Sửa chữa C# | Sửa compile errors, runtime errors, test failures | csharp, dotnet, hotfix, repair, patch, urgent, c#, .net, vá, khẩn cấp |
+
+---
+
+### Tier 3 — On-Demand Skills (2 skills, không bao giờ tự động gợi ý)
+
+Những skill chỉ load khi agent explicit request, không được gợi ý tự động.
+
+| Skill | Tiếng Việt | Mục đích |
+|-------|-----------|----------|
+| `write-a-skill` | Viết Skill | Meta-skill: hướng dẫn tạo skill mới |
+| `verification-loop` | Vòng Xác thực | Luồng xác thực liên tục (embedded trong harness-workflow) |
+
+---
+
+## Skill Suggestion (Tiered Keyword Matching)
+
+### Cách hoạt động
+
+Khi agent tạo task, harness-os tự động gợi ý skills phù hợp dựa trên:
+- **Tier 1 (Core):** Luôn gợi ý 3 skill cốt lõi (`karpathy-guidelines`, `harness-workflow`, `strategic-compact`)
+- **Tier 2 (Contextual):** Gợi ý 2-4 skills dựa trên keyword match với task title/scope
+- **Tier 3 (On-demand):** Không bao giờ tự động gợi ý, chỉ load khi explicit
+
+### Ví dụ
+
+```
+Task: "Fix null reference in PaymentService.Process()"
+→ Tier 1: karpathy-guidelines, harness-workflow, strategic-compact
+→ Tier 2: systematic-diagnosis (match: "fix", "bug"), csharp-bugfix (match: "fix", "dotnet")
+→ Total: 5 skills gợi ý
+```
+
+```
+Task: "Design event-driven architecture for notification system"
+→ Tier 1: karpathy-guidelines, harness-workflow, strategic-compact
+→ Tier 2: design-grilling (match: "design", "architecture"), architecture-review (match: "architecture")
+→ Total: 5 skills gợi ý
+```
+
+### API
+
+```
+skill_suggest(
+  task_title: string,
+  task_scope?: string,
+  stack?: string,
+  max_results?: number
+) → { suggested_skills: [...], total_available: 25 }
+```
 
 ---
 
@@ -89,6 +147,9 @@ updated: 2026-05-26
 applies_to: ["node", "typescript"]    # hoặc ["*"] cho tất cả stacks
 triggers: ["session_start", "task_create"]
 description: Mô tả ngắn gọn skill làm gì.
+metadata:
+  tier: 2                              # 1 (core), 2 (contextual), 3 (on-demand)
+  keywords: ["keyword1", "keyword2"]   # Dùng cho tier 2 matching
 ---
 ```
 
@@ -98,8 +159,10 @@ description: Mô tả ngắn gọn skill làm gì.
 | `version` | string | Version (so sánh khi update) |
 | `updated` | string | Ngày cập nhật (YYYY-MM-DD) |
 | `applies_to` | string[] | Stacks áp dụng: `*`, `node`, `dotnet`, `python`, `go`, `rust` |
-| `triggers` | string[] | Khi nào suggest: `session_start`, `task_create`, `task_update`, `session_end` |
+| `triggers` | string[] | Khi nào suggest: `session_start`, `task_create`, `task_update`, `session_end` (deprecated, dùng tier + keywords) |
 | `description` | string | Mô tả ngắn |
+| `metadata.tier` | number | 1 (core), 2 (contextual), 3 (on-demand) — default: 2 |
+| `metadata.keywords` | string[] | Keywords cho tier 2 matching — default: [] |
 
 ---
 
@@ -160,3 +223,109 @@ Agent có thể tạo skill draft từ patterns trong session:
 ```
 
 Tool `skill_create_from_session` phân tích audit log → sinh SKILL.md draft. User review và lưu thủ công.
+
+---
+
+## Glossary — Thuật ngữ Kỹ thuật
+
+### Skill & Learning
+
+| Thuật ngữ | Tiếng Việt | Giải thích |
+|-----------|-----------|-----------|
+| **Skill** | Kỹ năng | Tài liệu hướng dẫn có cấu trúc giúp agent biết cách làm việc |
+| **Tier** | Tầng | Mức độ ưu tiên của skill (1=core, 2=contextual, 3=on-demand) |
+| **Keyword matching** | Khớp từ khóa | Quá trình tìm skills phù hợp dựa trên từ khóa trong task |
+| **Instinct** | Bản năng | Pattern được học từ session, có thể phát triển thành skill |
+| **Frontmatter** | Phần đầu | Metadata YAML ở đầu file SKILL.md |
+
+### Quy trình Phát triển
+
+| Thuật ngữ | Tiếng Việt | Giải thích |
+|-----------|-----------|-----------|
+| **TDD** | Phát triển hướng test | Test-Driven Development: viết test trước, code sau |
+| **Red-Green-Refactor** | Đỏ-Xanh-Tái cấu trúc | Chu kỳ TDD: test fail (đỏ) → code pass (xanh) → cải thiện (tái cấu trúc) |
+| **Vertical slicing** | Phân rã dọc | Chia tính năng thành các lát cắt mỏng, end-to-end |
+| **Tracer bullet** | Viên đạn theo dõi | Prototype đơn giản để kiểm tra hướng đi |
+| **Edge case** | Trường hợp biên | Tình huống ở ranh giới của logic (boundary conditions) |
+| **Regression** | Hồi quy | Lỗi cũ xuất hiện lại sau khi fix |
+
+### Thiết kế & Kiến trúc
+
+| Thuật ngữ | Tiếng Việt | Giải thích |
+|-----------|-----------|-----------|
+| **Architecture** | Kiến trúc | Cấu trúc tổng thể của hệ thống |
+| **Module** | Mô-đun | Thành phần độc lập của hệ thống |
+| **Coupling** | Liên kết | Mức độ phụ thuộc giữa các mô-đun (cao = xấu) |
+| **Cohesion** | Kết dính | Mức độ liên quan giữa các phần trong mô-đun (cao = tốt) |
+| **Shallow module** | Mô-đun nông | Mô-đun có interface phức tạp nhưng logic đơn giản |
+| **Deep module** | Mô-đun sâu | Mô-đun có interface đơn giản nhưng logic phức tạp (tốt) |
+| **Seam** | Điểm nối | Nơi có thể thay đổi hành vi mà không sửa code |
+| **Trade-off** | Cân nhắc | Sự đánh đổi giữa các lựa chọn (tốc độ vs bộ nhớ) |
+
+### Bảo mật
+
+| Thuật ngữ | Tiếng Việt | Giải thích |
+|-----------|-----------|-----------|
+| **STRIDE** | STRIDE | Mô hình đe dọa: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege |
+| **OWASP** | OWASP | Open Web Application Security Project: top 10 lỗ hổng web |
+| **Injection** | Tiêm | Lỗ hổng cho phép chèn code độc hại (SQL injection, command injection) |
+| **XSS** | XSS | Cross-Site Scripting: chèn script vào trang web |
+| **Authentication** | Xác thực | Xác minh danh tính người dùng |
+| **Authorization** | Phân quyền | Xác định quyền hạn của người dùng |
+| **Vulnerability** | Lỗ hổng | Điểm yếu có thể bị khai thác |
+
+### Kiểm thử
+
+| Thuật ngữ | Tiếng Việt | Giải thích |
+|-----------|-----------|-----------|
+| **Unit test** | Kiểm thử đơn vị | Test một hàm/method riêng lẻ |
+| **Integration test** | Kiểm thử tích hợp | Test nhiều thành phần làm việc cùng nhau |
+| **Coverage** | Bao phủ | Phần trăm code được kiểm thử |
+| **Boundary condition** | Điều kiện biên | Giá trị ở ranh giới của input (0, -1, max value) |
+| **Adversarial input** | Input đối kháng | Input được thiết kế để phá vỡ logic |
+| **Fuzz testing** | Kiểm thử mờ | Gửi random input để tìm lỗi |
+
+### C# / .NET
+
+| Thuật ngữ | Tiếng Việt | Giải thích |
+|-----------|-----------|-----------|
+| **ABP** | ABP | ASP.NET Boilerplate: framework cho .NET |
+| **Entity** | Thực thể | Class đại diện cho bảng trong database |
+| **Repository** | Kho | Pattern để truy cập dữ liệu |
+| **AppService** | Dịch vụ ứng dụng | Lớp logic nghiệp vụ |
+| **Controller** | Bộ điều khiển | Xử lý HTTP requests |
+| **EF Core** | EF Core | Entity Framework Core: ORM cho .NET |
+| **Null reference** | Tham chiếu null | Lỗi khi truy cập thuộc tính của object null |
+| **Exception** | Ngoại lệ | Lỗi runtime |
+
+### Quy trình & Quản lý
+
+| Thuật ngữ | Tiếng Việt | Giải thích |
+|-----------|-----------|-----------|
+| **Triage** | Phân loại | Sắp xếp issues theo ưu tiên |
+| **Priority** | Ưu tiên | Mức độ quan trọng (P0, P1, P2, P3) |
+| **Severity** | Mức độ | Mức độ ảnh hưởng (Critical, High, Medium, Low) |
+| **Backlog** | Danh sách chờ | Tập hợp tasks chưa được thực hiện |
+| **Sprint** | Vòng lặp | Chu kỳ phát triển (thường 2 tuần) |
+| **Burndown** | Giảm dần | Biểu đồ theo dõi tiến độ sprint |
+| **PRD** | Tài liệu yêu cầu sản phẩm | Product Requirements Document |
+| **User story** | Câu chuyện người dùng | Mô tả tính năng từ góc nhìn người dùng |
+| **Acceptance criteria** | Tiêu chí chấp nhận | Điều kiện để task được coi là hoàn thành |
+
+### Hiệu năng & Tối ưu
+
+| Thuật ngữ | Tiếng Việt | Giải thích |
+|-----------|-----------|-----------|
+| **Benchmark** | Chuẩn mực | Đo lường hiệu năng để so sánh |
+| **Profile** | Phân tích | Đo lường thời gian/bộ nhớ của từng phần code |
+| **Optimization** | Tối ưu | Cải thiện hiệu năng |
+| **Measurement loop** | Vòng đo lường | Chu kỳ: đo → cải thiện → đo lại |
+| **Bottleneck** | Nút thắt | Phần code chậm nhất |
+
+---
+
+## Tham khảo thêm
+
+- 📖 [skill-format.md](./skill-format.md) — Đặc tả agentskills.io
+- 📖 [glossary.md](./glossary.md) — Glossary đầy đủ
+- 📖 [instincts.md](./instincts.md) — Học tập liên tục

@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-26"
   applies_to: ["*"]
   triggers: ["session_end", "task_update"]
+  tier: 2
+  keywords: ["learn", "pattern", "instinct", "capture", "evolve", "học", "mẫu", "bản năng", "bắt", "phát triển"]
 ---
 
 # Continuous Learning

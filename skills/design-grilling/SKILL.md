@@ -5,7 +5,9 @@ metadata:
   version: "1.0"
   updated: "2026-05-28"
   applies_to: ["*"]
-  triggers: ["session_start", "task_create"]
+  triggers: ["task_create"]
+  tier: 2
+  keywords: ["design", "architecture", "plan", "rfc", "proposal", "evaluate", "tradeoff", "thiết kế", "kiến trúc", "kế hoạch", "đề xuất", "đánh giá", "cân bằng"]
 ---
 
 # Design Grilling

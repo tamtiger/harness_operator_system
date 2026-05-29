@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { parseFrontmatter, type SkillFrontmatter } from "../lib/frontmatter.js";
 import { resolveHarnessDir, resolveGlobalHome } from "../lib/repo.js";
 import { log } from "../lib/logger.js";
+import { matchSkills, type SkillWithMetadata, type MatchContext } from "../lib/skill-matcher.js";
 
 export interface SkillLoadResult {
   name: string;
@@ -167,6 +168,46 @@ export interface SkillCreateFromSessionResult {
   event_count: number;
 }
 
+export interface SkillSuggestResult {
+  suggested_skills: Array<{
+    name: string;
+    tier: number;
+    score: number;
+  }>;
+  total_available: number;
+}
+
+export function skillSuggest(
+  taskTitle?: string,
+  taskScope?: string,
+  stack?: string,
+  maxResults?: number,
+  repoPath?: string
+): SkillSuggestResult {
+  const { skills } = skillList(stack, repoPath);
+
+  // Convert to SkillWithMetadata format for matching
+  const skillsWithMeta: SkillWithMetadata[] = skills.map((s) => ({
+    name: s.name,
+    description: s.description ?? undefined,
+    metadata: s.metadata,
+  }));
+
+  // Match skills based on context
+  const context: MatchContext = {
+    taskTitle,
+    taskScope,
+    stack,
+  };
+
+  const suggested = matchSkills(skillsWithMeta, context, maxResults ?? 8);
+
+  return {
+    suggested_skills: suggested,
+    total_available: skills.length,
+  };
+}
+
 export function skillCreateFromSession(
   sessionId: string,
   theme: string,
@@ -228,11 +269,12 @@ export function skillCreateFromSession(
 
   const draft = `---
 name: ${theme.replace(/\s+/g, "-").toLowerCase()}
-version: "1.0"
-updated: ${date}
-applies_to: ["${runtime.runtime}"]
-triggers: ["session_start"]
 description: Patterns extracted from session ${sessionId.slice(0, 8)} — theme: ${theme}.
+metadata:
+  version: "1.0"
+  updated: ${date}
+  applies_to: ["${runtime.runtime}"]
+  triggers: ["task_create"]
 ---
 
 # ${theme}

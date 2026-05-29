@@ -8,6 +8,7 @@ import { ensureDir } from "../lib/repo.js";
 import { handoffRead, handoffWrite, progressLog, type HandoffData } from "./state.js";
 import { taskList } from "./task.js";
 import { skillList } from "./skill.js";
+import { getTier1Skills, type SkillWithMetadata } from "../lib/skill-matcher.js";
 
 export interface SessionStartResult {
   session_id: string;
@@ -61,10 +62,20 @@ export function sessionStart(repoPath: string): SessionStartResult {
   const { tasks } = taskList(repoPath, "pending");
   const pendingCount = tasks.length;
 
-  // Detect stack and get applicable skills
+  // Detect stack and get applicable skills (tier 1 only for session_start)
   const runtime = detectRuntime(repoPath);
   const { skills } = skillList(runtime.runtime !== "unknown" ? runtime.runtime : undefined, repoPath);
-  const applicableSkills = skills.map((s) => s.name);
+  
+  // Convert to SkillWithMetadata format for tier filtering
+  const skillsWithMeta: SkillWithMetadata[] = skills.map((s) => ({
+    name: s.name,
+    description: s.description ?? undefined,
+    metadata: s.metadata,
+  }));
+  
+  // Get only tier 1 skills for session_start
+  const tier1Results = getTier1Skills(skillsWithMeta);
+  const applicableSkills = tier1Results.map((r) => r.name);
 
   // Determine instructions to read
   const instructions: string[] = ["AGENTS.md", "skill:harness-workflow"];

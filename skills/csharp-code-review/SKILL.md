@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-28"
   applies_to: ["dotnet"]
   triggers: ["session_start"]
+  tier: 2
+  keywords: ["csharp", "dotnet", "review", "code-review", "pr", "merge-request", "c#", ".net", "xem xét", "đánh giá mã", "yêu cầu hợp nhất"]
 ---
 
 # C# Code Review Checklist

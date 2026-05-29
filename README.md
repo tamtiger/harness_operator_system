@@ -3,11 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.2.0-blue)](#)
-[![Bun](https://img.shields.io/badge/Bun-v1.2.0-f9f2f4)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-26-blue)](#)
-[![Skills](https://img.shields.io/badge/skills-29-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-251%20passing-brightgreen)](#)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue)](#)
+[![Bun](https://img.shields.io/badge/Bun-v1.3.0-f9f2f4)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-27-blue)](#)
+[![Skills](https://img.shields.io/badge/skills-25-blue)](#)
+[![Tests](https://img.shields.io/badge/tests-301%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -49,14 +49,14 @@ bun run dev -- install-mcp --ide cursor
 | **Lifecycle** | Luồng session từ đầu→cuối | `session_start/resume/end/handoff` |
 | **Continuous Learning** | Pattern tái sử dụng | `instinct_add/get/prune/evolve` |
 
-## 26 MCP Tools
+## 27 MCP Tools
 
 <details>
 <summary><b>Session lifecycle (4 tools)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
-| `session_start` | Bắt đầu session, trả về context + handoff + applicable skills |
+| `session_start` | Bắt đầu session, trả về context + handoff + applicable skills (tier 1 only) |
 | `session_resume` | Tiếp tục session trước (alias session_start) |
 | `session_end` | Đóng session |
 | `session_handoff` | Kết thúc với handoff atomic (handoff + progress + đóng session) |
@@ -99,12 +99,13 @@ bun run dev -- install-mcp --ide cursor
 </details>
 
 <details>
-<summary><b>Skills (3 tools)</b></summary>
+<summary><b>Skills (4 tools)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
 | `skill_load` | Load skill theo tên (kèm metadata) |
 | `skill_list` | Liệt kê skills (filter theo stack) |
+| `skill_suggest` | **NEW** — Gợi ý skills phù hợp dựa trên task title + keywords (tier 1 + tier 2 matched) |
 | `skill_create_from_session` | Sinh SKILL.md draft từ audit log session |
 
 </details>
@@ -159,73 +160,62 @@ harness export [--repo .] [--output FILE]                   # Export harness sta
 harness import <file.json>                                  # Import harness state
 ```
 
-## Built-in Skills (29)
+## Built-in Skills (25)
 
-### 📌 Khái niệm: PRD & Deep Modules
+### 📌 Tiered Skill Matching
 
-**PRD (Product Requirements Document)** là tài liệu định nghĩa rõ ràng:
-- **Mục tiêu** — Vấn đề cần giải quyết, tại sao nó quan trọng
-- **Scope** — Ranh giới: cái gì được làm, cái gì không
-- **Acceptance Criteria** — Tiêu chí chấp nhận (testable, measurable)
-- **Dependencies** — Phụ thuộc vào hệ thống/module nào
-- **Constraints** — Giới hạn (performance, security, compatibility)
+Skills được phân thành 3 tiers:
+- **Tier 1 (Core):** 3 skills luôn gợi ý ở session_start
+- **Tier 2 (Contextual):** 21 skills gợi ý dựa trên keyword match với task
+- **Tier 3 (On-demand):** 2 skills chỉ load khi explicit
 
-**Deep Modules** (từ "A Philosophy of Software Design" - John Ousterhout):
-- Giao diện **đơn giản** (ít parameters, ít methods)
-- Chức năng **phức tạp** (xử lý nhiều logic bên trong)
-- Ví dụ: `FileSystem.read(path)` — giao diện đơn giản nhưng xử lý caching, permissions, I/O buffering bên trong
-- **Tránh:** Shallow modules (giao diện phức tạp, logic ít) — chỉ là wrapper mỏng
+Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 
-Skill `to-prd` giúp:
-1. Tổng hợp thông tin từ hội thoại thành PRD chuẩn
-2. Định hướng thiết kế theo deep modules (không shallow)
-3. Xác định acceptance criteria rõ ràng để verify
-
----
-
-### Core Workflow (8 skills)
+### Tier 1 — Core Workflow (3 skills)
 | Skill | Mục đích |
 |---|---|
 | `karpathy-guidelines` | 4 nguyên tắc cốt lõi: Think, Simplicity, Surgical, Goal-Driven |
 | `harness-workflow` | Quy trình vòng đời session (CTR gate, artifacts, EPCC mapping) |
-| `tdd-workflow` | Quy trình Test-Driven Development (red-green-refactor) |
-| `verification-loop` | Luồng xác thực liên tục (không claim done khi chưa có bằng chứng) |
-| `search-first` | Tìm kiếm mã nguồn hiện tại trước khi viết code mới để tránh trùng lặp |
-| `goal-driven-execution` | Thực thi hướng mục tiêu, lặp lại cho tới khi verify |
 | `strategic-compact` | Quản lý dung lượng context window một cách chiến lược |
-| `continuous-learning` | Ghi nhận và phát triển các instincts thành skills lâu dài |
 
-### Design & Architecture (4 skills)
+### Tier 2 — Contextual Skills (21 skills)
+
+**Design & Architecture (4 skills)**
+- `design-grilling` — Phản biện thiết kế triệt để
+- `prototype-first` — Xây dựng bản thử nghiệm để giải đáp câu hỏi thiết kế
+- `architecture-review` — Đánh giá kiến trúc, phát hiện shallow modules
+- `spec-driven-workflow` — RIPER-5 phases (Research → Innovate → Plan → Execute → Review)
+
+**Development Workflows (6 skills)**
+- `tdd-workflow` — Test-Driven Development (red-green-refactor)
+- `read-first` — Đọc code trước khi viết (search patterns, tránh trùng lặp)
+- `systematic-diagnosis` — Chẩn đoán lỗi có hệ thống
+- `vertical-slicing` — Phân rã lát cắt dọc (tracer bullets)
+- `parallel-coordination` — Phân rã công việc thành track độc lập
+- `edge-case-generation` — Sinh test case biên (boundary conditions)
+
+**Quality & Security (3 skills)**
+- `security-audit` — STRIDE threat modeling + OWASP Top 10
+- `deep-research` — Nghiên cứu có cấu trúc với xác thực nguồn
+- `autonomous-optimizer` — Tối ưu hóa code tự động
+
+**Requirements & Planning (3 skills)**
+- `to-prd` — Tổng hợp thông tin thành PRD tiêu chuẩn
+- `triage` — Triage state machine cho issues/tasks
+- `continuous-learning` — Ghi nhận và phát triển instincts
+
+**C# / .NET Stack (5 skills)**
+- `csharp-baseline` — C# stack baseline (architecture, naming, dependencies)
+- `csharp-bugfix` — Quy trình fix bug trong C#/ABP
+- `csharp-feature` — Quy trình implement feature trong C#/ABP
+- `csharp-code-review` — Code review checklist cho C#/ABP
+- `csharp-repair` — Sửa compile errors, runtime errors, test failures
+
+### Tier 3 — On-Demand Skills (2 skills)
 | Skill | Mục đích |
 |---|---|
-| `design-grilling` | Phản biện thiết kế/kế hoạch triệt để cho đến khi mọi nhánh quyết định được giải quyết |
-| `prototype-first` | Xây dựng các bản thử nghiệm dùng một lần để giải đáp các câu hỏi thiết kế |
-| `architecture-review` | Đánh giá kiến trúc, phát hiện shallow modules và đề xuất chuyển đổi sang deep modules |
-| `zoom-out` | Tạm dừng sửa code mù quáng khi gặp code phức tạp/lạ để lùi lại lấy context rộng hơn |
-
-### Specialized Workflows (4 skills)
-| Skill | Mục đích |
-|---|---|
-| `caveman-mode` | Định dạng giao tiếp nén lược bỏ filler word để tiết kiệm 75% tokens |
-| `systematic-diagnosis` | Chẩn đoán lỗi có hệ thống (Phase 1: 10 methods tạo feedback loop, tối ưu loop, xử lý flake) |
-| `vertical-slicing` | Phân rã lát cắt dọc (tracer bullets), bước "Quiz user" và xây dựng Agent Brief |
-| `to-prd` | **PRD = Product Requirements Document.** Tổng hợp thông tin từ hội thoại/context thành PRD tiêu chuẩn (mục tiêu, scope, acceptance criteria, dependencies). Định hướng thiết kế deep modules (tập trung vào abstraction, không shallow modules). |
-
-### Operations & Meta (3 skills)
-| Skill | Mục đích |
-|---|---|
-| `triage` | Triage state machine cho issues/tasks và tự sinh Agent Brief khi bàn giao |
-| `write-a-skill` | Meta-skill hướng dẫn chi tiết quy trình viết và cập nhật skill mới |
-| `spec-driven-workflow` | **RIPER-5 phases:** Research (tìm hiểu) → Innovate (sáng tạo giải pháp) → Plan (lập kế hoạch) → Execute (thực thi) → Review (đánh giá). Tích hợp với harness-os lifecycle (session_start, task_create, verify_run, progress_log, session_handoff) |
-
-### Bảo mật & Chất lượng (5 skills)
-| Skill | Mục đích |
-|---|---|
-| `security-audit` | **STRIDE threat modeling** — Phân tích 6 loại mối đe dọa: Spoofing (giả mạo danh tính), Tampering (thay đổi dữ liệu), Repudiation (chối bỏ hành động), Information Disclosure (rò rỉ thông tin), Denial of Service (từ chối dịch vụ), Elevation of Privilege (nâng quyền). **OWASP Top 10** — Kiểm tra 10 lỗ hổng bảo mật phổ biến nhất (injection, broken auth, sensitive data exposure, XML external entities, broken access control, security misconfiguration, XSS, insecure deserialization, using components with known vulnerabilities, insufficient logging). |
-| `edge-case-generation` | Sinh hệ thống các test case biên (boundary conditions), failure scenarios, và adversarial inputs để phát hiện lỗi |
-| `parallel-coordination` | Phân rã công việc thành các track độc lập chạy song song với quản lý dependencies |
-| `autonomous-optimizer` | Tối ưu hóa code tự động với measurement loops (đo → cải thiện → đo lại) |
-| `deep-research` | Nghiên cứu có cấu trúc với xác thực nguồn và tổng hợp thông tin |
+| `write-a-skill` | Meta-skill: hướng dẫn tạo skill mới |
+| `verification-loop` | Luồng xác thực liên tục (embedded trong harness-workflow) |
 
 ## Cấu trúc project
 
@@ -272,8 +262,8 @@ harness-os/
 bun install          # Install dependencies (tạo bun.lockb)
 bun run dev          # Dev mode (tsx, không cần build)
 bun run build        # Compile TypeScript
-bun test             # Unit tests (251+ tests)
-bun run smoke        # End-to-end MCP test (29 skills)
+bun test             # Unit tests (301+ tests)
+bun run smoke        # End-to-end MCP test (27 tools, 25 skills)
 ```
 
 > **Lưu ý:** Dự án này dùng Bun thay cho npm. Xem [Bun Migration Plan](./docs/plans/2026-05-29-bun-migration.md) để biết thêm chi tiết.
@@ -284,7 +274,7 @@ bun run smoke        # End-to-end MCP test (29 skills)
   - [Bắt đầu](./docs/01-getting-started.md) — Cài đặt, yêu cầu hệ thống
   - [Cấu hình IDE](./docs/02-ide-setup.md) — Setup cho 8 IDEs
   - [Workflow](./docs/04-workflow.md) — Lifecycle hàng ngày
-  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 26 MCP tools
+  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 27 MCP tools
   - [CLI Reference](./docs/06-cli-reference.md) — 13 CLI commands
   - [Skills](./docs/07-skills.md) — Hệ thống skills
   - [Instincts](./docs/08-instincts.md) — Continuous learning

@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-28"
   applies_to: ["dotnet"]
   triggers: ["task_create"]
+  tier: 2
+  keywords: ["csharp", "dotnet", "feature", "implement", "service", "controller", "c#", ".net", "tính năng", "triển khai", "dịch vụ", "bộ điều khiển"]
 ---
 
 # C# Feature Implementation Workflow

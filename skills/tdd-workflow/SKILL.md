@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-28"
   applies_to: ["*"]
   triggers: ["task_create"]
+  tier: 2
+  keywords: ["test", "tdd", "red-green", "refactor", "unit-test", "coverage", "kiểm thử", "test-driven", "đỏ-xanh", "tái cấu trúc", "bao phủ"]
 ---
 
 # TDD Workflow

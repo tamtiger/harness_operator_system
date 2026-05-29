@@ -5,7 +5,9 @@ metadata:
   version: "1.0"
   updated: "2026-05-29"
   applies_to: ["*"]
-  triggers: ["session_start"]
+  triggers: ["task_create"]
+  tier: 2
+  keywords: ["parallel", "concurrent", "decompose", "independent", "fan-out", "stage", "song song", "đồng thời", "phân rã", "độc lập", "giai đoạn"]
 ---
 
 # Parallel Coordination Skill

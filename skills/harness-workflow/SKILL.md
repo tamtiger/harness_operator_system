@@ -3,9 +3,11 @@ name: harness-workflow
 description: "Structured lifecycle for agentic coding sessions — CTR gate, five subsystems, artifact formats, EPCC mapping."
 metadata:
   version: "2.0"
-  updated: "2026-05-28"
+  updated: "2026-05-29"
   applies_to: ["*"]
-  triggers: ["session_start", "task_create"]
+  triggers: ["session_start"]
+  tier: 1
+  keywords: []
 ---
 
 # Harness Workflow v2.0

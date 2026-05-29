@@ -12,9 +12,10 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.2.0
-- **Tools:** 26 MCP tools across 9 modules
-- **Tests:** 97 unit tests (vitest) + smoke test
+- **Version:** 1.3.0
+- **Tools:** 27 MCP tools across 9 modules
+- **Tests:** 301 unit tests (vitest) + smoke test
+- **Skills:** 25 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, and observability.
 
@@ -30,10 +31,10 @@ bun install
 # Build (TypeScript → dist/)
 bun run build
 
-# Run unit tests (99 tests)
+# Run unit tests (301 tests)
 bun test
 
-# Run smoke test (boots MCP server, calls all tools)
+# Run smoke test (boots MCP server, calls all 27 tools)
 bun run smoke
 
 # Dev mode (tsx, no build needed)
@@ -407,7 +408,7 @@ harness-os/
 │   │   ├── session.ts        # session_start/end/resume/handoff
 │   │   ├── task.ts           # task_create/update/list
 │   │   ├── verify.ts         # verify_run (install/build/test/lint pipeline)
-│   │   ├── skill.ts          # skill_load/list/create_from_session
+│   │   ├── skill.ts          # skill_load/list/create_from_session/suggest
 │   │   ├── instinct.ts       # instinct_add/get/prune/evolve/promote
 │   │   ├── state.ts          # progress_log, feature_list, handoff read/write
 │   │   ├── scope.ts          # scope_get, scope_check (glob matching)
@@ -425,15 +426,33 @@ harness-os/
 │           ├── vitest.ts     # Vitest JSON output parser
 │           └── generic.ts    # Generic test output parser
 │
-├── skills/                   # 8 built-in skills (YAML frontmatter + markdown)
+├── skills/                   # 25 built-in skills (YAML frontmatter + markdown)
 │   ├── karpathy-guidelines/SKILL.md
 │   ├── harness-workflow/SKILL.md
 │   ├── tdd-workflow/SKILL.md
 │   ├── verification-loop/SKILL.md
-│   ├── search-first/SKILL.md
-│   ├── goal-driven-execution/SKILL.md
+│   ├── read-first/SKILL.md
 │   ├── strategic-compact/SKILL.md
-│   └── continuous-learning/SKILL.md
+│   ├── continuous-learning/SKILL.md
+│   ├── design-grilling/SKILL.md
+│   ├── prototype-first/SKILL.md
+│   ├── architecture-review/SKILL.md
+│   ├── spec-driven-workflow/SKILL.md
+│   ├── systematic-diagnosis/SKILL.md
+│   ├── vertical-slicing/SKILL.md
+│   ├── to-prd/SKILL.md
+│   ├── triage/SKILL.md
+│   ├── write-a-skill/SKILL.md
+│   ├── security-audit/SKILL.md
+│   ├── edge-case-generation/SKILL.md
+│   ├── parallel-coordination/SKILL.md
+│   ├── autonomous-optimizer/SKILL.md
+│   ├── deep-research/SKILL.md
+│   ├── csharp-baseline/SKILL.md
+│   ├── csharp-bugfix/SKILL.md
+│   ├── csharp-code-review/SKILL.md
+│   ├── csharp-feature/SKILL.md
+│   └── csharp-repair/SKILL.md
 │
 ├── templates/                # Used by `harness init` to scaffold repos
 │   ├── AGENTS.md.tpl
@@ -556,7 +575,7 @@ The tool names, parameter schemas, and response shapes are the public API consum
 
 ### Skill Format (YAML Frontmatter Schema)
 
-The frontmatter fields (`name`, `version`, `updated`, `applies_to`, `triggers`, `description`) are parsed by `src/lib/frontmatter.ts` and consumed by `skill_list` and `skill_load`. Changing the schema breaks all existing skills.
+The frontmatter fields (`name`, `version`, `updated`, `applies_to`, `triggers`, `description`, `metadata.tier`, `metadata.keywords`) are parsed by `src/lib/frontmatter.ts` and consumed by `skill_list`, `skill_load`, and `skill_suggest`. Changing the schema breaks all existing skills.
 
 ### IDE Adapter Configs (`ide-adapters/`)
 

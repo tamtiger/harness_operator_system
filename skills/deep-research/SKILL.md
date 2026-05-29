@@ -5,7 +5,9 @@ metadata:
   version: "1.0"
   updated: "2026-05-29"
   applies_to: ["*"]
-  triggers: ["session_start"]
+  triggers: ["task_create"]
+  tier: 2
+  keywords: ["research", "investigate", "compare", "evaluate", "benchmark", "literature", "nghiên cứu", "điều tra", "so sánh", "đánh giá", "chuẩn mực"]
 ---
 
 # Deep Research Skill

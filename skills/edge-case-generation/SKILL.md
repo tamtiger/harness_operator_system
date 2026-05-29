@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-29"
   applies_to: ["*"]
   triggers: ["task_create"]
+  tier: 2
+  keywords: ["edge-case", "boundary", "adversarial", "fuzz", "negative", "overflow", "trường hợp biên", "ranh giới", "đối kháng", "âm", "tràn"]
 ---
 
 # Edge Case Generation Skill

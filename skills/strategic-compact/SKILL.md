@@ -6,6 +6,8 @@ metadata:
   updated: "2026-05-26"
   applies_to: ["*"]
   triggers: ["session_start"]
+  tier: 1
+  keywords: []
 ---
 
 # Strategic Compact
