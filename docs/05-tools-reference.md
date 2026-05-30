@@ -1,4 +1,4 @@
-# 26 MCP Tools Reference
+# 29 MCP Tools Reference
 
 [← Mục lục](./README.md) | [← Workflow](./workflow.md) | [CLI Reference →](./cli-reference.md)
 
@@ -12,11 +12,12 @@
 | [Task Management](#task-management) | `task_create`, `task_update`, `task_list` | 3 |
 | [State Files](#state-files) | `progress_log`, `feature_list_read`, `feature_list_update`, `handoff_write`, `handoff_read` | 5 |
 | [Scope & Verification](#scope--verification) | `scope_get`, `scope_check`, `verify_run` | 3 |
-| [Skills](#skills) | `skill_load`, `skill_list`, `skill_create_from_session` | 3 |
+| [Skills](#skills) | `skill_load`, `skill_list`, `skill_create_from_session`, `skill_suggest` | 4 |
 | [Instincts](#instincts) | `instinct_add`, `instinct_get`, `instinct_prune`, `instinct_evolve`, `instinct_promote` | 5 |
 | [Repo Intelligence](#repo-intelligence) | `repo_summary_read` | 1 |
 | [Observability](#observability) | `audit_log`, `harness_status` | 2 |
-| **Tổng** | | **26** |
+| [Subagents](#subagents) | `subagent_invoke` | 1 |
+| **Tổng** | | **29** |
 
 ---
 
@@ -366,6 +367,31 @@ timeouts:
 { "draft": "---\nname: ...\n---\n\n# ...", "source_events": 12, "suggested_tags": ["node", "api"] }
 ```
 
+### `skill_suggest`
+
+Gợi ý các skills phù hợp dựa trên tiêu đề task, scope, stack và repo path.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `task_title` | string | ❌ | Tiêu đề task để match keyword |
+| `task_scope` | string | ❌ | Scope của task |
+| `stack` | string | ❌ | Stack lọc (node, dotnet, etc.) |
+| `max_results` | number | ❌ | Số lượng skill tối đa trả về (default: 8) |
+| `repo_path` | string | ❌ | Repo path để tìm repo-specific skills |
+
+```json
+// Response
+{
+  "skills": [
+    {
+      "name": "tdd-workflow",
+      "score": 0.85,
+      "reason": "Matched keyword 'test' in task title"
+    }
+  ]
+}
+```
+
 ---
 
 ## Instincts
@@ -479,5 +505,34 @@ timeouts:
   "pending_tasks": 3,
   "last_verify": "2026-05-26T14:30:00Z",
   "recent_instincts": [{ "description": "...", "confidence": 0.8 }]
+}
+```
+
+---
+
+## Subagents
+
+### `subagent_invoke`
+
+Điều phối subagent chạy các lệnh shell command trong một worker process riêng biệt, hỗ trợ chế độ chờ kết quả hoặc chạy ngầm.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `role` | string | ✅ | Vai trò của subagent (vd: `Coder`, `Tester`, `Reviewer`) |
+| `prompt` | string | ✅ | Chỉ thị/yêu cầu chi tiết cho subagent |
+| `context_files` | string[] | ✅ | Danh sách các file ngữ cảnh cần truy cập |
+| `commands` | string[] | ✅ | Danh sách các lệnh shell commands cần chạy lần lượt |
+| `repo_path` | string | ❌ | Đường dẫn repo (default: `.`) |
+| `timeout_seconds` | number | ❌ | Thời gian timeout cho mỗi lệnh (default: 300) |
+| `wait` | boolean | ❌ | Chờ worker chạy xong rồi trả về kết quả (default: false) |
+
+```json
+// Response (wait: false)
+{
+  "status": "spawned",
+  "pid": 23412,
+  "run_file": ".harness/subagent_runs/run_20260530...json",
+  "result_file": ".harness/subagent_runs/run_20260530..._result.json",
+  "message": "Subagent worker spawned successfully..."
 }
 ```

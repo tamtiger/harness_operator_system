@@ -33,7 +33,9 @@ your-repo/
     ├── progress.md              # Log tiến độ (ban đầu trống)
     ├── feature_list.json        # Danh sách features/scope
     ├── scope.yaml               # Forbidden paths + allowed paths per task
-    └── verify.yaml              # Lệnh verify theo stack
+    ├── verify.yaml              # Lệnh verify theo stack
+    ├── repo-summary.md          # Bản đồ cấu trúc thư mục tự sinh khi init (đọc đầu tiên)
+    └── repo-summary.meta.json   # Metadata cho bản đồ cấu trúc thư mục
 ```
 
 ## Ví dụ
@@ -50,6 +52,8 @@ harness init ~/projects/my-api
 #     + .harness/verify.yaml
 #     + init.sh
 #     + .harness/progress.md
+#     + .harness/repo-summary.md
+#     + .harness/repo-summary.meta.json
 #   Next: harness install-mcp --ide cursor
 
 # Init repo .NET với force overwrite

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { checkLoop, resetLoopGuard } from "./loop-guard.js";
 
 describe("loop-guard", () => {
@@ -33,10 +33,22 @@ describe("loop-guard", () => {
     }
   });
 
-  // Skipped: Bun test runner doesn't support vi.useFakeTimers()
-  // The reset logic is tested indirectly by the other tests
-  it.skip("resets after window expires", () => {
-    // This test requires fake timers which Bun doesn't support
-    // The reset logic works correctly in practice - it checks Date.now() on each call
+  it("resets after window expires", ({ onTestFinished }) => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+
+    for (let i = 0; i < 5; i++) {
+      checkLoop("test_tool", { a: 1 });
+    }
+    // 6th call triggers warning
+    expect(checkLoop("test_tool", { a: 1 })).not.toBeNull();
+
+    // Fast-forward time by 61 seconds
+    vi.advanceTimersByTime(61000);
+
+    // Call after window expiration should be allowed again
+    expect(checkLoop("test_tool", { a: 1 })).toBeNull();
   });
 });

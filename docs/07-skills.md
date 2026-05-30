@@ -22,7 +22,7 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 
 ---
 
-## 25 Built-in Skills
+## 30 Built-in Skills
 
 ### Tier 1 — Core Workflow (3 skills, luôn gợi ý)
 
@@ -36,20 +36,21 @@ Những skill cốt lõi được gợi ý ở mỗi session_start, không phụ
 
 ---
 
-### Tier 2 — Contextual Skills (21 skills, gợi ý theo keyword)
+### Tier 2 — Contextual Skills (25 skills, gợi ý theo keyword)
 
 Những skill được gợi ý dựa trên từ khóa trong task title/scope. Mỗi skill có keywords tiếng Anh + tiếng Việt.
 
-#### **Thiết kế & Kiến trúc (4 skills)**
+#### **Thiết kế & Kiến trúc (5 skills)**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
 | `design-grilling` | Phản biện Thiết kế | Phản biện thiết kế triệt để, đánh giá trade-off | design, architecture, plan, rfc, proposal, evaluate, tradeoff, thiết kế, kiến trúc, kế hoạch, đề xuất, đánh giá, cân nhắc |
 | `prototype-first` | Xây dựng Prototype Trước | Xây dựng bản thử nghiệm để giải đáp câu hỏi thiết kế | prototype, spike, experiment, poc, proof-of-concept, explore, mẫu, thử nghiệm, khám phá |
 | `architecture-review` | Đánh giá Kiến trúc | Đánh giá kiến trúc, phát hiện shallow modules, coupling | architecture, module, refactor, deep, shallow, coupling, seam, kiến trúc, mô-đun, tái cấu trúc, liên kết |
-| `spec-driven-workflow` | Quy trình Hướng Spec | RIPER-5 phases (Research → Innovate → Plan → Execute → Review) | spec, research, innovate, plan, execute, review, phase, đặc tả, nghiên cứu, đổi mới, thực hiện, giai đoạn |
+| `spec-driven-workflow` | Quy trình Hướng Spec | RIPER-5 phases (Research → Innovate → Plan → Execute → Review) | riper, riper-5, deep-dive, phase-detail, chi tiết pha |
+| `brainstorming` | Động não giải pháp | Khung brainstorm giải pháp đa phương án với tradeoff matrix | brainstorm, ideate, explore, approach, tradeoff, ý tưởng, phương án |
 
-#### **Quy trình Phát triển (6 skills)**
+#### **Quy trình Phát triển (7 skills)**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
@@ -59,22 +60,25 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `vertical-slicing` | Phân rã Dọc | Phân rã lát cắt dọc (tracer bullets), end-to-end thin slices | slice, vertical, tracer, end-to-end, thin, increment, phân rã, dọc, mỏng, tăng dần |
 | `parallel-coordination` | Phối hợp Song song | Phân rã công việc thành track độc lập, quản lý dependencies | parallel, concurrent, decompose, independent, fan-out, stage, song song, độc lập, giai đoạn |
 | `edge-case-generation` | Sinh Test Biên | Sinh hệ thống test case biên (boundary, failure, adversarial) | edge-case, boundary, adversarial, fuzz, negative, overflow, biên, đối kháng, tràn |
+| `subagent-driven-development` | Phát triển qua Subagent | Điều phối và ủy thác công việc cho các agent con qua tool | subagent, parallel, worker, delegate, dispatch, phân công |
 
-#### **Chất lượng & Bảo mật (3 skills)**
+#### **Chất lượng & Bảo mật (4 skills)**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
 | `security-audit` | Kiểm toán Bảo mật | STRIDE threat modeling + OWASP Top 10 security audit | security, vulnerability, owasp, stride, auth, injection, xss, bảo mật, lỗ hổng, xác thực, tiêm |
 | `deep-research` | Nghiên cứu Sâu | Nghiên cứu có cấu trúc với xác thực nguồn và tổng hợp | research, investigate, compare, evaluate, benchmark, literature, nghiên cứu, so sánh, đánh giá, chuẩn mực |
 | `autonomous-optimizer` | Tối ưu Tự động | Tối ưu hóa code tự động với measurement loops | optimize, performance, benchmark, measure, improve, profile, tối ưu, hiệu năng, đo lường, cải thiện |
+| `code-review-workflow` | Quy trình Code Review | Khung tự đánh giá chất lượng code và viết PR template | code-review, review, pr, pull-request, merge-request, đánh giá code |
 
-#### **Yêu cầu & Lập kế hoạch (3 skills)**
+#### **Yêu cầu & Lập kế hoạch (4 skills)**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
 | `to-prd` | Tổng hợp PRD | Tổng hợp thông tin thành PRD tiêu chuẩn | prd, requirements, product, feature, user-story, acceptance, yêu cầu, sản phẩm, tính năng, chấp nhận |
 | `triage` | Phân loại Issues | Triage state machine cho issues/tasks, tự sinh Agent Brief | triage, priority, severity, classify, assign, backlog, phân loại, ưu tiên, mức độ, gán |
 | `continuous-learning` | Học tập Liên tục | Ghi nhận và phát triển instincts thành skills lâu dài | learn, pattern, instinct, capture, evolve, học, mẫu, bắt giữ, phát triển |
+| `finishing-a-development-branch` | Hoàn thành Nhánh | Checklist dọn dẹp branch, cập nhật changelog trước khi bàn giao | finish, branch, cleanup, git, worktree, dọn dẹp |
 
 #### **C# / .NET Stack (5 skills)**
 
@@ -132,7 +136,7 @@ skill_suggest(
   task_scope?: string,
   stack?: string,
   max_results?: number
-) → { suggested_skills: [...], total_available: 25 }
+) → { suggested_skills: [...], total_available: 30 }
 ```
 
 ---

@@ -148,6 +148,17 @@ function cmdInit() {
   ensureDir(join(globalRepoDir, "artifacts", "reviews"));
   created.push(".harness/config.yaml");
 
+  // Auto-generate initial repo summary (code map)
+  try {
+    const summaryData = generateSummary({ repoPath, force: true });
+    const harnessDir = resolveHarnessDir(repoPath);
+    writeSummary(summaryData, harnessDir);
+    created.push(".harness/repo-summary.md");
+    created.push(".harness/repo-summary.meta.json");
+  } catch (err) {
+    console.warn(`  ⚠ Warning: Failed to generate initial repo summary: ${err}`);
+  }
+
   console.log(`\n✓ harness init — ${repoName} (${stack})\n`);
   if (created.length > 0) {
     console.log("  Created:");

@@ -12,10 +12,10 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.3.0
-- **Tools:** 27 MCP tools across 9 modules
+- **Version:** 1.3.2
+- **Tools:** 29 MCP tools across 10 modules
 - **Tests:** 301 unit tests (vitest) + smoke test
-- **Skills:** 25 built-in skills with tiered keyword matching
+- **Skills:** 30 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, and observability.
 
@@ -52,7 +52,7 @@ Requirements:
 
 ### 3.1 MCP Server Entry — `src/index.ts`
 
-The main entry point. Creates an `McpServer` instance, registers all 26 tools with Zod schemas, and connects via `StdioServerTransport`.
+The main entry point. Creates an `McpServer` instance, registers all 29 tools with Zod schemas, and connects via `StdioServerTransport`.
 
 Key patterns:
 - Each tool is registered with `server.registerTool(name, config, handler)`
@@ -68,11 +68,13 @@ Each file exports pure functions grouped by domain. The MCP registration happens
 | `session.ts` | `sessionStart`, `sessionEnd`, `sessionResume`, `sessionHandoff` | Session lifecycle |
 | `task.ts` | `taskCreate`, `taskUpdate`, `taskList` | Task CRUD |
 | `verify.ts` | `verifyRun` | Verification pipeline |
-| `skill.ts` | `skillLoad`, `skillList`, `skillCreateFromSession` | Skill management |
+| `skill.ts` | `skillLoad`, `skillList`, `skillCreateFromSession`, `skillSuggest` | Skill management |
 | `instinct.ts` | `instinctAdd`, `instinctGet`, `instinctPrune`, `instinctEvolve`, `instinctPromote` | Learning |
 | `state.ts` | `progressLog`, `featureListRead`, `featureListUpdate`, `handoffWrite`, `handoffRead` | State files |
 | `scope.ts` | `scopeGet`, `scopeCheck` | Scope enforcement |
 | `observe.ts` | `auditLog`, `harnessStatus` | Observability |
+| `repo_summary.ts` | `repoSummaryRead` | Repository summary |
+| `subagent.ts` | `subagentInvoke` | Subagent execution |
 
 ### 3.3 Lib Helpers — `src/lib/`
 
@@ -88,6 +90,7 @@ Each file exports pure functions grouped by domain. The MCP registration happens
 | `evidence.ts` | Save/read verify evidence per task to `.harness/evidence/` |
 | `parsers/vitest.ts` | Parse Vitest JSON reporter output into structured result |
 | `parsers/generic.ts` | Generic test output parser (pass/fail pattern matching) |
+| `skill-matcher.ts` | Tokenizer, synonym expansion, and scoring for skill suggestion |
 
 ### 3.4 Database Layer — `src/db/`
 
@@ -332,7 +335,7 @@ Frontmatter schema:
 
 - Run: `pnpm run smoke`
 - Script: `scripts/smoke-test.ts`
-- What it does: spawns `node dist/index.js` as child process → sends JSON-RPC `initialize` → calls `tools/list` → verifies all 26 tools are registered → calls key tools → asserts valid response shapes
+- What it does: spawns `node dist/index.js` as child process → sends JSON-RPC `initialize` → calls `tools/list` → verifies all 29 tools are registered → calls key tools → asserts valid response shapes
 
 ### What to Test
 
@@ -412,7 +415,9 @@ harness-os/
 │   │   ├── instinct.ts       # instinct_add/get/prune/evolve/promote
 │   │   ├── state.ts          # progress_log, feature_list, handoff read/write
 │   │   ├── scope.ts          # scope_get, scope_check (glob matching)
-│   │   └── observe.ts        # audit_log, harness_status
+│   │   ├── observe.ts        # audit_log, harness_status
+│   │   ├── repo_summary.ts   # repo_summary_read
+│   │   └── subagent.ts       # subagent_invoke
 │   └── lib/
 │       ├── wrapper.ts        # wrapTool() decorator (try/catch + audit + loop guard)
 │       ├── loop-guard.ts     # Detect repeated calls (>5 in 60s)
@@ -422,11 +427,12 @@ harness-os/
 │       ├── frontmatter.ts    # YAML frontmatter parser for SKILL.md
 │       ├── git-diff.ts       # Get changed files from git
 │       ├── evidence.ts       # Evidence persistence (save/read per task)
+│       ├── skill-matcher.ts  # Tokenizer, synonym mapping, suggestion scoring
 │       └── parsers/
 │           ├── vitest.ts     # Vitest JSON output parser
 │           └── generic.ts    # Generic test output parser
 │
-├── skills/                   # 25 built-in skills (YAML frontmatter + markdown)
+├── skills/                   # 30 built-in skills (YAML frontmatter + markdown)
 │   ├── karpathy-guidelines/SKILL.md
 │   ├── harness-workflow/SKILL.md
 │   ├── tdd-workflow/SKILL.md
@@ -448,6 +454,10 @@ harness-os/
 │   ├── parallel-coordination/SKILL.md
 │   ├── autonomous-optimizer/SKILL.md
 │   ├── deep-research/SKILL.md
+│   ├── brainstorming/SKILL.md
+│   ├── subagent-driven-development/SKILL.md
+│   ├── code-review-workflow/SKILL.md
+│   ├── finishing-a-development-branch/SKILL.md
 │   ├── csharp-baseline/SKILL.md
 │   ├── csharp-bugfix/SKILL.md
 │   ├── csharp-code-review/SKILL.md

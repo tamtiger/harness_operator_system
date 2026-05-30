@@ -3,11 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.3.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.3.2-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-27-blue)](#)
-[![Skills](https://img.shields.io/badge/skills-25-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-301%20passing-brightgreen)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-29-blue)](#)
+[![Skills](https://img.shields.io/badge/skills-30-blue)](#)
+[![Tests](https://img.shields.io/badge/tests-304%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -42,14 +42,15 @@ pnpm run dev -- install-mcp --ide cursor
 
 | Subsystem | Mục đích | Tools chính |
 |---|---|---|
-| **Instructions** | Agent biết phải làm gì | `skill_load`, `skill_list` |
+| **Instructions** | Agent biết phải làm gì | `skill_load`, `skill_list`, `skill_suggest` |
 | **State** | Bộ nhớ xuyên session | `progress_log`, `handoff_write/read` |
 | **Verification** | Bằng chứng công việc đúng | `verify_run` |
 | **Scope** | Ranh giới ngăn drift | `scope_check`, `scope_get` |
 | **Lifecycle** | Luồng session từ đầu→cuối | `session_start/resume/end/handoff` |
 | **Continuous Learning** | Pattern tái sử dụng | `instinct_add/get/prune/evolve` |
+| **Subagent Delegation** | Điều phối agent con chạy lệnh | `subagent_invoke` |
 
-## 27 MCP Tools
+## 29 MCP Tools
 
 <details>
 <summary><b>Session lifecycle (4 tools)</b></summary>
@@ -133,6 +134,15 @@ pnpm run dev -- install-mcp --ide cursor
 </details>
 
 <details>
+<summary><b>Subagents (1 tool)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
+| `subagent_invoke` | **NEW** — Điều phối subagent chuyên biệt thực thi danh sách shell commands thông qua Worker Process độc lập |
+
+</details>
+
+<details>
 <summary><b>Observability (2 tools)</b></summary>
 
 | Tool | Mô tả |
@@ -160,13 +170,13 @@ harness export [--repo .] [--output FILE]                   # Export harness sta
 harness import <file.json>                                  # Import harness state
 ```
 
-## Built-in Skills (25)
+## Built-in Skills (30)
 
 ### 📌 Tiered Skill Matching
 
 Skills được phân thành 3 tiers:
 - **Tier 1 (Core):** 3 skills luôn gợi ý ở session_start
-- **Tier 2 (Contextual):** 21 skills gợi ý dựa trên keyword match với task
+- **Tier 2 (Contextual):** 25 skills gợi ý dựa trên keyword match với task
 - **Tier 3 (On-demand):** 2 skills chỉ load khi explicit
 
 Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
@@ -178,31 +188,35 @@ Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 | `harness-workflow` | Quy trình vòng đời session (CTR gate, artifacts, EPCC mapping) |
 | `strategic-compact` | Quản lý dung lượng context window một cách chiến lược |
 
-### Tier 2 — Contextual Skills (21 skills)
+### Tier 2 — Contextual Skills (25 skills)
 
-**Design & Architecture (4 skills)**
+**Design & Architecture (5 skills)**
 - `design-grilling` — Phản biện thiết kế triệt để
 - `prototype-first` — Xây dựng bản thử nghiệm để giải đáp câu hỏi thiết kế
 - `architecture-review` — Đánh giá kiến trúc, phát hiện shallow modules
 - `spec-driven-workflow` — RIPER-5 phases (Research → Innovate → Plan → Execute → Review)
+- `brainstorming` — **NEW** — Khung brainstorm giải pháp đa phương án với tradeoff matrix
 
-**Development Workflows (6 skills)**
+**Development Workflows (7 skills)**
 - `tdd-workflow` — Test-Driven Development (red-green-refactor)
 - `read-first` — Đọc code trước khi viết (search patterns, tránh trùng lặp)
 - `systematic-diagnosis` — Chẩn đoán lỗi có hệ thống
 - `vertical-slicing` — Phân rã lát cắt dọc (tracer bullets)
 - `parallel-coordination` — Phân rã công việc thành track độc lập
 - `edge-case-generation` — Sinh test case biên (boundary conditions)
+- `subagent-driven-development` — **NEW** — Kỹ thuật chia nhỏ task, ủy thác qua `subagent_invoke`
 
-**Quality & Security (3 skills)**
+**Quality & Security (4 skills)**
 - `security-audit` — STRIDE threat modeling + OWASP Top 10
 - `deep-research` — Nghiên cứu có cấu trúc với xác thực nguồn
 - `autonomous-optimizer` — Tối ưu hóa code tự động
+- `code-review-workflow` — **NEW** — Khung tự đánh giá chất lượng code và viết PR template
 
-**Requirements & Planning (3 skills)**
+**Requirements & Planning (4 skills)**
 - `to-prd` — Tổng hợp thông tin thành PRD tiêu chuẩn
 - `triage` — Triage state machine cho issues/tasks
 - `continuous-learning` — Ghi nhận và phát triển instincts
+- `finishing-a-development-branch` — **NEW** — Quy trình dọn dẹp nhánh và hoàn thành công việc trước khi bàn giao
 
 **C# / .NET Stack (5 skills)**
 - `csharp-baseline` — C# stack baseline (architecture, naming, dependencies)
@@ -222,12 +236,12 @@ Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 ```
 harness-os/
 ├── src/
-│   ├── index.ts              # MCP stdio server (26 tools, all wrapped)
+│   ├── index.ts              # MCP stdio server (29 tools, all wrapped)
 │   ├── cli/harness.ts        # CLI entry point
 │   ├── db/
 │   │   ├── client.ts         # SQLite + migrations
 │   │   └── audit.ts          # JSONL append helper
-│   ├── tools/                # 8 tool modules
+│   ├── tools/                # 9 tool modules
 │   └── lib/
 │       ├── runtime.ts        # Stack detection
 │       ├── repo.ts           # Path helpers
@@ -238,7 +252,7 @@ harness-os/
 │       ├── git-diff.ts       # Get changed files from git
 │       ├── evidence.ts       # Evidence persistence (save/read per task)
 │       └── parsers/          # Test output parsers (vitest, generic)
-├── skills/                   # 29 built-in skills
+├── skills/                   # 30 built-in skills
 ├── templates/                # init.sh, AGENTS.md, verify.yaml templates
 ├── ide-adapters/             # Configs cho 7 IDEs
 ├── scripts/
@@ -254,7 +268,7 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (97+ tests passing)
+- **Testing:** Vitest (304+ tests passing)
 
 ## Phát triển
 
@@ -262,8 +276,8 @@ harness-os/
 pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
-pnpm test             # Unit tests (301+ tests)
-pnpm run smoke        # End-to-end MCP test (27 tools, 25 skills)
+pnpm test             # Unit tests (304+ tests)
+pnpm run smoke        # End-to-end MCP test (29 tools, 30 skills)
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.

@@ -19,12 +19,13 @@ import {
 import { scopeGet, scopeCheck } from "./tools/scope.js";
 import { auditLog, harnessStatus } from "./tools/observe.js";
 import { repoSummaryRead } from "./tools/repo_summary.js";
+import { subagentInvoke } from "./tools/subagent.js";
 import { wrapTool } from "./lib/wrapper.js";
 import { log } from "./lib/logger.js";
 
 const server = new McpServer({
   name: "harness-os",
-  version: "1.3.0",
+  version: "1.3.2",
 });
 
 /**
@@ -264,6 +265,42 @@ server.registerTool(
       max_results?: number;
       repo_path?: string;
     }) => skillSuggest(task_title, task_scope, stack, max_results, repo_path)
+  )
+);
+
+server.registerTool(
+  "subagent_invoke",
+  {
+    description: "Invoke a specialized subagent to execute a specific plan task. Performs scope verification on all context files.",
+    inputSchema: {
+      role: z.string().describe("The specialized role for the subagent (e.g., Coder, Tester, Reviewer)"),
+      prompt: z.string().describe("Instructions, goals, and rules for the subagent to execute"),
+      context_files: z.array(z.string()).describe("A list of files containing necessary context that the subagent needs to access"),
+      commands: z.array(z.string()).describe("Shell commands for the worker to execute sequentially"),
+      repo_path: z.string().optional().describe("Root path of the repository"),
+      timeout_seconds: z.number().optional().describe("Timeout per command in seconds (default 300)"),
+      wait: z.boolean().optional().describe("If true, block until worker completes (default false)"),
+    },
+  },
+  makeHandler(
+    "subagent_invoke",
+    ({
+      role,
+      prompt,
+      context_files,
+      commands,
+      repo_path,
+      timeout_seconds,
+      wait,
+    }: {
+      role: string;
+      prompt: string;
+      context_files: string[];
+      commands: string[];
+      repo_path?: string;
+      timeout_seconds?: number;
+      wait?: boolean;
+    }) => subagentInvoke(role, prompt, context_files, commands, repo_path || ".", timeout_seconds || 300, wait || false)
   )
 );
 

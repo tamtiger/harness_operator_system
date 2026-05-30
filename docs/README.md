@@ -1,6 +1,6 @@
 # Tài liệu harness-os
 
-> Hướng dẫn chi tiết sử dụng harness-os v1.3.0 — hệ thống harness operator chạy local cho agentic coding.
+> Hướng dẫn chi tiết sử dụng harness-os v1.3.2 — hệ thống harness operator chạy local cho agentic coding.
 
 ---
 
@@ -12,7 +12,7 @@
 | 2 | [Cấu hình IDE](./02-ide-setup.md) | Setup cho Cursor, Claude Code, Kiro, VS Code, Antigravity, OpenCode, Codex, Copilot |
 | 3 | [Khởi tạo repo](./03-repo-init.md) | `harness init`, stack detection, files được tạo |
 | 4 | [Workflow hàng ngày](./04-workflow.md) | Lifecycle: START → SELECT → EXECUTE → VERIFY → WRAP UP |
-| 5 | [MCP Tools Reference](./05-tools-reference.md) | Chi tiết 26 MCP tools (parameters, examples, responses) |
+| 5 | [MCP Tools Reference](./05-tools-reference.md) | Chi tiết 29 MCP tools (parameters, examples, responses) |
 | 6 | [CLI Reference](./06-cli-reference.md) | 13 CLI commands (init, doctor, status, verify, skills, tasks, instincts, install-mcp, tree, summary, reindex, export, import) |
 | 7 | [Skills](./07-skills.md) | Hệ thống skills, built-in skills, tạo custom skill |
 | 8 | [Instincts](./08-instincts.md) | Continuous learning, confidence scoring, TTL, evolve |
@@ -43,4 +43,4 @@
 
 ---
 
-*Tài liệu cập nhật cho harness-os v1.3.0.*
+*Tài liệu cập nhật cho harness-os v1.3.2.*

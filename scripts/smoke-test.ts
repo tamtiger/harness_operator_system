@@ -19,7 +19,7 @@ async function main() {
     env: { ...process.env, HARNESS_HOME: TEST_HOME } as Record<string, string>,
   });
 
-  const client = new Client({ name: "smoke-test", version: "1.3.0" });
+  const client = new Client({ name: "smoke-test", version: "1.3.2" });
 
   try {
     await client.connect(transport);
@@ -57,6 +57,8 @@ async function main() {
       "audit_log",
       "harness_status",
       "repo_summary_read",
+      "subagent_invoke",
+      "skill_suggest",
     ];
 
     for (const name of expected) {
@@ -254,6 +256,23 @@ async function main() {
       throw new Error("harness_status missing recent_instincts");
     }
     console.log(`✓ harness_status — pending_tasks: ${statusData.pending_tasks}`);
+
+    // Test subagent_invoke
+    const subagentResult = await client.callTool({
+      name: "subagent_invoke",
+      arguments: {
+        role: "Coder",
+        prompt: "Fix formatting of index.css",
+        context_files: ["src/index.ts"],
+        commands: ["echo \"smoke test command\""],
+      },
+    });
+    const subagentContent = subagentResult.content as Array<{ type: string; text: string }>;
+    const subagentData = JSON.parse(subagentContent[0].text);
+    if (subagentData.status !== "spawned" || !subagentData.run_file) {
+      throw new Error(`subagent_invoke failed: ${subagentData.error || "no run file"}`);
+    }
+    console.log(`✓ subagent_invoke — run logged to ${subagentData.run_file}`);
 
     console.log("\n✅ SMOKE TEST PASSED");
   } finally {

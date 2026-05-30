@@ -3,6 +3,28 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.3.2] — 2026-05-30
+
+### Added
+- **Real Subagent Worker Execution** (`subagent_invoke`) — Added a real Worker Process model that dispatches and executes command payloads sequentially under a standalone worker (`src/subagent-worker.ts`), truncating command outputs to 8KB per command and returning a structured run-result JSON.
+- **Worker Process blocking and non-blocking modes** — Parent process can choose to wait/block for the worker (`wait: true`) or spawn a detached background worker (`wait: false` or default).
+- **Auto-Generate Repo Summary during `harness init`** — The CLI initializer now automatically creates `repo-summary.md` and `repo-summary.meta.json` in the `.harness/` directory when creating a new harness environment, providing immediate repository maps to new agents.
+- **New contextual skills** (Phase 5):
+  - `brainstorming` — Structured brainstorming, generating multiple approaches with trade-off analysis.
+  - `subagent-driven-development` — Decomposing and dispatching tasks using `subagent_invoke` effectively, with sample worker roles (Coder, Tester, Linter, Reviewer).
+  - `code-review-workflow` — Code review framework, PR checklists, and PR description template.
+  - `finishing-a-development-branch` — Handoff checklist, CHANGELOG updates, and branch cleanup.
+- **Unit test suite for subagent tools** (`src/tools/subagent.test.ts`) covering scope validation, worker execution, blocking mode, and output capture.
+
+### Changed
+- **Sync AGENTS.md** — Restructured/corrected tool count to 29 across 10 modules, skill count to 30, and documented `subagent.ts` + `repo_summary.ts` in file layout and tools table.
+- **Verify Smoke Test** — Added `skill_suggest` and `subagent_invoke` arguments payload to expected list, verifying 29 tools.
+- **spec-driven-workflow Skill Downgrade** — Changed `tier` to 3 (on-demand only) and replaced duplicate keywords with `["riper", "riper-5", "deep-dive", "phase-detail", "chi tiết pha"]`.
+- **Enabled Loop Guard expiration test** — Rewrote and enabled the previously skipped loop-guard reset test in `src/lib/loop-guard.test.ts` using Vitest's `vi.useFakeTimers()`.
+- **AGENTS.md Template updates** — Updated `.harness/repo-summary.md` reference inside the default template, instructing newly initialized agents to read it immediately on session start.
+
+---
+
 ## [1.3.1] — 2026-05-30
 
 ### Changed

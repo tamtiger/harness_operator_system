@@ -1,13 +1,13 @@
 ---
 name: spec-driven-workflow
-description: "Five-phase structured development (RIPER-5) integrated with harness-os session lifecycle and tools."
+description: "Deep-dive reference for RIPER-5 phases with detailed tool integration examples. Use as supplementary guide to harness-workflow."
 metadata:
   version: "1.0"
   updated: "2026-05-29"
   applies_to: ["*"]
   triggers: ["task_create"]
-  tier: 2
-  keywords: ["spec", "research", "innovate", "plan", "execute", "review", "phase", "đặc tả", "nghiên cứu", "đổi mới", "kế hoạch", "thực hiện", "xem xét", "giai đoạn"]
+  tier: 3
+  keywords: ["riper", "riper-5", "deep-dive", "phase-detail", "chi tiết pha"]
 ---
 
 # Spec-Driven Workflow Skill
@@ -32,10 +32,8 @@ The key insight: **structure enables autonomy**. Clear phases with explicit tran
 - Document assumptions
 
 **Harness tools:**
-- `search_context_hybrid()` — Find related code
-- `get_repo_structure()` — Understand architecture
-- `get_task_brief()` — Aggregate context from Jira + Confluence + Git
-- `jira_get_issue()` — Read ticket details
+- `repo_summary_read()` — Read directory tree and stack
+- `search_context_hybrid()` / `get_repo_structure()` / `get_task_brief()` / `jira_get_issue()` (Note: These are examples of project-specific external integrations. If not available in the workspace environment, read project directories manually or search using IDE tools, and read tickets from local workspace documents).
 
 **Transition criteria:**
 - [ ] Requirements are understood
