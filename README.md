@@ -4,7 +4,7 @@
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
 [![Version](https://img.shields.io/badge/version-1.3.0-blue)](#)
-[![Bun](https://img.shields.io/badge/Bun-v1.3.0-f9f2f4)](#)
+[![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-27-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-25-blue)](#)
 [![Tests](https://img.shields.io/badge/tests-301%20passing-brightgreen)](#)
@@ -23,15 +23,15 @@ Hoạt động với mọi IDE hỗ trợ MCP: **Cursor, Claude Code, Kiro, VS C
 ## Quick Start
 
 ```bash
-# 1. Cài đặt và build (dùng Bun)
+# 1. Cài đặt và build (dùng pnpm)
 git clone <repo-url> && cd harness-os
-bun install && bun run build
+pnpm install && pnpm run build
 
 # 2. Init harness cho repo của bạn
-bun run dev -- init /path/to/your/repo
+pnpm run dev -- init /path/to/your/repo
 
 # 3. Cài MCP cho IDE
-bun run dev -- install-mcp --ide cursor
+pnpm run dev -- install-mcp --ide cursor
 
 # 4. Mở IDE → agent đã biết phải làm gì
 ```
@@ -259,14 +259,14 @@ harness-os/
 ## Phát triển
 
 ```bash
-bun install          # Install dependencies (tạo bun.lockb)
-bun run dev          # Dev mode (tsx, không cần build)
-bun run build        # Compile TypeScript
-bun test             # Unit tests (301+ tests)
-bun run smoke        # End-to-end MCP test (27 tools, 25 skills)
+pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
+pnpm run dev          # Dev mode (tsx, không cần build)
+pnpm run build        # Compile TypeScript
+pnpm test             # Unit tests (301+ tests)
+pnpm run smoke        # End-to-end MCP test (27 tools, 25 skills)
 ```
 
-> **Lưu ý:** Dự án này dùng Bun thay cho npm. Xem [Bun Migration Plan](./docs/plans/2026-05-29-bun-migration.md) để biết thêm chi tiết.
+> **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.
 
 ## Tài liệu
 

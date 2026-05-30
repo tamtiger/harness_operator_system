@@ -18,7 +18,7 @@ describe("detectRuntime", () => {
       expect(result.packageManager).toBe("npm");
       expect(result.commands.install).toBe("npm install");
       expect(result.commands.build).toBe("npm run build");
-      expect(result.commands.test).toBe("npm run test");
+      expect(result.commands.test).toBe("npm test");
     } finally {
       rmSync(dir, { recursive: true });
     }
@@ -37,21 +37,7 @@ describe("detectRuntime", () => {
     }
   });
 
-  it("detects bun when bun.lockb exists", () => {
-    const dir = makeTempDir();
-    writeFileSync(join(dir, "package.json"), "{}");
-    writeFileSync(join(dir, "bun.lockb"), "{}");
-    try {
-      const result = detectRuntime(dir);
-      expect(result.runtime).toBe("node");
-      expect(result.packageManager).toBe("bun");
-      expect(result.commands.install).toBe("bun install");
-      expect(result.commands.build).toBe("bun run build");
-      expect(result.commands.test).toBe("bun run test");
-    } finally {
-      rmSync(dir, { recursive: true });
-    }
-  });
+
 
   it("detects pnpm when pnpm-lock.yaml exists", () => {
     const dir = makeTempDir();
@@ -62,7 +48,7 @@ describe("detectRuntime", () => {
       expect(result.runtime).toBe("node");
       expect(result.packageManager).toBe("pnpm");
       expect(result.commands.install).toBe("pnpm install --frozen-lockfile");
-      expect(result.commands.build).toBe("pnpm run build");
+      expect(result.commands.build).toBe("pnpm build");
     } finally {
       rmSync(dir, { recursive: true });
     }

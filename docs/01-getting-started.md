@@ -35,7 +35,7 @@ harness-os là một hệ thống có cấu trúc giúp kiểm soát AI coding a
 | Yêu cầu | Chi tiết |
 |----------|----------|
 | **Node.js** | ≥ 20.0.0 (bắt buộc) |
-| **Bun** | ≥ 1.0.0 (khuyến nghị) |
+| **pnpm** | ≥ 9.x.x (khuyến nghị) |
 | **OS** | Windows 10/11, macOS 12+, Linux (Ubuntu 20.04+) |
 | **Disk** | ~100MB cho dependencies + SQLite data |
 | **IDE** | Bất kỳ IDE hỗ trợ MCP (xem [Cấu hình IDE](./ide-setup.md)) |
@@ -58,18 +58,18 @@ git clone <repo-url> harness-os
 cd harness-os
 ```
 
-### Bước 2: Cài dependencies (dùng Bun)
+### Bước 2: Cài dependencies (dùng pnpm)
 
 ```bash
-bun install
+pnpm install
 ```
 
-> **Lưu ý:** Dự án này dùng Bun thay cho npm. Nếu chưa cài Bun, xem [hướng dẫn cài Bun](https://bun.sh).
+> **Lưu ý:** Dự án này dùng pnpm thay cho npm/Bun.
 
 ### Bước 3: Build
 
 ```bash
-bun run build
+pnpm run build
 ```
 
 Kết quả: thư mục `dist/` chứa compiled JavaScript.
@@ -77,7 +77,7 @@ Kết quả: thư mục `dist/` chứa compiled JavaScript.
 ### Bước 4: Verify cài đặt
 
 ```bash
-bun run dev -- doctor
+pnpm run dev -- doctor
 ```
 
 Output mong đợi:

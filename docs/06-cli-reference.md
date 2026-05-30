@@ -120,7 +120,7 @@ harness verify --repo ~/projects/my-api
 ```
 === harness verify: /home/user/my-project ===
 
-  Steps run: bun install, bun run build, bun run test, bun run lint
+  Steps run: pnpm install, pnpm run build, pnpm run test, pnpm run lint
   Result: ✅ PASSED
 ```
 

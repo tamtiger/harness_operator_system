@@ -64,7 +64,7 @@ ls /path/to/harness-os/dist/index.js  # File phải tồn tại
 **Giải pháp:**
 - Đảm bảo path trong MCP config là **absolute path**
 - Restart IDE sau khi thay đổi MCP config
-- Chạy `bun run build` nếu `dist/` chưa có
+- Chạy `pnpm run build` nếu `dist/` chưa có
 
 ---
 

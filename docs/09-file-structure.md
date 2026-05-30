@@ -81,10 +81,10 @@ allowed_per_task:
 ```yaml
 runtime: node
 commands:
-  install: "bun install"   # hoặc "npm ci" nếu dùng npm
-  build: "bun run build"   # hoặc "npm run build"
-  test: "bun run test"     # hoặc "npm run test"
-  lint: "bun run lint"     # hoặc "npm run lint"
+  install: "pnpm install"  # hoặc "npm ci"
+  build: "pnpm run build"  # hoặc "npm run build"
+  test: "pnpm test"        # hoặc "npm test"
+  lint: "pnpm run lint"    # hoặc "npm run lint"
 timeouts:
   build: 120
   test: 300

@@ -3,6 +3,22 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.3.1] — 2026-05-30
+
+### Changed
+- **Migration from Bun to pnpm/node** — Shifted the project package manager to `pnpm` (and fallback `node`/`npm`) to avoid native addon issues on Windows.
+  - Replaced Bun command runners in smoke test with Node.js.
+  - Configured `pnpm-workspace.yaml` with `allowBuilds` for `better-sqlite3` and `esbuild` to automate native addon compilation under pnpm v11+.
+  - Cleaned up obsolete `bun.lock` and `.npmrc` files.
+  - Updated all documentation files (`AGENTS.md`, `README.md`, docs guides, planning docs) to reflect pnpm/node setup.
+  - Updated `templates/init.sh.tpl` setup script to check for pnpm and fallback to npm.
+  - Removed `bun` package manager detection and auto-detected commands from `src/lib/runtime.ts` and related unit tests.
+
+### Verified
+- `pnpm run build` — 0 TypeScript errors
+- `pnpm test` — 151 pass, 1 skip, 0 fail (all unit tests passing under node/pnpm)
+- `pnpm run smoke` — PASSED (MCP server boots and passes all 27 tool checks using Node.js)
+
 ---
 
 ## [1.3.0] — 2026-05-29

@@ -52,8 +52,8 @@ describe("skill-matcher", () => {
   });
 
   describe("computeScore", () => {
-    it("counts matching keywords", () => {
-      const keywords = ["bug", "fix", "error"];
+    it("counts matching keywords without synonym overlap", () => {
+      const keywords = ["bug", "fix", "deploy"];
       const tokens = ["fix", "payment", "timeout", "bug"];
       const score = computeScore(keywords, tokens);
       expect(score).toBe(2); // "bug" and "fix" match
@@ -61,7 +61,7 @@ describe("skill-matcher", () => {
 
     it("returns 0 when no keywords match", () => {
       const keywords = ["test", "tdd"];
-      const tokens = ["fix", "bug", "error"];
+      const tokens = ["deploy", "release"];
       const score = computeScore(keywords, tokens);
       expect(score).toBe(0);
     });
@@ -81,10 +81,37 @@ describe("skill-matcher", () => {
     });
 
     it("counts all matching keywords", () => {
-      const keywords = ["bug", "fix", "error", "crash"];
-      const tokens = ["bug", "fix", "error", "crash"];
+      const keywords = ["bug", "fix", "deploy"];
+      const tokens = ["bug", "fix", "deploy"];
       const score = computeScore(keywords, tokens);
-      expect(score).toBe(4);
+      expect(score).toBe(3);
+    });
+
+    it("supports prefix matching", () => {
+      const keywords = ["diagnos"];
+      const tokens = ["diagnosis"];
+      const score = computeScore(keywords, tokens);
+      expect(score).toBeCloseTo(0.7, 1);
+    });
+
+    it("supports Vietnamese Unicode normalization and matching", () => {
+      const tokens = tokenize("Sửa lỗi thanh toán bị sập");
+      expect(tokens).toContain("sửa");
+      expect(tokens).toContain("lỗi");
+      expect(tokens).toContain("thanh");
+      expect(tokens).toContain("toán");
+      
+      const keywords = ["lỗi", "sập"];
+      const score = computeScore(keywords, tokens);
+      expect(score).toBeGreaterThanOrEqual(2);
+    });
+
+    it("supports Vietnamese synonyms mapping to English stems", () => {
+      const tokens = tokenize("sửa bug");
+      const keywords = ["fix", "error"];
+      const score = computeScore(keywords, tokens);
+      // "sửa" -> synonym "fix", "bug" -> synonym "error" (via reverse lookup)
+      expect(score).toBeGreaterThanOrEqual(2);
     });
   });
 

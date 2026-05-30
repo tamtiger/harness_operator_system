@@ -24,26 +24,26 @@ The server exposes tools for session lifecycle, task management, verification, s
 ## 2. Development Setup
 
 ```bash
-# Clone and install (using Bun)
+# Clone and install (using pnpm)
 git clone <repo-url> && cd harness-os
-bun install
+pnpm install
 
 # Build (TypeScript → dist/)
-bun run build
+pnpm run build
 
 # Run unit tests (301 tests)
-bun test
+pnpm test
 
 # Run smoke test (boots MCP server, calls all 27 tools)
-bun run smoke
+pnpm run smoke
 
 # Dev mode (tsx, no build needed)
-bun run dev
+pnpm run dev
 ```
 
 Requirements:
 - Node.js ≥ 20.0.0
-- Bun (https://bun.sh)
+- pnpm (https://pnpm.io)
 - No other global dependencies needed — `better-sqlite3` ships prebuilt binaries
 
 ---
@@ -249,9 +249,9 @@ Edit `scripts/smoke-test.ts` — add the new tool name to the expected tools lis
 ### Step 4: Verify
 
 ```bash
-bun run build
-bun test
-bun run smoke
+pnpm run build
+pnpm test
+pnpm run smoke
 ```
 
 Rules:
@@ -293,10 +293,10 @@ After the frontmatter closing `---`, write the skill content in markdown. Struct
 ### Step 4: Verify
 
 ```bash
-npm run build
-npm test
+pnpm run build
+pnpm test
 # Confirm skill appears:
-bun run dev -- skills --list
+pnpm run dev -- skills --list
 ```
 
 Frontmatter schema:
@@ -317,7 +317,7 @@ Frontmatter schema:
 ### Unit Tests (vitest)
 
 - Config: `vitest.config.ts`
-- Run: `npm test` (alias for `vitest run`)
+- Run: `pnpm test` (alias for `vitest run`)
 - Test files: colocated with source as `*.test.ts`
 - Current test files:
   - `src/lib/frontmatter.test.ts` (6 tests)
@@ -330,7 +330,7 @@ Frontmatter schema:
 
 ### Smoke Test
 
-- Run: `npm run smoke`
+- Run: `pnpm run smoke`
 - Script: `scripts/smoke-test.ts`
 - What it does: spawns `node dist/index.js` as child process → sends JSON-RPC `initialize` → calls `tools/list` → verifies all 26 tools are registered → calls key tools → asserts valid response shapes
 
@@ -366,13 +366,13 @@ Run these commands before every commit:
 
 ```bash
 # 1. Compile TypeScript (must pass with zero errors)
-bun run build
+pnpm run build
 
 # 2. Run unit tests (all 99 must pass)
-bun test
+pnpm test
 
 # 3. Run smoke test (MCP server boots and all tools respond)
-bun run smoke
+pnpm run smoke
 ```
 
 All three must pass. Do not commit if any fails.

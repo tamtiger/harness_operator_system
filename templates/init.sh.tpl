@@ -22,10 +22,14 @@ echo "✓ Node.js $(node -v)"
 
 # 2. Stack-specific checks
 {{#if_node}}
-# Waterfall: Bun → npm → fail
-if command -v bun &> /dev/null; then
-  bun install
-  echo "✓ Dependencies installed (bun)"
+# Waterfall: pnpm → npm → fail
+if command -v pnpm &> /dev/null; then
+  if [ -f pnpm-lock.yaml ]; then
+    pnpm install --frozen-lockfile
+  else
+    pnpm install
+  fi
+  echo "✓ Dependencies installed (pnpm)"
 elif command -v npm &> /dev/null; then
   if [ -f package-lock.json ]; then
     npm ci
@@ -35,8 +39,8 @@ elif command -v npm &> /dev/null; then
   echo "✓ Dependencies installed (npm)"
 else
   echo "✗ No JS package manager found."
-  echo "  Install Bun: https://bun.sh"
-  echo "  Or Node.js:  https://nodejs.org"
+  echo "  Install pnpm: https://pnpm.io"
+  echo "  Or Node.js:   https://nodejs.org"
   exit 1
 fi
 {{/if_node}}

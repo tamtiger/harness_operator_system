@@ -313,8 +313,8 @@ timeouts:
 
 | Stack | Install | Build | Test | Lint | Typecheck | Security Audit | Simplify |
 |-------|---------|-------|------|------|-----------|---|---|
-| node (bun) | `bun install` | `bun run build` | `bun run test` | `bun run lint` | — | `npm audit --audit-level=moderate` | — |
-| node (npm) | `npm ci` / `npm install` | `npm run build` | `npm run test` | `npm run lint` | — | `npm audit --audit-level=moderate` | — |
+| node (pnpm) | `pnpm install --frozen-lockfile` | `pnpm build` | `pnpm test` | `pnpm lint` | — | `npm audit --audit-level=moderate` | — |
+| node (npm) | `npm ci` / `npm install` | `npm run build` | `npm test` | `npm run lint` | — | `npm audit --audit-level=moderate` | — |
 | dotnet | `dotnet restore` | `dotnet build --no-restore` | `dotnet test --no-build` | `dotnet format --verify-no-changes` | — | `dotnet list package --vulnerable` | — |
 | python | `pip install -e .` | — | `pytest` | `ruff check .` | `mypy .` | `bandit -r .` | — |
 | go | `go mod download` | `go build ./...` | `go test ./...` | `golangci-lint run` | — | `gosec ./...` | — |

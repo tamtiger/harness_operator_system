@@ -1,6 +1,6 @@
 {
   "name": "harness-os",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Local harness operator system for agentic coding. MCP-first, cross-IDE, multi-repo.",
   "type": "module",
   "main": "dist/index.js",
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^12.10.0",
     "picomatch": "^4.0.4"
   },
   "devDependencies": {

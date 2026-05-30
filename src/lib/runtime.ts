@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-export type PackageManager = "bun" | "npm" | "pnpm";
+export type PackageManager = "npm" | "pnpm";
 
 export interface RuntimeInfo {
   runtime: string;
@@ -16,12 +16,9 @@ export interface RuntimeInfo {
 
 /**
  * Detect which package manager the repo uses based on lockfile presence.
- * Priority: bun.lockb > pnpm-lock.yaml > package-lock.json > npm (default)
+ * Priority: pnpm-lock.yaml > package-lock.json > npm (default)
  */
 export function detectPackageManager(repoPath: string): PackageManager {
-  if (existsSync(join(repoPath, "bun.lockb"))) {
-    return "bun";
-  }
   if (existsSync(join(repoPath, "pnpm-lock.yaml"))) {
     return "pnpm";
   }
@@ -41,19 +38,12 @@ export function getPmCommands(pm: PackageManager, repoPath?: string): {
   lint: string;
 } {
   switch (pm) {
-    case "bun":
-      return {
-        install: "bun install",
-        build: "bun run build",
-        test: "bun run test",
-        lint: "bun run lint",
-      };
     case "pnpm":
       return {
         install: "pnpm install --frozen-lockfile",
-        build: "pnpm run build",
-        test: "pnpm run test",
-        lint: "pnpm run lint",
+        build: "pnpm build",
+        test: "pnpm test",
+        lint: "pnpm lint",
       };
     case "npm":
     default:
@@ -62,7 +52,7 @@ export function getPmCommands(pm: PackageManager, repoPath?: string): {
       return {
         install: hasNpmLock ? "npm ci" : "npm install",
         build: "npm run build",
-        test: "npm run test",
+        test: "npm test",
         lint: "npm run lint",
       };
   }

@@ -62,7 +62,7 @@ function cmdInit() {
   let packageManager: string = "npm";
   if (stack === "node" || stack === "auto") {
     if (pmArg !== "auto") {
-      packageManager = pmArg; // bun, npm, or pnpm
+      packageManager = pmArg; // npm, or pnpm
     } else if ("packageManager" in runtime) {
       packageManager = (runtime as { packageManager: string }).packageManager;
     }
@@ -78,12 +78,8 @@ function cmdInit() {
   let pmInstall = "npm ci";
   let pmRun = "npm run";
   let pmName = "npm";
-  
-  if (packageManager === "bun") {
-    pmInstall = "bun install";
-    pmRun = "bun run";
-    pmName = "bun";
-  } else if (packageManager === "pnpm") {
+
+  if (packageManager === "pnpm") {
     pmInstall = "pnpm install --frozen-lockfile";
     pmRun = "pnpm run";
     pmName = "pnpm";
@@ -120,9 +116,9 @@ function cmdInit() {
 
     let content = readFileSync(tplPath, "utf-8");
     // Pass all template variables
-    content = renderTemplate(content, { 
-      REPO_NAME: repoName, 
-      STACK: stack, 
+    content = renderTemplate(content, {
+      REPO_NAME: repoName,
+      STACK: stack,
       DATE: date,
       PM_NAME: pmName,
       PM_INSTALL: pmInstall,
