@@ -137,7 +137,7 @@ export function sessionHandoff(
   summary: string,
   unfinished: string[],
   nextSteps: string[],
-  verifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string },
+  verifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string; output?: string },
   suggestedSkills?: string[]
 ): SessionHandoffResult {
   const db = getDb();

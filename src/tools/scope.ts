@@ -149,8 +149,16 @@ export function scopeCheck(
 
   // Normalize file path to be relative to repo
   const absRepo = resolve(repoPath);
-  const absFile = resolve(repoPath, filePath);
+  const absFile = resolve(absRepo, filePath);
   const relFile = relative(absRepo, absFile).replace(/\\/g, "/");
+
+  // Prevent path traversal outside the repository root
+  if (relFile.startsWith("../") || relFile === "..") {
+    return {
+      in_scope: false,
+      reason: `Access denied: File is outside repository root: ${relFile}`,
+    };
+  }
 
   // Check forbidden paths first
   for (const pattern of config.forbidden_paths) {

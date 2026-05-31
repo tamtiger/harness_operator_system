@@ -68,12 +68,16 @@ async function main() {
       "code_search_symbols",
     ];
 
+    if (toolNames.length !== expected.length) {
+      throw new Error(`Tool count mismatch. Expected ${expected.length}, got ${toolNames.length}`);
+    }
+
     for (const name of expected) {
       if (!toolNames.includes(name)) {
         throw new Error(`Missing tool: ${name}`);
       }
     }
-    console.log("✓ All expected tools present");
+    console.log("✓ All expected tools present (exact count matches)");
 
     // Call session_start
     const sessionResult = await client.callTool({

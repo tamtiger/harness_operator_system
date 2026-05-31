@@ -142,13 +142,13 @@ export function checkPreToolHooks(
  */
 export function checkStopValidation(
   repoPath: string,
-  lastVerifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string }
+  lastVerifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string; output?: string }
 ): { passed: boolean; error?: string } {
   const config = loadHooksConfig(repoPath);
   if (!config || !config.stop_validation) return { passed: true };
 
-  const { required_steps = [] } = config.stop_validation;
-  if (required_steps.length === 0) return { passed: true };
+  const { required_steps = [], fail_on_warning = false } = config.stop_validation;
+  if (required_steps.length === 0 && !fail_on_warning) return { passed: true };
 
   // If no verify run yet, run one automatically or fail
   let verify = lastVerifyStatus;
@@ -160,6 +160,7 @@ export function checkStopValidation(
         passed: res.passed,
         steps_run: res.steps_run,
         failed_step: res.step_results.find(r => !r.passed)?.name,
+        output: res.output,
       };
     } catch (err: any) {
       return {
@@ -185,6 +186,17 @@ export function checkStopValidation(
       passed: false,
       error: `Stop validation failed: Verify failed at step '${verify.failed_step || "unknown"}'. Please fix the errors before ending the session.`,
     };
+  }
+
+  // Handle fail_on_warning
+  if (fail_on_warning && verify.output) {
+    const hasWarnings = /warning/i.test(verify.output) && !/0 warnings/i.test(verify.output);
+    if (hasWarnings) {
+      return {
+        passed: false,
+        error: `Stop validation failed: Warnings were detected in verify output and fail_on_warning is enabled.`,
+      };
+    }
   }
 
   return { passed: true };

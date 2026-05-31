@@ -32,6 +32,7 @@ your-repo/
     ├── feature_list.json         # Scope boundaries per feature
     ├── scope.yaml                # Forbidden/allowed paths + per-task rules
     ├── verify.yaml               # Verification commands per stack
+    ├── hooks.yaml                # Pre-tool blocking and stop validation rules
     ├── skills/                   # Repo-specific skills (override global)
     │   └── repo-conventions/
     │       └── SKILL.md
@@ -50,6 +51,7 @@ your-repo/
 | `.harness/feature_list.json` | Danh sách features + scope | Agent | Agent (qua `feature_list_update`) |
 | `.harness/scope.yaml` | Forbidden paths + allowed paths per task | Agent (qua `scope_check`) | Human |
 | `.harness/verify.yaml` | Lệnh verify (install/build/test/lint) | Agent (qua `verify_run`) | Human / `harness init` |
+| `.harness/hooks.yaml` | Pre-tool blocking và rules stop validation | MCP server | Human |
 | `.harness/handoff_last.json` | State cho session sau | Agent | Agent (qua `session_handoff`) |
 | `~/.harness/harness.sqlite` | Sessions, tasks, instincts, audit | MCP server | MCP server |
 | `~/.harness/audit.jsonl` | Event stream (append-only) | Debug/trace | MCP server (auto) |
@@ -134,4 +136,17 @@ timeouts:
 - **Status:** done
 - **Summary:** Setup CI pipeline with GitHub Actions
 - **Next:** Add payment validation (TASK-12)
+```
+
+### `.harness/hooks.yaml`
+
+```yaml
+pre_tool_block:
+  - tool: subagent_invoke
+    pattern: "rm\\s+-rf"
+    message: "Destroying commands are forbidden"
+
+stop_validation:
+  required_steps: [build, test, lint]
+  fail_on_warning: true
 ```

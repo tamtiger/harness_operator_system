@@ -1,4 +1,4 @@
-# 31 MCP Tools Reference
+# 30 MCP Tools Reference
 
 [← Mục lục](../README.md) | [← Workflow](./04-workflow.md) | [CLI Reference →](./06-cli-reference.md)
 
@@ -18,7 +18,7 @@
 | [Repo Intelligence](#repo-intelligence) | `repo_summary_read` | 1 |
 | [Observability](#observability) | `audit_log`, `harness_status` | 2 |
 | [Subagents](#subagents) | `subagent_invoke` | 1 |
-| **Tổng** | | **31** |
+| **Tổng** | | **30** |
 
 ---
 

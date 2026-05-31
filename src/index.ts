@@ -39,16 +39,58 @@ const server = new McpServer({
 /**
  * Helper: build a wrapped MCP tool handler from a sync function returning a value.
  * The wrapper handles try/catch + audit + loop detection.
+ *
+ * When the serialised output exceeds MAX_OUTPUT bytes, large string fields are
+ * replaced with a brief summary placeholder instead of being truncated mid-sentence.
+ * All keys, numeric/boolean values, and short strings are preserved intact so the
+ * agent retains full structural context.
  */
+const MAX_OUTPUT = 8192;
+const FIELD_PREVIEW = 512; // keep first N chars as a preview inside the placeholder
+
+function summarizeOutput(val: unknown): unknown {
+  if (typeof val === "string") {
+    if (val.length > FIELD_PREVIEW) {
+      const preview = val.slice(0, FIELD_PREVIEW);
+      return `${preview}\n... [${val.length} chars total — field summarised, use a dedicated tool to retrieve full content]`;
+    }
+    return val;
+  }
+  if (Array.isArray(val)) {
+    // Summarise each item; also cap the array at 20 items to avoid runaway lists
+    const items = val.slice(0, 20).map(summarizeOutput);
+    if (val.length > 20) {
+      items.push(`... [${val.length - 20} more items omitted]` as unknown);
+    }
+    return items;
+  }
+  if (val && typeof val === "object") {
+    const res: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+      res[k] = summarizeOutput(v);
+    }
+    return res;
+  }
+  return val;
+}
+
 function makeHandler<T extends Record<string, unknown>>(
   name: string,
   fn: (args: T) => unknown
 ) {
   return wrapTool(name, async (args) => {
     const result = fn(args as T);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    const jsonStr = JSON.stringify(result);
+
+    if (jsonStr.length > MAX_OUTPUT) {
+      const summarised = summarizeOutput(result);
+      return { content: [{ type: "text", text: JSON.stringify(summarised) }] };
+    }
+
+    return { content: [{ type: "text", text: jsonStr }] };
   });
 }
+
 
 // === Session tools ===
 
@@ -92,6 +134,7 @@ server.registerTool(
       passed: z.boolean(),
       steps_run: z.array(z.string()),
       failed_step: z.string().optional(),
+      output: z.string().optional(),
     }).optional().describe("Last verify_run result summary"),
     suggested_skills: z.array(z.string()).optional().describe("Names of skills suggested for the next session"),
   },
@@ -110,7 +153,7 @@ server.registerTool(
       summary: string;
       unfinished: string[];
       next_steps: string[];
-      verify_status?: { passed: boolean; steps_run: string[]; failed_step?: string };
+      verify_status?: { passed: boolean; steps_run: string[]; failed_step?: string; output?: string };
       suggested_skills?: string[];
     }) => sessionHandoff(session_id, summary, unfinished, next_steps, verify_status, suggested_skills)
   )

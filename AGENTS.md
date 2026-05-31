@@ -13,7 +13,7 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
 - **Version:** 1.3.3
-- **Tools:** 31 MCP tools across 11 modules
+- **Tools:** 30 MCP tools across 11 modules
 - **Tests:** 162 unit tests (vitest) + smoke test
 - **Skills:** 30 built-in skills with tiered keyword matching
 
@@ -52,7 +52,7 @@ Requirements:
 
 ### 3.1 MCP Server Entry — `src/index.ts`
 
-The main entry point. Creates an `McpServer` instance, registers all 31 tools with Zod schemas, and connects via `StdioServerTransport`.
+The main entry point. Creates an `McpServer` instance, registers all 30 tools with Zod schemas, and connects via `StdioServerTransport`.
 
 Key patterns:
 - Each tool is registered with `server.registerTool(name, config, handler)`
@@ -338,7 +338,7 @@ Frontmatter schema:
 
 - Run: `pnpm run smoke`
 - Script: `scripts/smoke-test.ts`
-- What it does: spawns `node dist/index.js` as child process → sends JSON-RPC `initialize` → calls `tools/list` → verifies all 29 tools are registered → calls key tools → asserts valid response shapes
+- What it does: spawns `node dist/index.js` as child process → sends JSON-RPC `initialize` → calls `tools/list` → verifies all 30 tools are registered → calls key tools → asserts valid response shapes
 
 ### What to Test
 
@@ -404,9 +404,10 @@ harness-os/
 ├── TASK_IMPLEMENT.md                  # Task breakdown
 │
 ├── src/
-│   ├── index.ts              # MCP stdio server entry — registers all 26 tools
+│   ├── index.ts              # MCP stdio server entry — registers all 30 tools
 │   ├── cli/
-│   │   └── harness.ts        # CLI entry point (init, doctor, status, verify, etc.)
+│   │   ├── harness.ts        # CLI entry point (init, doctor, status, verify, etc.)
+│   │   └── orchestrator.ts   # Ralph Loop Orchestrator implementation
 │   ├── db/
 │   │   ├── client.ts         # SQLite connection, migrations, getDb() singleton
 │   │   └── audit.ts          # JSONL append helper for audit trail
@@ -430,6 +431,7 @@ harness-os/
 │       ├── frontmatter.ts    # YAML frontmatter parser for SKILL.md
 │       ├── git-diff.ts       # Get changed files from git
 │       ├── evidence.ts       # Evidence persistence (save/read per task)
+│       ├── hooks.ts          # Hook system block and stop validation logic
 │       ├── skill-matcher.ts  # Tokenizer, synonym mapping, suggestion scoring
 │       └── parsers/
 │           ├── vitest.ts     # Vitest JSON output parser

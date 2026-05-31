@@ -5,7 +5,7 @@
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
 [![Version](https://img.shields.io/badge/version-1.3.3-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-31-blue)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-30-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-30-blue)](#)
 [![Tests](https://img.shields.io/badge/tests-162%20passing-brightgreen)](#)
 
@@ -50,7 +50,7 @@ pnpm run dev -- install-mcp --ide cursor
 | **Continuous Learning** | Pattern tái sử dụng | `instinct_add/get/prune/evolve` |
 | **Subagent Delegation** | Điều phối agent con chạy lệnh | `subagent_invoke` |
 
-## 31 MCP Tools
+## 30 MCP Tools
 
 <details>
 <summary><b>Session lifecycle (4 tools)</b></summary>
@@ -247,7 +247,7 @@ Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 ```
 harness-os/
 ├── src/
-│   ├── index.ts              # MCP stdio server (29 tools, all wrapped)
+│   ├── index.ts              # MCP stdio server (30 tools, all wrapped)
 │   ├── cli/harness.ts        # CLI entry point
 │   ├── db/
 │   │   ├── client.ts         # SQLite + migrations
@@ -279,7 +279,7 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (304+ tests passing)
+- **Testing:** Vitest (162 tests passing)
 
 ## Phát triển
 
@@ -287,8 +287,8 @@ harness-os/
 pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
-pnpm test             # Unit tests (304+ tests)
-pnpm run smoke        # End-to-end MCP test (29 tools, 30 skills)
+pnpm test             # Unit tests (162 tests)
+pnpm run smoke        # End-to-end MCP test (30 tools, 30 skills)
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.

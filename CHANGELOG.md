@@ -28,11 +28,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - **New contextual skills** (Phase 5):
   - `brainstorming` — Structured brainstorming, generating multiple approaches with trade-off analysis.
   - `subagent-driven-development` — Decomposing and dispatching tasks using `subagent_invoke` effectively, with sample worker roles (Coder, Tester, Linter, Reviewer).
-  - `code-review-workflow` — Code review framework, PR checklists, and PR description template.
+  - `code-review-workflow` — Consolidated `requesting-code-review` and `receiving-code-review` skills into a single workflow for self-review, structured requests, and processing feedback.
   - `finishing-a-development-branch` — Handoff checklist, CHANGELOG updates, and branch cleanup.
 - **Unit test suite for subagent tools** (`src/tools/subagent.test.ts`) covering scope validation, worker execution, blocking mode, and output capture.
 
+### Security
+- **Skill Name Path Traversal Block** — `skill_load` now validates the skill name against `/^[a-zA-Z0-9\-_]+$/` before constructing any file paths. Any name containing `..`, `/`, or shell-special characters is rejected immediately with an `{ error }` response.
+- **Scope Path Traversal Block** — `scope_check` resolves the requested path and verifies it stays within the declared repo root before performing glob matching, preventing `../` escape attempts.
+- **Shell Command Sanitization in Subagent** — `subagent_invoke` arguments are validated to reject empty or whitespace-only command strings before spawning child processes.
+
 ### Changed
+- **Global 8KB Output Cap** — `makeHandler` in `src/index.ts` now unconditionally enforces a hard 8 192-byte ceiling on every MCP tool response via a recursive `truncateStrings()` helper. Previously, only a few tools manually applied truncation.
 - **Sync AGENTS.md** — Restructured/corrected tool count to 29 across 10 modules, skill count to 30, and documented `subagent.ts` + `repo_summary.ts` in file layout and tools table.
 - **Verify Smoke Test** — Added `skill_suggest` and `subagent_invoke` arguments payload to expected list, verifying 29 tools.
 - **spec-driven-workflow Skill Downgrade** — Changed `tier` to 3 (on-demand only) and replaced duplicate keywords with `["riper", "riper-5", "deep-dive", "phase-detail", "chi tiết pha"]`.

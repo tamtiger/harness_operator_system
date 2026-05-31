@@ -252,10 +252,11 @@ allowed_per_task:
 
 ### Q: Version hiện tại và roadmap?
 
-**A:** Version 1.1.0. Tất cả các phases cốt lõi đã hoàn thành:
+**A:** Version 1.3.3. Tất cả các phases cốt lõi đã hoàn thành:
 - ✅ Phase 1-3: Core tools (session, task, state, scope, verify, observe)
 - ✅ Phase 4: CLI + IDE adapters
 - ✅ Phase 5: Continuous learning (instincts)
 - ✅ Phase 6: Hardening (wrapper, loop guard, parsers)
+- ✅ Phase 7: Sub-agents, hooks system, code search, and security validations
 
-Roadmap tương lai: sub-agents, hooks system, multi-repo cross-context, security scan.
+Roadmap tương lai: multi-repo cross-context, advanced security scanning.

@@ -84,6 +84,10 @@ export function skillLoad(
   name: string,
   repoPath?: string
 ): SkillLoadResult | SkillLoadError {
+  if (!/^[a-zA-Z0-9\-_]+$/.test(name)) {
+    return { error: `invalid skill name: ${name}` };
+  }
+
   const searchDirs = getSearchDirs(repoPath);
   const filePath = findSkillFile(name, searchDirs);
 

@@ -164,8 +164,9 @@ export function parseVerifyYaml(content: string): VerifyConfig {
 
 function filterLintableFiles(files: string[], runtimeName: string): string[] {
   const exts = LINTABLE_EXTENSIONS[runtimeName];
-  if (!exts) return files;
-  return files.filter((f) => exts.some((ext) => f.endsWith(ext)));
+  const filtered = exts ? files.filter((f) => exts.some((ext) => f.endsWith(ext))) : files;
+  // Sanitize: only allow files with safe characters to prevent shell injection
+  return filtered.filter((f) => /^[a-zA-Z0-9_\-\.\/\\]+$/.test(f));
 }
 
 function buildChangedOnlyLintCmd(
