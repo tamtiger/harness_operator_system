@@ -1,6 +1,6 @@
-# 29 MCP Tools Reference
+# 31 MCP Tools Reference
 
-[← Mục lục](./README.md) | [← Workflow](./workflow.md) | [CLI Reference →](./cli-reference.md)
+[← Mục lục](../README.md) | [← Workflow](./04-workflow.md) | [CLI Reference →](./06-cli-reference.md)
 
 ---
 
@@ -12,12 +12,13 @@
 | [Task Management](#task-management) | `task_create`, `task_update`, `task_list` | 3 |
 | [State Files](#state-files) | `progress_log`, `feature_list_read`, `feature_list_update`, `handoff_write`, `handoff_read` | 5 |
 | [Scope & Verification](#scope--verification) | `scope_get`, `scope_check`, `verify_run` | 3 |
+| [Codebase Search](#codebase-search) | `code_search_grep`, `code_search_symbols` | 2 |
 | [Skills](#skills) | `skill_load`, `skill_list`, `skill_create_from_session`, `skill_suggest` | 4 |
 | [Instincts](#instincts) | `instinct_add`, `instinct_get`, `instinct_prune`, `instinct_evolve`, `instinct_promote` | 5 |
 | [Repo Intelligence](#repo-intelligence) | `repo_summary_read` | 1 |
 | [Observability](#observability) | `audit_log`, `harness_status` | 2 |
 | [Subagents](#subagents) | `subagent_invoke` | 1 |
-| **Tổng** | | **29** |
+| **Tổng** | | **31** |
 
 ---
 
@@ -534,5 +535,58 @@ Gợi ý các skills phù hợp dựa trên tiêu đề task, scope, stack và r
   "run_file": ".harness/subagent_runs/run_20260530...json",
   "result_file": ".harness/subagent_runs/run_20260530..._result.json",
   "message": "Subagent worker spawned successfully..."
+}
+```
+
+---
+
+## Codebase Search
+
+### `code_search_grep`
+
+Tìm kiếm văn bản hoặc biểu thức chính quy (regex) trên các file mã nguồn của codebase.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `repo_path` | string | ✅ | Đường dẫn repo |
+| `query` | string | ✅ | Nội dung tìm kiếm |
+| `is_regex` | boolean | ❌ | Có sử dụng biểu thức chính quy không (default: false) |
+
+```json
+// Response
+{
+  "matches": [
+    {
+      "file": "src/index.ts",
+      "line": 42,
+      "content": "server.registerTool("
+    }
+  ],
+  "truncated": false
+}
+```
+
+### `code_search_symbols`
+
+Định vị vị trí khai báo của các lớp, giao diện hoặc hàm/phương thức có tên khớp với từ khóa.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `repo_path` | string | ✅ | Đường dẫn repo |
+| `query` | string | ✅ | Tên symbol tìm kiếm |
+
+```json
+// Response
+{
+  "matches": [
+    {
+      "file": "src/tools/session.ts",
+      "line": 34,
+      "type": "function",
+      "name": "sessionStart",
+      "content": "export function sessionStart(repoPath: string): SessionStartResult"
+    }
+  ],
+  "truncated": false
 }
 ```

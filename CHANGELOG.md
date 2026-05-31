@@ -3,6 +3,22 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.3.3] — 2026-05-31
+
+### Added
+- **Hook System (Chốt kiểm soát)** — Introduced pre-tool block hooks (to prevent dangerous tool calls based on arguments regex patterns) and stop validation hooks (to enforce passing specific verification steps before ending a session). Controlled via `.harness/hooks.yaml`.
+- **Codebase Search MCP Tools** — Added `code_search_grep` and `code_search_symbols` to allow local file system search of text, regex patterns, and code structure definitions (classes, functions, methods, interfaces). Yields JSON results up to 8KB.
+- **Ralph Loop CLI Orchestrator** — Added `harness orchestrate` command to automate sequential lifecycle pipelines, keeping sessions alive and retrying failed validations automatically up to a maximum loop threshold.
+
+### Changed
+- **Sync AGENTS.md** — Incremented registered tool count to 31 across 11 modules and documented codebase search tools and CLI orchestrator parameters. Added a strict instruction rule demanding prompt updates of documentation after code modifications.
+- **Dynamic Versioning & Script** — Implemented dynamic reading of `package.json` version field inside the MCP server constructor, and added a automated version synchronizer script (`pnpm run sync-version`) to align version numbers across static documentation, tests, and configurations.
+- **Smoke test** — Registered `code_search_grep` and `code_search_symbols` in the expected tool list of scripts/smoke-test.ts.
+- **Skill Version Metadata Validation** — Updated `skillList` to read the skill version from `metadata.version` first (according to the agentskills.io specification), falling back to top-level `version`. This resolves the `missing version` warnings reported by `harness doctor`.
+- **Explicit Zod Dependency** — Added `zod` as an explicit dependency in `package.json` to ensure clean TypeScript builds under nodeNext module resolution.
+
+---
+
 ## [1.3.2] — 2026-05-30
 
 ### Added

@@ -16,9 +16,14 @@ import { getDb } from "../db/client.js";
 import { generateTree } from "../lib/tree.js";
 import { generateSummary, writeSummary } from "../lib/repo-summary.js";
 import { invalidateTreeHashCache } from "../lib/stale-cache.js";
+import { runOrchestrate } from "./orchestrator.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
+
+const thisFile = fileURLToPath(import.meta.url);
+const projectRoot = resolve(dirname(thisFile), "..", "..");
+const packageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf-8"));
 
 function getFlag(name: string): string | undefined {
   const idx = args.indexOf(`--${name}`);
@@ -123,6 +128,7 @@ function cmdInit() {
       PM_NAME: pmName,
       PM_INSTALL: pmInstall,
       PM_RUN: pmRun,
+      VERSION: packageJson.version,
     });
 
     const dir = dirname(targetPath);
@@ -281,9 +287,11 @@ function cmdDoctor() {
       for (const ref of refs) {
         const cleanRef = ref.replace(/`/g, "");
         const refPath = join(repoPath, cleanRef);
-        if (!existsSync(refPath) && !cleanRef.includes("{") && !cleanRef.startsWith("~")) {
-          // Only warn for paths that look like they should exist locally
-          if (!cleanRef.includes("/") || cleanRef.startsWith("src/") || cleanRef.startsWith("scripts/")) {
+        if (!existsSync(refPath) && !cleanRef.includes("{") && !cleanRef.includes("*") && !cleanRef.startsWith("~")) {
+          // Only warn for paths starting with known directories, or specific root files
+          const isRootFile = ["package.json", "tsconfig.json", "vitest.config.ts", "agents.md", "readme.md", "changelog.md", "task_implement.md"].includes(cleanRef.toLowerCase());
+          const isKnownDir = cleanRef.startsWith("src/") || cleanRef.startsWith("scripts/") || cleanRef.startsWith("skills/") || cleanRef.startsWith("templates/") || cleanRef.startsWith("ide-adapters/") || cleanRef.startsWith(".harness/");
+          if (isRootFile || isKnownDir) {
             missingRefs++;
           }
         }
@@ -740,9 +748,36 @@ function cmdImport() {
   console.log(`  Exported at: ${data.manifest.exported_at || "unknown"}\n`);
 }
 
+// === harness orchestrate ===
+
+function cmdOrchestrate() {
+  const title = args[1] || "Automated Orchestrated Task";
+  const repo = getFlag("repo") || ".";
+  const maxLoops = parseInt(getFlag("max-loops") || "3", 10);
+  const stepsFlag = getFlag("steps");
+  const steps = stepsFlag ? stepsFlag.split(",").map(s => s.trim()) : undefined;
+
+  const result = runOrchestrate(title, {
+    repoPath: repo,
+    maxLoops,
+    steps
+  });
+
+  if (result.success) {
+    process.stdout.write(`Success: ${result.message}\n`);
+    process.exit(0);
+  } else {
+    process.stderr.write(`Failure: ${result.message} (Error: ${result.error})\n`);
+    process.exit(1);
+  }
+}
+
 // === Main dispatch ===
 
 switch (command) {
+  case "orchestrate":
+    cmdOrchestrate();
+    break;
   case "init":
     cmdInit();
     break;
@@ -795,6 +830,7 @@ Usage:
   harness tasks [--repo path] [--status pending|in-progress|done]
   harness instincts [--list] [--export]
   harness install-mcp --ide <cursor|claude-code|kiro|vscode|antigravity|opencode>
+  harness orchestrate <title> [--repo path] [--max-loops n] [--steps build,test]
   harness tree [--path .] [--depth 4] [--exclude PATTERN] [--output FILE]
   harness summary [--path .] [--force]
   harness reindex [--path .]

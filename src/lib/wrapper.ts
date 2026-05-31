@@ -1,6 +1,7 @@
 import { auditLog } from "../tools/observe.js";
 import { checkLoop } from "./loop-guard.js";
 import { log } from "./logger.js";
+import { checkPreToolHooks } from "./hooks.js";
 
 interface ToolResult {
   [x: string]: unknown;
@@ -15,9 +16,26 @@ type ToolHandler = (args: Record<string, unknown>) => Promise<ToolResult>;
  * - try/catch (never throws to MCP transport)
  * - audit logging (success + error)
  * - loop detection
+ * - pre-tool hooks
  */
 export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
   return async (args: Record<string, unknown>): Promise<ToolResult> => {
+    // Pre-tool block hook check
+    const repoPath = (args.repo_path as string) || ".";
+    const hookCheck = checkPreToolHooks(repoPath, name, args);
+    if (!hookCheck.allowed) {
+      log("warn", `Tool blocked by hook: ${name}`, { reason: hookCheck.reason });
+      try {
+        auditLog("hook_blocked", { tool: name, reason: hookCheck.reason });
+      } catch {
+        // ignore
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify({ error: hookCheck.reason }) }],
+        isError: true,
+      };
+    }
+
     // Loop guard
     const loopWarn = checkLoop(name, args);
     if (loopWarn) {

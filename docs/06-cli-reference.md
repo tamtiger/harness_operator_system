@@ -20,6 +20,7 @@ harness <command> [options]
 | `tasks` | Liệt kê tasks |
 | `instincts` | Duyệt/export instincts |
 | `install-mcp` | Cài MCP config cho IDE |
+| `orchestrate` | Chạy tự động hóa vòng lặp Ralph |
 | `tree` | Sinh directory tree |
 | `summary` | Sinh repo summary |
 | `reindex` | Force reindex repo |
@@ -327,3 +328,27 @@ harness import ~/backups/harness-export-1234567890.json
 ```
 
 > **Lưu ý:** Import ghi đè files trong `.harness/` của repo hiện tại. Backup trước nếu cần.
+
+---
+
+## `harness orchestrate`
+
+Khởi chạy quy trình điều phối tự động **Vòng lặp Ralph (Ralph Loop)** cho một nhiệm vụ cụ thể.
+
+```bash
+harness orchestrate <title> [--repo path] [--max-loops n] [--steps step1,step2]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `title` | Tiêu đề hoặc yêu cầu của nhiệm vụ cần thực hiện |
+| `--repo` | Đường dẫn tới repository làm việc (default: `.`) |
+| `--max-loops` | Số vòng lặp chạy thử và tự sửa lỗi tối đa (default: 3) |
+| `--steps` | Chỉ định các bước verify cụ thể thay vì chạy toàn bộ pipeline |
+
+**Ví dụ:**
+
+```bash
+harness orchestrate "Sửa lỗi crash khi load trang chủ" --max-loops 5
+harness orchestrate "Thêm API thanh toán" --steps build,test
+```

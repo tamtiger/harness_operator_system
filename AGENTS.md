@@ -12,12 +12,12 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.3.2
-- **Tools:** 29 MCP tools across 10 modules
-- **Tests:** 301 unit tests (vitest) + smoke test
+- **Version:** 1.3.3
+- **Tools:** 31 MCP tools across 11 modules
+- **Tests:** 162 unit tests (vitest) + smoke test
 - **Skills:** 30 built-in skills with tiered keyword matching
 
-The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, and observability.
+The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, codebase search, and observability.
 
 ---
 
@@ -31,10 +31,10 @@ pnpm install
 # Build (TypeScript → dist/)
 pnpm run build
 
-# Run unit tests (301 tests)
+# Run unit tests (162 tests)
 pnpm test
 
-# Run smoke test (boots MCP server, calls all 27 tools)
+# Run smoke test (boots MCP server, calls all 30 tools)
 pnpm run smoke
 
 # Dev mode (tsx, no build needed)
@@ -52,7 +52,7 @@ Requirements:
 
 ### 3.1 MCP Server Entry — `src/index.ts`
 
-The main entry point. Creates an `McpServer` instance, registers all 29 tools with Zod schemas, and connects via `StdioServerTransport`.
+The main entry point. Creates an `McpServer` instance, registers all 31 tools with Zod schemas, and connects via `StdioServerTransport`.
 
 Key patterns:
 - Each tool is registered with `server.registerTool(name, config, handler)`
@@ -75,12 +75,14 @@ Each file exports pure functions grouped by domain. The MCP registration happens
 | `observe.ts` | `auditLog`, `harnessStatus` | Observability |
 | `repo_summary.ts` | `repoSummaryRead` | Repository summary |
 | `subagent.ts` | `subagentInvoke` | Subagent execution |
+| `code_search.ts` | `codeSearchGrep`, `codeSearchSymbols` | Codebase searching |
 
 ### 3.3 Lib Helpers — `src/lib/`
 
 | File | Purpose |
 |------|---------|
-| `wrapper.ts` | `wrapTool()` decorator — try/catch + audit + loop detection |
+| `wrapper.ts` | `wrapTool()` decorator — try/catch + audit + loop detection + pre-tool hooks |
+| `hooks.ts` | Hook system helper: pre-tool block + stop validation check |
 | `loop-guard.ts` | Detects same tool+args called >5 times in 60s |
 | `logger.ts` | Structured JSON stderr logger (only emits when `HARNESS_DEBUG=1`) |
 | `runtime.ts` | Detect project stack from files (node, dotnet, python, go, rust) |
@@ -126,6 +128,7 @@ Commands:
 - `harness tasks [--repo path] [--status <status>]`
 - `harness instincts [--list] [--export]`
 - `harness install-mcp --ide <name>`
+- `harness orchestrate <title> [--repo path] [--max-loops n] [--steps build,test]`
 
 The CLI dispatches via a `switch` statement on the first positional argument.
 
@@ -562,6 +565,31 @@ const projectRoot = resolve(dirname(thisFile), "..", "..");
 ```
 
 This works whether running from `src/` (via tsx) or `dist/` (compiled).
+
+### Always update documentation on code changes
+
+Whenever you implement or modify features, you **MUST** immediately update:
+1. `CHANGELOG.md` under the appropriate version section (with status/description).
+2. Relevant documentation in `README.md`, `docs/`, or `AGENTS.md` (e.g. tools lists, CLI command specs).
+3. The codebase diagram or file layout schemas if structure changes.
+
+Failure to keep documentation in sync with code is unacceptable.
+
+### Always sync version numbers across the codebase
+
+Whenever you bump or modify the version number, you **MUST** update it in `package.json` (`version` field) and then run the synchronization script:
+```bash
+pnpm run sync-version
+```
+This script automatically distributes the updated version to all required static and test files:
+1. `src/index.ts` (Dynamic read from package.json)
+2. `AGENTS.md` (Self-synchronized)
+3. `README.md` (Version badge at the top)
+4. `docs/README.md` (Version metadata at the top and footer)
+5. `templates/AGENTS.md.tpl` (Version generator comment and metadata line)
+6. `scripts/smoke-test.ts` (Version parameter in Client constructor)
+
+Failure to maintain version alignment or run the sync-version script after bumping the version is unacceptable.
 
 ---
 

@@ -3,11 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.3.2-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.3.3-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-29-blue)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-31-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-30-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-304%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-162%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -50,7 +50,7 @@ pnpm run dev -- install-mcp --ide cursor
 | **Continuous Learning** | Pattern tái sử dụng | `instinct_add/get/prune/evolve` |
 | **Subagent Delegation** | Điều phối agent con chạy lệnh | `subagent_invoke` |
 
-## 29 MCP Tools
+## 31 MCP Tools
 
 <details>
 <summary><b>Session lifecycle (4 tools)</b></summary>
@@ -96,6 +96,16 @@ pnpm run dev -- install-mcp --ide cursor
 | `scope_get` | Lấy scope config từ `.harness/scope.yaml` |
 | `scope_check` | Kiểm tra file có trong scope không (glob patterns) |
 | `verify_run` | Chạy pipeline verify (install/build/test/lint) — hỗ trợ `verify.yaml` |
+
+</details>
+
+<details>
+<summary><b>Codebase Search (2 tools)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
+| `code_search_grep` | Tìm kiếm văn bản/regex trong repo (tối đa 8KB) |
+| `code_search_symbols` | Định vị định nghĩa class, function, method, interface (tối đa 8KB) |
 
 </details>
 
@@ -152,7 +162,7 @@ pnpm run dev -- install-mcp --ide cursor
 
 </details>
 
-## CLI Commands (13)
+## CLI Commands (14)
 
 ```bash
 harness init [path] [--stack auto|node|dotnet|python|go]   # Setup repo
@@ -163,6 +173,7 @@ harness skills [--list | --show <name>]                     # Browse skills
 harness tasks [--repo path] [--status pending|done]         # List tasks
 harness instincts [--list | --export]                       # Browse instincts
 harness install-mcp --ide cursor|kiro|vscode|...           # Install MCP config
+harness orchestrate <title> [--repo path] [--max-loops n]   # Ralph Loop Orchestrator
 harness tree [--path .] [--depth 4] [--exclude PATTERN]    # Generate directory tree
 harness summary [--path .] [--force]                        # Generate repo summary
 harness reindex [--path .]                                  # Force reindex repo

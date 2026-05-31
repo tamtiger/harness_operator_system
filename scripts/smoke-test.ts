@@ -4,11 +4,16 @@
  */
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { resolve } from "node:path";
-import { rmSync } from "node:fs";
+import { resolve, join, dirname } from "node:path";
+import { rmSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const SERVER_PATH = resolve("dist/index.js");
 const TEST_HOME = resolve(".harness-test-tmp");
+
+const thisFile = fileURLToPath(import.meta.url);
+const projectRoot = resolve(dirname(thisFile), "..");
+const packageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf-8"));
 
 async function main() {
   console.log("Starting MCP smoke test...\n");
@@ -19,7 +24,7 @@ async function main() {
     env: { ...process.env, HARNESS_HOME: TEST_HOME } as Record<string, string>,
   });
 
-  const client = new Client({ name: "smoke-test", version: "1.3.2" });
+  const client = new Client({ name: "smoke-test", version: packageJson.version });
 
   try {
     await client.connect(transport);
@@ -59,6 +64,8 @@ async function main() {
       "repo_summary_read",
       "subagent_invoke",
       "skill_suggest",
+      "code_search_grep",
+      "code_search_symbols",
     ];
 
     for (const name of expected) {

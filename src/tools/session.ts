@@ -9,6 +9,7 @@ import { handoffRead, handoffWrite, progressLog, type HandoffData } from "./stat
 import { taskList } from "./task.js";
 import { skillList } from "./skill.js";
 import { getTier1Skills, type SkillWithMetadata } from "../lib/skill-matcher.js";
+import { checkStopValidation } from "../lib/hooks.js";
 
 export interface SessionStartResult {
   session_id: string;
@@ -22,13 +23,15 @@ export interface SessionEndResult {
   session_id: string;
   status: string;
   duration_seconds: number;
+  error?: string;
 }
 
 export interface SessionHandoffResult {
   session_id: string;
-  handoff_path: string;
-  progress_logged: boolean;
-  duration_seconds: number;
+  handoff_path?: string;
+  progress_logged?: boolean;
+  duration_seconds?: number;
+  error?: string;
 }
 
 export function sessionStart(repoPath: string): SessionStartResult {
@@ -99,11 +102,22 @@ export function sessionEnd(sessionId: string): SessionEndResult {
   const now = new Date().toISOString();
 
   const session = db
-    .prepare(`SELECT started_at FROM sessions WHERE id = ?`)
-    .get(sessionId) as { started_at: string } | undefined;
+    .prepare(`SELECT repo_path, started_at FROM sessions WHERE id = ?`)
+    .get(sessionId) as { repo_path: string; started_at: string } | undefined;
 
   if (!session) {
     throw new Error(`Session not found: ${sessionId}`);
+  }
+
+  // Hook validation check
+  const stopValidationCheck = checkStopValidation(session.repo_path);
+  if (!stopValidationCheck.passed) {
+    return {
+      session_id: sessionId,
+      status: "active",
+      duration_seconds: 0,
+      error: stopValidationCheck.error,
+    };
   }
 
   db.prepare(`UPDATE sessions SET status = 'closed', ended_at = ? WHERE id = ?`).run(
@@ -135,6 +149,15 @@ export function sessionHandoff(
 
   if (!session) {
     throw new Error(`Session not found: ${sessionId}`);
+  }
+
+  // Hook validation check
+  const stopValidationCheck = checkStopValidation(session.repo_path, verifyStatus);
+  if (!stopValidationCheck.passed) {
+    return {
+      session_id: sessionId,
+      error: stopValidationCheck.error,
+    };
   }
 
   const repoPath = session.repo_path;

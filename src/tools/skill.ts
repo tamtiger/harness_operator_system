@@ -150,9 +150,15 @@ export function skillList(
         continue;
       }
 
+      // New schema: metadata.version; fallback: top-level version
+      const version =
+        (metadataObj?.version as string) ||
+        (meta?.version as string) ||
+        null;
+
       skills.push({
         name: skillName,
-        version: (meta?.version as string) ?? null,
+        version: version,
         description: (meta?.description as string) ?? null,
         applies_to: appliesTo,
         metadata: metadataObj,

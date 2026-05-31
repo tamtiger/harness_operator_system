@@ -1,6 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { readFileSync } from "node:fs";
+import { join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { sessionStart, sessionEnd, sessionResume, sessionHandoff } from "./tools/session.js";
 import { taskCreate, taskUpdate, taskList } from "./tools/task.js";
@@ -20,12 +23,17 @@ import { scopeGet, scopeCheck } from "./tools/scope.js";
 import { auditLog, harnessStatus } from "./tools/observe.js";
 import { repoSummaryRead } from "./tools/repo_summary.js";
 import { subagentInvoke } from "./tools/subagent.js";
+import { codeSearchGrep, codeSearchSymbols } from "./tools/code_search.js";
 import { wrapTool } from "./lib/wrapper.js";
 import { log } from "./lib/logger.js";
 
+const thisFile = fileURLToPath(import.meta.url);
+const projectRoot = resolve(dirname(thisFile), "..");
+const packageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf-8"));
+
 const server = new McpServer({
   name: "harness-os",
-  version: "1.3.2",
+  version: packageJson.version,
 });
 
 /**
@@ -588,6 +596,41 @@ server.registerTool(
   makeHandler(
     "repo_summary_read",
     ({ repo_path }: { repo_path: string }) => repoSummaryRead({ repo_path })
+  )
+);
+
+// === Code Search tools ===
+
+server.registerTool(
+  "code_search_grep",
+  {
+    description: "Search for text or regex patterns in codebase source files. Limits result size to 8KB.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+      query: z.string().describe("Text or regex to search for"),
+      is_regex: z.boolean().optional().describe("If true, treats query as regex (default: false)"),
+    },
+  },
+  makeHandler(
+    "code_search_grep",
+    ({ repo_path, query, is_regex }: { repo_path: string; query: string; is_regex?: boolean }) =>
+      codeSearchGrep(repo_path, query, is_regex)
+  )
+);
+
+server.registerTool(
+  "code_search_symbols",
+  {
+    description: "Find definitions of classes, methods, or functions matching a name pattern. Limits result size to 8KB.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+      query: z.string().describe("Symbol name to search for"),
+    },
+  },
+  makeHandler(
+    "code_search_symbols",
+    ({ repo_path, query }: { repo_path: string; query: string }) =>
+      codeSearchSymbols(repo_path, query)
   )
 );
 
