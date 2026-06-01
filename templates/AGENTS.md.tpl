@@ -98,6 +98,10 @@ Run `verify_run(".")` to execute the full verification pipeline (install → bui
 | End session | `session_handoff(session_id, summary, unfinished, next_steps)` |
 | Load skill | `skill_load("skill-name")` |
 | Read repo summary | `repo_summary_read(".")` |
+| Invoke subagent | `subagent_invoke({ role, prompt, context_files, commands })` |
+| Search codebase | `code_search_grep({ query })` |
+| Find codebase symbols | `code_search_symbols({ query })` |
+| Record instinct outcomes | `instinct_record_outcomes({ session_id, outcome })` |
 
 ### Non-Negotiable Rules
 
@@ -135,6 +139,19 @@ session_start → read instructions → select task → execute → verify → h
 
 1. Run `verify_run(".")` — all steps must pass
 2. Call `session_handoff(...)` with summary, unfinished items, and next steps
+
+## CLI Commands
+
+You can run these commands from the terminal to manage the harness session and check status:
+
+- `harness status` — View the active session, pending tasks, and recent instincts.
+- `harness verify` — Manually run the verification pipeline configured in `.harness/verify.yaml`.
+- `harness tasks` — List all logged tasks and their current statuses.
+- `harness instincts` — List all instincts learned by the system.
+- `harness report` — Generate the system reliability and latency report.
+- `harness workers` — List, monitor, or terminate active subagent worker processes.
+- `harness hooks` — Inspect or validate your hook configurations.
+- `harness doctor` — Verify that harness-os dependencies and environment are working correctly.
 
 ---
 
