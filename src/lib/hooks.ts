@@ -201,3 +201,118 @@ export function checkStopValidation(
 
   return { passed: true };
 }
+
+/**
+ * Validate hooks config file syntax and regex validity.
+ */
+export function validateHooksConfig(repoPath: string): { valid: boolean; errors: string[] } {
+  const configFile = join(resolve(repoPath), ".harness", "hooks.yaml");
+  if (!existsSync(configFile)) {
+    return { valid: false, errors: ["hooks.yaml does not exist in .harness/"] };
+  }
+
+  const errors: string[] = [];
+  try {
+    const content = readFileSync(configFile, "utf-8");
+    const config = parseHooksYaml(content);
+
+    if (config.pre_tool_block) {
+      config.pre_tool_block.forEach((rule, idx) => {
+        if (!rule.tool) {
+          errors.push(`Rule #${idx + 1} under pre_tool_block: missing 'tool' field.`);
+        }
+        if (rule.pattern) {
+          try {
+            new RegExp(rule.pattern);
+          } catch (err: any) {
+            errors.push(`Rule #${idx + 1} under pre_tool_block: invalid pattern regex '${rule.pattern}': ${err.message}`);
+          }
+        }
+      });
+    }
+  } catch (err: any) {
+    errors.push(`Failed to parse hooks.yaml: ${err.message}`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+export interface HookDryRunResult {
+  allowed: boolean;
+  preToolBlock: {
+    matched: boolean;
+    rule?: HookBlockRule;
+    reason?: string;
+  };
+  stopValidation?: {
+    wouldBlock: boolean;
+    reason?: string;
+  };
+}
+
+/**
+ * Perform dry-run evaluation of hooks for a given tool call.
+ */
+export function dryRunHooks(
+  repoPath: string,
+  toolName: string,
+  args: Record<string, unknown>
+): HookDryRunResult {
+  const result: HookDryRunResult = {
+    allowed: true,
+    preToolBlock: { matched: false },
+  };
+
+  const config = loadHooksConfig(repoPath);
+  if (!config) return result;
+
+  // Evaluate pre-tool block
+  if (config.pre_tool_block) {
+    const argsStr = JSON.stringify(args);
+    for (const rule of config.pre_tool_block) {
+      if (rule.tool === toolName || rule.tool === "*") {
+        if (rule.pattern) {
+          const regex = new RegExp(rule.pattern, "i");
+          if (regex.test(argsStr)) {
+            result.allowed = false;
+            result.preToolBlock = {
+              matched: true,
+              rule,
+              reason: rule.message || `Blocked by pattern '${rule.pattern}'`,
+            };
+            break;
+          }
+        } else {
+          result.allowed = false;
+          result.preToolBlock = {
+            matched: true,
+            rule,
+            reason: rule.message || "Blocked always",
+          };
+          break;
+        }
+      }
+    }
+  }
+
+  // Evaluate stop validation if the tool is session_end or session_handoff
+  if (toolName === "session_end" || toolName === "session_handoff") {
+    const stopVal = checkStopValidation(repoPath);
+    if (!stopVal.passed) {
+      result.allowed = false;
+      result.stopValidation = {
+        wouldBlock: true,
+        reason: stopVal.error,
+      };
+    } else {
+      result.stopValidation = {
+        wouldBlock: false,
+      };
+    }
+  }
+
+  return result;
+}

@@ -1,43 +1,57 @@
 import { createHash } from "node:crypto";
 
+const WINDOW_MS = 60_000;
+const WARN_THRESHOLD = 5;
+const BLOCK_THRESHOLD = 10;
+
 interface CallRecord {
   count: number;
   firstCall: number;
 }
 
-const WINDOW_MS = 60_000; // 60 seconds
-const MAX_CALLS = 5;
+export type LoopCheckResult =
+  | { status: 'ok' }
+  | { status: 'warn'; count: number }
+  | { status: 'blocked'; count: number };
 
+// Key: `${session_id}:${tool_name}:${args_hash}`
 const callMap = new Map<string, CallRecord>();
 
 /**
  * Check if a tool call is potentially looping.
- * Returns a warning string if loop detected, null otherwise.
+ * Returns warning or block status based on call count within time window.
+ * 
+ * Scoped by session_id to avoid false positives across parallel sessions.
  */
-export function checkLoop(toolName: string, args: unknown): string | null {
-  const key = toolName + ":" + hashArgs(args);
+export function checkLoop(sessionId: string, toolName: string, args: unknown): LoopCheckResult {
+  const argsHash = hashArgs(args);
+  const key = `${sessionId}:${toolName}:${argsHash}`;
   const now = Date.now();
 
   const record = callMap.get(key);
 
   if (!record) {
     callMap.set(key, { count: 1, firstCall: now });
-    return null;
+    return { status: 'ok' };
   }
 
   // Reset if window expired
   if (now - record.firstCall > WINDOW_MS) {
     callMap.set(key, { count: 1, firstCall: now });
-    return null;
+    return { status: 'ok' };
   }
 
   record.count++;
 
-  if (record.count > MAX_CALLS) {
-    return `potential loop detected: ${toolName} called ${record.count} times in ${Math.round((now - record.firstCall) / 1000)}s with same args`;
+  if (record.count >= BLOCK_THRESHOLD) {
+    return { status: 'blocked', count: record.count };
   }
 
-  return null;
+  if (record.count > WARN_THRESHOLD) {
+    return { status: 'warn', count: record.count };
+  }
+
+  return { status: 'ok' };
 }
 
 /**

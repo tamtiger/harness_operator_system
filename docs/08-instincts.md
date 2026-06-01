@@ -20,13 +20,27 @@ Experience → Capture (instinct_add) → Validate (confidence grows) → Evolve
 
 ## Confidence Scoring
 
+Độ tin cậy (confidence) của instinct được tính toán kết hợp giữa giá trị ban đầu và phân phối xác suất Bayes (Bayesian confidence) dựa trên kết quả thực tế thu nhận qua tool `instinct_record_outcomes` hoặc các reference trong session.
+
 | Sự kiện | Thay đổi confidence |
 |---------|---------------------|
 | Mới tạo | 0.5 (default) |
-| Được reference và thành công | +0.1 (max 1.0) |
+| Ghi nhận kết quả (Bayesian) | Công thức Bayes kết hợp: `70% Bayesian + 30% Existing` |
 | Không được reference sau N sessions | -0.05 (decay) |
 | Dưới 0.2 sau 30 ngày | Candidate cho pruning |
-| Được promote | Set to 0.9, xóa TTL |
+| Được promote | Đặt tối thiểu là 0.7, xóa TTL |
+
+**Công thức Bayesian Confidence:**
+```
+Bayesian Confidence = (success_count + 1) / (success_count + failure_count + 2)
+Blended Confidence = 0.7 * Bayesian Confidence + 0.3 * Existing Confidence
+```
+
+---
+
+## Ghi nhận Kết quả (Outcomes)
+
+Khi kết thúc session, kết quả thực tế của session (`success` hoặc `failure`) được ghi nhận thông qua tool `instinct_record_outcomes` hoặc tự động cập nhật thống kê (`success_count`/`failure_count`) của các instincts đã tham chiếu, từ đó tính lại độ tin cậy.
 
 ---
 

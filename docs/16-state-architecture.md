@@ -81,10 +81,12 @@ Location: `~/.harness/harness.sqlite` (override with `HARNESS_HOME` env var)
 ### Tables
 
 ```sql
-sessions    (id, repo_path, status, started_at, ended_at)
-tasks       (id, session_id, title, scope, status, created_at)
-instincts   (id, description, tags, confidence, ttl_days, created_at)
-audit_events (id, event_type, payload, created_at)
+sessions              (id, repo_path, status, started_at, ended_at)
+tasks                 (id, session_id, title, scope, status, created_at)
+instincts             (id, description, tags, confidence, ttl_days, created_at, success_count, failure_count, reference_count, last_outcome, last_referenced_at)
+session_instinct_refs (session_id, instinct_id, outcome, referenced_at)
+workers               (worker_id, pid, status, started_at, timeout_at, ended_at, command, repo_path, session_id)
+audit_events          (id, event_type, payload, created_at)
 ```
 
 ### Settings

@@ -3,6 +3,40 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.4.0] — 2026-06-01
+
+### Added
+- **Reliability Layer — Phase 9.0-9.9 of v1.4 Plan**
+  - **`src/lib/tool-context.ts`** — New context resolution module for session_id, repo_id, repo_path extraction.
+  - **`src/lib/circuit-breaker.ts`** — Repo-scoped circuit breaker (3-failure threshold, 5-minute cooldown).
+  - **`src/lib/worker-registry.ts`** — Worker process SQLite tracking, signaling, and cleanup.
+  - **`src/lib/analytics.ts`** — P50/P95 latency, tool usage statistics, skill effectiveness, and System Reliability Score reporting.
+  - **`instinct_record_outcomes` MCP tool** — Outcome tracking for Bayesian confidence calculations.
+  - **`session_instinct_refs` & `workers` SQLite tables** — Schema migrations for worker tracking and Bayesian outcome data.
+
+### Changed
+- **`src/lib/wrapper.ts`** — Duration tracking (`duration_ms`), context tracking, loop guard, circuit breaker, and hooks integration.
+- **`src/lib/loop-guard.ts`** — Two-tier protection (warn at 5, block at 10) with session scope.
+- **`src/tools/session.ts`** — Orphan session auto-recovery and expired running subagent worker cleanup.
+- **`src/tools/code_search.ts`** — Scope-aware codebase search skipping forbidden paths entirely.
+- **`src/tools/subagent.ts` & `src/subagent-worker.ts`** — SQLite lifecycle registration, status updates, and cleanup interface.
+- **`src/cli/harness.ts`** — New commands: `harness workers`, `harness hooks`, `harness report`. Enhanced `harness doctor` with active session tracking and `--fix`.
+- **`src/tools/instinct.ts`** — Bayesian confidence calculations: `(success + 1) / (success + failure + 2)`.
+
+### Tests
+- Added `src/lib/circuit-breaker.test.ts` (8 tests)
+- Added `src/lib/tool-context.test.ts` (8 tests)
+- Added `src/tools/session.test.ts` (2 tests)
+- Added `src/lib/worker-registry.test.ts` (3 tests)
+- Added `src/lib/analytics.test.ts` (1 test)
+- Updated `src/lib/loop-guard.test.ts` (7 tests)
+- Updated `src/cli/orchestrator.test.ts` (2 async tests)
+- Updated `src/tools/code_search.test.ts` (3 tests)
+- Updated `src/lib/hooks.test.ts` (5 tests)
+- Total: 189 tests passing
+
+---
+
 ## [1.3.3] — 2026-05-31
 
 ### Added

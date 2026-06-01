@@ -1,4 +1,4 @@
-# 30 MCP Tools Reference
+# 31 MCP Tools Reference
 
 [← Mục lục](../README.md) | [← Workflow](./04-workflow.md) | [CLI Reference →](./06-cli-reference.md)
 
@@ -14,11 +14,11 @@
 | [Scope & Verification](#scope--verification) | `scope_get`, `scope_check`, `verify_run` | 3 |
 | [Codebase Search](#codebase-search) | `code_search_grep`, `code_search_symbols` | 2 |
 | [Skills](#skills) | `skill_load`, `skill_list`, `skill_create_from_session`, `skill_suggest` | 4 |
-| [Instincts](#instincts) | `instinct_add`, `instinct_get`, `instinct_prune`, `instinct_evolve`, `instinct_promote` | 5 |
+| [Instincts](#instincts) | `instinct_add`, `instinct_get`, `instinct_record_outcomes`, `instinct_prune`, `instinct_evolve`, `instinct_promote` | 6 |
 | [Repo Intelligence](#repo-intelligence) | `repo_summary_read` | 1 |
 | [Observability](#observability) | `audit_log`, `harness_status` | 2 |
 | [Subagents](#subagents) | `subagent_invoke` | 1 |
-| **Tổng** | | **30** |
+| **Tổng** | | **31** |
 
 ---
 
@@ -443,6 +443,23 @@ Gợi ý các skills phù hợp dựa trên tiêu đề task, scope, stack và r
 
 // Response (not enough)
 { "error": "Need at least 5 instincts with tag 'testing', found 3" }
+```
+
+### `instinct_record_outcomes`
+
+Ghi nhận kết quả thực tế (success/failure) cho các instincts đã được tham chiếu trong session nhằm cập nhật độ tin cậy theo phân phối Bayes (Bayesian confidence).
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `session_id` | string | ✅ | ID của session chứa các reference cần ghi nhận |
+| `outcome` | enum | ✅ | Kết quả của session: `"success"` \| `"failure"` |
+| `instinct_ids` | string[] | ❌ | Danh sách các instinct IDs cụ thể cần ghi nhận (nếu bỏ trống, cập nhật toàn bộ reference chưa có kết quả trong session) |
+
+```json
+// Response
+{
+  "recorded": true
+}
 ```
 
 ### `instinct_promote`

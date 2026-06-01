@@ -9,7 +9,7 @@ import { sessionStart, sessionEnd, sessionResume, sessionHandoff } from "./tools
 import { taskCreate, taskUpdate, taskList } from "./tools/task.js";
 import { verifyRun } from "./tools/verify.js";
 import { skillLoad, skillList, skillCreateFromSession, skillSuggest } from "./tools/skill.js";
-import { instinctAdd, instinctGet, instinctPrune, instinctEvolve, instinctPromote } from "./tools/instinct.js";
+import { instinctAdd, instinctGet, instinctPrune, instinctEvolve, instinctPromote, recordInstinctOutcomes } from "./tools/instinct.js";
 import { getDb } from "./db/client.js";
 import { detectRuntime } from "./lib/runtime.js";
 import {
@@ -391,12 +391,32 @@ server.registerTool(
     inputSchema: {
     tags: z.array(z.string()).optional().describe("Filter by tags (any match)"),
     min_confidence: z.number().optional().describe("Minimum confidence threshold"),
+    session_id: z.string().optional().describe("Session ID for tracking references (auto-resolved if not provided)"),
   },
   },
   makeHandler(
     "instinct_get",
-    ({ tags, min_confidence }: { tags?: string[]; min_confidence?: number }) =>
-      instinctGet(tags, min_confidence)
+    ({ tags, min_confidence, session_id }: { tags?: string[]; min_confidence?: number; session_id?: string }) =>
+      instinctGet(tags, min_confidence, session_id)
+  )
+);
+
+server.registerTool(
+  "instinct_record_outcomes",
+  {
+    description: "Record outcomes for instincts referenced in a session (success/failure).",
+    inputSchema: {
+      session_id: z.string().describe("Session ID"),
+      outcome: z.enum(["success", "failure"]).describe("Outcome of the session"),
+      instinct_ids: z.array(z.string()).optional().describe("Specific instinct IDs to update (all session refs if omitted)"),
+    },
+  },
+  makeHandler(
+    "instinct_record_outcomes",
+    ({ session_id, outcome, instinct_ids }: { session_id: string; outcome: 'success' | 'failure'; instinct_ids?: string[] }) => {
+      recordInstinctOutcomes(session_id, outcome, instinct_ids);
+      return { recorded: true };
+    }
   )
 );
 

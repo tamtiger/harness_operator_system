@@ -22,8 +22,8 @@ describe("Ralph Loop Orchestrator", () => {
     vi.clearAllMocks();
   });
 
-  it("completes successfully on first iteration if verify passes", () => {
-    vi.mocked(verifyTool.verifyRun).mockReturnValue({
+  it("completes successfully on first iteration if verify passes", async () => {
+    vi.mocked(verifyTool.verifyRun).mockResolvedValue({
       passed: true,
       output: "Verify passed",
       steps_run: ["build", "test"],
@@ -33,7 +33,7 @@ describe("Ralph Loop Orchestrator", () => {
       ]
     });
 
-    const result = runOrchestrate("Build main binary", {
+    const result = await runOrchestrate("Build main binary", {
       repoPath: ".",
       maxLoops: 3,
       steps: ["build", "test"]
@@ -44,8 +44,8 @@ describe("Ralph Loop Orchestrator", () => {
     expect(fs.writeFileSync).toHaveBeenCalled();
   });
 
-  it("retries up to maxLoops and fails if verify always fails", () => {
-    vi.mocked(verifyTool.verifyRun).mockReturnValue({
+  it("retries up to maxLoops and fails if verify always fails", async () => {
+    vi.mocked(verifyTool.verifyRun).mockResolvedValue({
       passed: false,
       output: "Verify failed",
       steps_run: ["build"],
@@ -54,7 +54,7 @@ describe("Ralph Loop Orchestrator", () => {
       ]
     });
 
-    const result = runOrchestrate("Broken build task", {
+    const result = await runOrchestrate("Broken build task", {
       repoPath: ".",
       maxLoops: 3,
       steps: ["build"]

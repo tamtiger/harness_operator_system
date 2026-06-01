@@ -26,6 +26,9 @@ harness <command> [options]
 | `reindex` | Force reindex repo |
 | `export` | Export harness state |
 | `import` | Import harness state |
+| `workers` | Quản lý subagent workers chạy nền |
+| `hooks` | Kiểm tra và dry-run hook rules |
+| `report` | Sinh báo cáo reliability của hệ thống |
 
 ---
 
@@ -336,7 +339,7 @@ harness import ~/backups/harness-export-1234567890.json
 Khởi chạy quy trình điều phối tự động **Vòng lặp Ralph (Ralph Loop)** cho một nhiệm vụ cụ thể.
 
 ```bash
-harness orchestrate <title> [--repo path] [--max-loops n] [--steps step1,step2]
+harness orchestrate <title> [--repo path] [--max-loops n] [--steps step1,step2] [--timeout-per-loop 300] [--fail-fast-on "ENOSPC,EACCES,Cannot find module"]
 ```
 
 | Flag | Mô tả |
@@ -345,10 +348,84 @@ harness orchestrate <title> [--repo path] [--max-loops n] [--steps step1,step2]
 | `--repo` | Đường dẫn tới repository làm việc (default: `.`) |
 | `--max-loops` | Số vòng lặp chạy thử và tự sửa lỗi tối đa (default: 3) |
 | `--steps` | Chỉ định các bước verify cụ thể thay vì chạy toàn bộ pipeline |
+| `--timeout-per-loop` | Thời gian chạy tối đa cho mỗi vòng (default: 300s) |
+| `--fail-fast-on` | Mẫu regex lỗi hạ tầng kích hoạt dừng khẩn cấp |
 
 **Ví dụ:**
 
 ```bash
 harness orchestrate "Sửa lỗi crash khi load trang chủ" --max-loops 5
-harness orchestrate "Thêm API thanh toán" --steps build,test
+harness orchestrate "Thêm API thanh toán" --steps build,test --timeout-per-loop 120
+```
+
+---
+
+## `harness workers`
+
+Quản lý tiến trình worker chạy nền của subagent.
+
+```bash
+harness workers [--list] [--kill <id>] [--cleanup] [--repo path] [--status running|finished|failed|all]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--list` | Liệt kê các workers (mặc định hiển thị workers đang chạy) |
+| `--kill` | Dừng (kill) worker với ID cụ thể |
+| `--cleanup` | Dừng và dọn dẹp các workers đã hết hạn (timeout) |
+| `--status` | Trạng thái lọc: `running`, `finished`, `failed`, `all` |
+
+**Ví dụ:**
+
+```bash
+harness workers --list
+harness workers --kill a1b2c3d4-e5f6...
+harness workers --cleanup
+```
+
+---
+
+## `harness hooks`
+
+Quản lý và kiểm tra hệ thống hooks điều khiển.
+
+```bash
+harness hooks [--list] [--validate] [--dry-run --tool <tool> [--args <json>]] [--repo path]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--list` | Xem danh sách pre-tool block và stop-validation rules hiện tại |
+| `--validate` | Kiểm tra cú pháp và độ hợp lệ của file `hooks.yaml` |
+| `--dry-run` | Chạy thử nghiệm một tool call xem có bị block bởi hook nào không |
+
+**Ví dụ:**
+
+```bash
+harness hooks --list
+harness hooks --validate
+harness hooks --dry-run --tool verify_run --args '{"repo_path": "."}'
+```
+
+---
+
+## `harness report`
+
+Tạo báo cáo độ tin cậy và hiệu năng hoạt động của hệ thống (Reliability Report).
+
+```bash
+harness report [--period 7d|30d|all] [--repo path] [--format json|table]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--period` | Thời kỳ thống kê (default: `7d`) |
+| `--repo` | Chỉ lọc báo cáo theo một repository cụ thể |
+| `--format` | Định dạng hiển thị: `table` (mặc định) hoặc `json` |
+
+**Ví dụ:**
+
+```bash
+harness report
+harness report --period 30d --format json
 ```

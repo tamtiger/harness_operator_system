@@ -2,8 +2,11 @@ import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, execSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { log } from "../lib/logger.js";
 import { scopeCheck } from "./scope.js";
+import { resolveToolContext } from "../lib/tool-context.js";
+import { registerWorker, updateWorkerPid, finishWorker } from "../lib/worker-registry.js";
 
 export interface SubagentInvokeResult {
   status: "success" | "failure" | "spawned";
@@ -57,7 +60,11 @@ export function subagentInvoke(
     const runFilePath = join(runDir, `${baseName}.json`).replace(/\\/g, "/");
     const resultFilePath = join(runDir, `${baseName}_result.json`).replace(/\\/g, "/");
 
+    const ctx = resolveToolContext({ repo_path: repoPath });
+    const workerId = randomUUID();
+
     const runData = {
+      worker_id: workerId,
       timestamp: new Date().toISOString(),
       role,
       prompt,
@@ -69,6 +76,16 @@ export function subagentInvoke(
 
     writeFileSync(runFilePath, JSON.stringify(runData, null, 2), "utf-8");
     log("info", `Subagent run logged to ${runFilePath}`, { role, context_files, commands });
+
+    // Register worker in SQLite
+    registerWorker({
+      worker_id: workerId,
+      pid: null,
+      command: commands.join(" && "),
+      repo_path: resolvedRepoPath,
+      session_id: ctx.session_id,
+      timeout_seconds,
+    });
 
     // Determine the path to subagent-worker
     const thisFile = fileURLToPath(import.meta.url);
@@ -89,6 +106,7 @@ export function subagentInvoke(
 
       try {
         const resultData = JSON.parse(readFileSync(resultFilePath, "utf-8"));
+        finishWorker(workerId, resultData.status === "success" ? "finished" : "failed");
         return {
           status: resultData.status,
           run_file: runFilePath,
@@ -96,6 +114,7 @@ export function subagentInvoke(
           result: resultData,
         };
       } catch (err: any) {
+        finishWorker(workerId, "failed");
         return {
           status: "failure",
           error: `Worker finished but failed to read result: ${err.message}`,
@@ -113,6 +132,10 @@ export function subagentInvoke(
         stdio: "ignore",
         shell: true,
       });
+
+      if (child.pid) {
+        updateWorkerPid(workerId, child.pid);
+      }
 
       child.unref();
 

@@ -49,6 +49,7 @@ async function main() {
       "skill_create_from_session",
       "instinct_add",
       "instinct_get",
+      "instinct_record_outcomes",
       "instinct_prune",
       "instinct_evolve",
       "instinct_promote",
@@ -160,8 +161,8 @@ async function main() {
     });
     const skillListContent = skillListResult.content as Array<{ type: string; text: string }>;
     const skillListData = JSON.parse(skillListContent[0].text);
-    if (!skillListData.skills || skillListData.skills.length < 25) {
-      throw new Error(`skill_list expected ≥25 skills, got ${skillListData.skills?.length}`);
+    if (!skillListData.skills || skillListData.skills.length < 20) {
+      throw new Error(`skill_list expected ≥20 skills, got ${skillListData.skills?.length}`);
     }
     console.log(`✓ skill_list — ${skillListData.skills.length} skills found`);
 

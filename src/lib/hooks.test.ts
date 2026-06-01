@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { parseHooksYaml, checkPreToolHooks, checkStopValidation } from "./hooks.js";
+import { parseHooksYaml, checkPreToolHooks, checkStopValidation, validateHooksConfig, dryRunHooks } from "./hooks.js";
 import * as fs from "node:fs";
 
 vi.mock("node:fs", async () => {
@@ -79,5 +79,37 @@ stop_validation:
       steps_run: ["build", "test"],
     });
     expect(goodCheck.passed).toBe(true);
+  });
+
+  it("validates hooks configuration correctly", () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(`
+pre_tool_block:
+  - tool:
+    pattern: "*invalid(regex"
+`);
+
+    const result = validateHooksConfig(".");
+    expect(result.valid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("evaluates hooks dry run correctly", () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue(`
+pre_tool_block:
+  - tool: subagent_invoke
+    pattern: "rm\\s+-rf"
+    message: "Destroying commands are forbidden"
+`);
+
+    const resultBlock = dryRunHooks(".", "subagent_invoke", { commands: ["rm -rf dist"] });
+    expect(resultBlock.allowed).toBe(false);
+    expect(resultBlock.preToolBlock.matched).toBe(true);
+    expect(resultBlock.preToolBlock.reason).toBe("Destroying commands are forbidden");
+
+    const resultAllow = dryRunHooks(".", "subagent_invoke", { commands: ["pnpm build"] });
+    expect(resultAllow.allowed).toBe(true);
+    expect(resultAllow.preToolBlock.matched).toBe(false);
   });
 });

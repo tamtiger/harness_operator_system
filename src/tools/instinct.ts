@@ -8,6 +8,11 @@ export interface InstinctRecord {
   confidence: number;
   ttl_days: number | null;
   created_at: string;
+  success_count: number;
+  failure_count: number;
+  reference_count: number;
+  last_outcome: string | null;
+  last_referenced_at: string | null;
 }
 
 export interface InstinctAddResult {
@@ -41,7 +46,7 @@ export function instinctAdd(
   const now = new Date().toISOString();
 
   db.prepare(
-    `INSERT INTO instincts (id, description, tags, confidence, ttl_days, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO instincts (id, description, tags, confidence, ttl_days, created_at, success_count, failure_count, reference_count) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0)`
   ).run(id, description, JSON.stringify(tags), confidence ?? 0.5, ttlDays ?? null, now);
 
   return { id };
@@ -49,7 +54,8 @@ export function instinctAdd(
 
 export function instinctGet(
   tags?: string[],
-  minConfidence?: number
+  minConfidence?: number,
+  sessionId?: string
 ): InstinctGetResult {
   const db = getDb();
 
@@ -62,6 +68,11 @@ export function instinctGet(
     confidence: number;
     ttl_days: number | null;
     created_at: string;
+    success_count: number;
+    failure_count: number;
+    reference_count: number;
+    last_outcome: string | null;
+    last_referenced_at: string | null;
   }>;
 
   // Filter by tags
@@ -77,11 +88,33 @@ export function instinctGet(
     rows = rows.filter((row) => row.confidence >= minConfidence);
   }
 
-  // Bump confidence for referenced instincts (+0.1, max 1.0)
-  if (tags && tags.length > 0) {
+  // Track references and update Bayesian confidence
+  const now = new Date().toISOString();
+  if (sessionId && rows.length > 0) {
     for (const row of rows) {
-      const newConf = Math.min(1.0, row.confidence + 0.1);
-      db.prepare(`UPDATE instincts SET confidence = ? WHERE id = ?`).run(newConf, row.id);
+      // Record reference in session_instinct_refs
+      db.prepare(`
+        INSERT OR REPLACE INTO session_instinct_refs (session_id, instinct_id, referenced_at)
+        VALUES (?, ?, ?)
+      `).run(sessionId, row.id, now);
+
+      // Update reference count and last_referenced_at
+      const newRefCount = row.reference_count + 1;
+      db.prepare(`
+        UPDATE instincts 
+        SET reference_count = ?, last_referenced_at = ?
+        WHERE id = ?
+      `).run(newRefCount, now, row.id);
+
+      // Calculate Bayesian confidence: (success_count + 1) / (success_count + failure_count + 2)
+      const totalOutcomes = row.success_count + row.failure_count;
+      if (totalOutcomes > 0) {
+        const bayesianConfidence = (row.success_count + 1) / (totalOutcomes + 2);
+        // Blend with existing confidence: 70% Bayesian, 30% existing
+        const blendedConfidence = 0.7 * bayesianConfidence + 0.3 * row.confidence;
+        db.prepare(`UPDATE instincts SET confidence = ? WHERE id = ?`).run(blendedConfidence, row.id);
+        row.confidence = blendedConfidence;
+      }
     }
   }
 
@@ -94,11 +127,89 @@ export function instinctGet(
   }
 
   const instincts: InstinctRecord[] = rows.map((row) => ({
-    ...row,
+    id: row.id,
+    description: row.description,
     tags: JSON.parse(row.tags) as string[],
+    confidence: row.confidence,
+    ttl_days: row.ttl_days,
+    created_at: row.created_at,
+    success_count: row.success_count,
+    failure_count: row.failure_count,
+    reference_count: row.reference_count,
+    last_outcome: row.last_outcome,
+    last_referenced_at: row.last_referenced_at,
   }));
 
   return { instincts, available_tags: Array.from(tagSet).sort() };
+}
+
+/**
+ * Record outcome for instincts referenced in a session
+ */
+export function recordInstinctOutcomes(
+  sessionId: string,
+  outcome: 'success' | 'failure',
+  instinctIds?: string[]
+): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  // If specific instinct IDs provided, update only those
+  if (instinctIds && instinctIds.length > 0) {
+    for (const instinctId of instinctIds) {
+      // Update session_instinct_refs
+      db.prepare(`
+        UPDATE session_instinct_refs 
+        SET outcome = ?
+        WHERE session_id = ? AND instinct_id = ?
+      `).run(outcome, sessionId, instinctId);
+
+      // Update instinct statistics
+      if (outcome === 'success') {
+        db.prepare(`
+          UPDATE instincts 
+          SET success_count = success_count + 1, last_outcome = ?, last_referenced_at = ?
+          WHERE id = ?
+        `).run(outcome, now, instinctId);
+      } else {
+        db.prepare(`
+          UPDATE instincts 
+          SET failure_count = failure_count + 1, last_outcome = ?, last_referenced_at = ?
+          WHERE id = ?
+        `).run(outcome, now, instinctId);
+      }
+    }
+  } else {
+    // Update all instincts referenced in this session
+    const refs = db.prepare(`
+      SELECT instinct_id FROM session_instinct_refs 
+      WHERE session_id = ? AND outcome IS NULL
+    `).all(sessionId) as Array<{ instinct_id: string }>;
+
+    for (const ref of refs) {
+      // Update session_instinct_refs
+      db.prepare(`
+        UPDATE session_instinct_refs 
+        SET outcome = ?
+        WHERE session_id = ? AND instinct_id = ?
+      `).run(outcome, sessionId, ref.instinct_id);
+
+      // Update instinct statistics
+      if (outcome === 'success') {
+        db.prepare(`
+          UPDATE instincts 
+          SET success_count = success_count + 1, last_outcome = ?, last_referenced_at = ?
+          WHERE id = ?
+        `).run(outcome, now, ref.instinct_id);
+      } else {
+        db.prepare(`
+          UPDATE instincts 
+          SET failure_count = failure_count + 1, last_outcome = ?, last_referenced_at = ?
+          WHERE id = ?
+        `).run(outcome, now, ref.instinct_id);
+      }
+    }
+  }
 }
 
 export function instinctPrune(

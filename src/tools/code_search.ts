@@ -1,6 +1,8 @@
 import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { log } from "../lib/logger.js";
+import { scopeGet } from "./scope.js";
+import picomatch from "picomatch";
 
 const MAX_OUTPUT = 8192; // 8KB max output size limit
 const IGNORED_DIRS = [
@@ -33,17 +35,25 @@ interface SymbolMatch {
   content: string;
 }
 
-function traverseDirectory(dir: string, baseDir: string, onFile: (filePath: string) => void) {
+function traverseDirectory(
+  dir: string,
+  baseDir: string,
+  onFile: (filePath: string) => void,
+  isExcluded: (relPath: string) => boolean
+) {
   try {
     const files = readdirSync(dir);
     for (const file of files) {
       if (IGNORED_DIRS.includes(file)) continue;
 
       const fullPath = join(dir, file);
+      const relativePath = relative(baseDir, fullPath).replace(/\\/g, "/");
+      if (isExcluded(relativePath)) continue;
+
       const stat = statSync(fullPath);
 
       if (stat.isDirectory()) {
-        traverseDirectory(fullPath, baseDir, onFile);
+        traverseDirectory(fullPath, baseDir, onFile, isExcluded);
       } else {
         const ext = file.substring(file.lastIndexOf(".")).toLowerCase();
         if (SEARCHABLE_EXTENSIONS.includes(ext)) {
@@ -60,11 +70,17 @@ export function codeSearchGrep(
   repoPath: string,
   query: string,
   isRegex: boolean = false
-): { matches: GrepMatch[]; truncated: boolean } {
+): { matches: GrepMatch[]; truncated: boolean; scope_applied: boolean } {
   const resolvedRepo = resolve(repoPath);
   const matches: GrepMatch[] = [];
   let sizeAcc = 0;
   let truncated = false;
+
+  const scope = scopeGet(resolvedRepo);
+  const forbiddenPatterns = scope?.forbidden_paths || [];
+  const isExcluded = forbiddenPatterns.length > 0
+    ? picomatch(forbiddenPatterns)
+    : () => false;
 
   const regex = isRegex ? new RegExp(query, "i") : null;
 
@@ -100,19 +116,25 @@ export function codeSearchGrep(
     } catch (err: any) {
       log("warn", `Failed to read file for grep ${filePath}: ${err.message}`);
     }
-  });
+  }, isExcluded);
 
-  return { matches, truncated };
+  return { matches, truncated, scope_applied: forbiddenPatterns.length > 0 };
 }
 
 export function codeSearchSymbols(
   repoPath: string,
   query: string
-): { matches: SymbolMatch[]; truncated: boolean } {
+): { matches: SymbolMatch[]; truncated: boolean; scope_applied: boolean } {
   const resolvedRepo = resolve(repoPath);
   const matches: SymbolMatch[] = [];
   let sizeAcc = 0;
   let truncated = false;
+
+  const scope = scopeGet(resolvedRepo);
+  const forbiddenPatterns = scope?.forbidden_paths || [];
+  const isExcluded = forbiddenPatterns.length > 0
+    ? picomatch(forbiddenPatterns)
+    : () => false;
 
   // Regex patterns to detect symbols in TS/JS, C#, PHP, Python, Go etc.
   const symbolRegexes = [
@@ -167,7 +189,7 @@ export function codeSearchSymbols(
     } catch (err: any) {
       log("warn", `Failed to read file for symbol search ${filePath}: ${err.message}`);
     }
-  });
+  }, isExcluded);
 
-  return { matches, truncated };
+  return { matches, truncated, scope_applied: forbiddenPatterns.length > 0 };
 }

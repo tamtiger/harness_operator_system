@@ -12,9 +12,9 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.3.3
-- **Tools:** 30 MCP tools across 11 modules
-- **Tests:** 162 unit tests (vitest) + smoke test
+- **Version:** 1.4.0
+- **Tools:** 31 MCP tools across 11 modules
+- **Tests:** 189 unit tests (vitest) + smoke test
 - **Skills:** 30 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, codebase search, and observability.
@@ -31,10 +31,10 @@ pnpm install
 # Build (TypeScript → dist/)
 pnpm run build
 
-# Run unit tests (162 tests)
+# Run unit tests (189 tests)
 pnpm test
 
-# Run smoke test (boots MCP server, calls all 30 tools)
+# Run smoke test (boots MCP server, calls all 31 tools)
 pnpm run smoke
 
 # Dev mode (tsx, no build needed)
@@ -93,6 +93,10 @@ Each file exports pure functions grouped by domain. The MCP registration happens
 | `parsers/vitest.ts` | Parse Vitest JSON reporter output into structured result |
 | `parsers/generic.ts` | Generic test output parser (pass/fail pattern matching) |
 | `skill-matcher.ts` | Tokenizer, synonym expansion, and scoring for skill suggestion |
+| `circuit-breaker.ts` | Repo-scoped circuit breaker (3-failure threshold, 5-minute cooldown) |
+| `tool-context.ts` | Context resolution for session_id, repo_id, and repo_path |
+| `worker-registry.ts` | Manage subagent worker processes (register, update, kill, cleanup) |
+| `analytics.ts` | Reliability and performance reporting metrics |
 
 ### 3.4 Database Layer — `src/db/`
 
@@ -106,7 +110,9 @@ Schema tables (created via `runMigrations()` in `client.ts`):
 ```sql
 sessions (id TEXT PK, repo_path TEXT, status TEXT, started_at TEXT, ended_at TEXT)
 tasks (id TEXT PK, session_id TEXT FK, title TEXT, scope TEXT, status TEXT, created_at TEXT)
-instincts (id TEXT PK, description TEXT, tags TEXT, confidence REAL, ttl_days INTEGER, created_at TEXT)
+instincts (id TEXT PK, description TEXT, tags TEXT, confidence REAL, ttl_days INTEGER, created_at TEXT, success_count INTEGER, failure_count INTEGER, reference_count INTEGER, last_outcome TEXT, last_referenced_at TEXT)
+session_instinct_refs (session_id TEXT FK, instinct_id TEXT FK, outcome TEXT, referenced_at TEXT)
+workers (worker_id TEXT PK, pid INTEGER, status TEXT, started_at TEXT, timeout_at TEXT, ended_at TEXT, command TEXT, repo_path TEXT, session_id TEXT)
 audit_events (id INTEGER PK AUTOINCREMENT, event_type TEXT, payload TEXT, created_at TEXT)
 ```
 
@@ -129,6 +135,9 @@ Commands:
 - `harness instincts [--list] [--export]`
 - `harness install-mcp --ide <name>`
 - `harness orchestrate <title> [--repo path] [--max-loops n] [--steps build,test]`
+- `harness workers [--list] [--kill <id>] [--cleanup] [--repo path]`
+- `harness hooks [--list] [--validate] [--dry-run --tool <tool> [--args <json>]]`
+- `harness report [--period 7d|30d|all] [--repo path] [--format json|table]`
 
 The CLI dispatches via a `switch` statement on the first positional argument.
 
@@ -326,13 +335,21 @@ Frontmatter schema:
 - Run: `pnpm test` (alias for `vitest run`)
 - Test files: colocated with source as `*.test.ts`
 - Current test files:
-  - `src/lib/frontmatter.test.ts` (6 tests)
+  - `src/lib/frontmatter.test.ts` (33 tests)
   - `src/lib/repo.test.ts` (7 tests)
-  - `src/lib/runtime.test.ts` (6 tests)
-  - `src/lib/loop-guard.test.ts` (5 tests)
+  - `src/lib/runtime.test.ts` (7 tests)
+  - `src/lib/loop-guard.test.ts` (7 tests)
   - `src/lib/parsers/vitest.test.ts` (6 tests)
   - `src/lib/git-diff.test.ts` (8 tests)
   - `src/lib/evidence.test.ts` (5 tests)
+  - `src/lib/circuit-breaker.test.ts` (8 tests)
+  - `src/lib/tool-context.test.ts` (8 tests)
+  - `src/lib/worker-registry.test.ts` (3 tests)
+  - `src/lib/analytics.test.ts` (1 test)
+  - `src/tools/session.test.ts` (2 tests)
+  - `src/tools/code_search.test.ts` (3 tests)
+  - `src/lib/hooks.test.ts` (5 tests)
+  - `src/cli/orchestrator.test.ts` (2 tests)
 
 ### Smoke Test
 
@@ -374,7 +391,7 @@ Run these commands before every commit:
 # 1. Compile TypeScript (must pass with zero errors)
 pnpm run build
 
-# 2. Run unit tests (all 99 must pass)
+# 2. Run unit tests (all 189 must pass)
 pnpm test
 
 # 3. Run smoke test (MCP server boots and all tools respond)
@@ -404,7 +421,7 @@ harness-os/
 ├── TASK_IMPLEMENT.md                  # Task breakdown
 │
 ├── src/
-│   ├── index.ts              # MCP stdio server entry — registers all 30 tools
+│   ├── index.ts              # MCP stdio server entry — registers all 31 tools
 │   ├── cli/
 │   │   ├── harness.ts        # CLI entry point (init, doctor, status, verify, etc.)
 │   │   └── orchestrator.ts   # Ralph Loop Orchestrator implementation
@@ -433,6 +450,10 @@ harness-os/
 │       ├── evidence.ts       # Evidence persistence (save/read per task)
 │       ├── hooks.ts          # Hook system block and stop validation logic
 │       ├── skill-matcher.ts  # Tokenizer, synonym mapping, suggestion scoring
+│       ├── circuit-breaker.ts # Repo-scoped circuit breaker
+│       ├── tool-context.ts   # Tool arguments context resolver
+│       ├── worker-registry.ts # SQLite worker lifecycle registry
+│       ├── analytics.ts      # Reporting metrics aggregator
 │       └── parsers/
 │           ├── vitest.ts     # Vitest JSON output parser
 │           └── generic.ts    # Generic test output parser
@@ -572,7 +593,24 @@ This works whether running from `src/` (via tsx) or `dist/` (compiled).
 
 Whenever you implement or modify features, you **MUST** immediately update:
 1. `CHANGELOG.md` under the appropriate version section (with status/description).
-2. Relevant documentation in `README.md`, `docs/`, or `AGENTS.md` (e.g. tools lists, CLI command specs).
+2. Relevant documentation in `README.md`, `AGENTS.md`, or the specific files under `docs/`:
+   - [docs/README.md](file:///c:/FPT/MyProject/harness_operator_system/docs/README.md) (Mục lục tài liệu)
+   - [docs/01-getting-started.md](file:///c:/FPT/MyProject/harness_operator_system/docs/01-getting-started.md) (Giới thiệu, cài đặt)
+   - [docs/02-ide-setup.md](file:///c:/FPT/MyProject/harness_operator_system/docs/02-ide-setup.md) (Cấu hình cho các IDE)
+   - [docs/03-repo-init.md](file:///c:/FPT/MyProject/harness_operator_system/docs/03-repo-init.md) (Khởi tạo repository)
+   - [docs/04-workflow.md](file:///c:/FPT/MyProject/harness_operator_system/docs/04-workflow.md) (Daily workflow & RIPER-5 mapping)
+   - [docs/05-tools-reference.md](file:///c:/FPT/MyProject/harness_operator_system/docs/05-tools-reference.md) (Chi tiết parameters/schemas của 31 MCP tools)
+   - [docs/06-cli-reference.md](file:///c:/FPT/MyProject/harness_operator_system/docs/06-cli-reference.md) (Danh sách 17 lệnh CLI)
+   - [docs/07-skills.md](file:///c:/FPT/MyProject/harness_operator_system/docs/07-skills.md) (Hệ thống skills)
+   - [docs/08-instincts.md](file:///c:/FPT/MyProject/harness_operator_system/docs/08-instincts.md) (Học instincts, Bayesian confidence)
+   - [docs/09-file-structure.md](file:///c:/FPT/MyProject/harness_operator_system/docs/09-file-structure.md) (Cấu trúc file trong project)
+   - [docs/10-troubleshooting.md](file:///c:/FPT/MyProject/harness_operator_system/docs/10-troubleshooting.md) (Sửa lỗi thường gặp, FAQ & roadmap)
+   - [docs/11-agents-md-spec.md](file:///c:/FPT/MyProject/harness_operator_system/docs/11-agents-md-spec.md) (Đặc tả AGENTS.md)
+   - [docs/12-skill-format.md](file:///c:/FPT/MyProject/harness_operator_system/docs/12-skill-format.md) (Định dạng file SKILL.md)
+   - [docs/13-glossary.md](file:///c:/FPT/MyProject/harness_operator_system/docs/13-glossary.md) (Thuật ngữ)
+   - [docs/14-rulebooks.md](file:///c:/FPT/MyProject/harness_operator_system/docs/14-rulebooks.md) (Rulebooks)
+   - [docs/15-artifacts.md](file:///c:/FPT/MyProject/harness_operator_system/docs/15-artifacts.md) (Quy chuẩn tạo artifacts)
+   - [docs/16-state-architecture.md](file:///c:/FPT/MyProject/harness_operator_system/docs/16-state-architecture.md) (Kiến trúc SQLite & state)
 3. The codebase diagram or file layout schemas if structure changes.
 
 Failure to keep documentation in sync with code is unacceptable.

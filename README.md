@@ -3,11 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.3.3-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-30-blue)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-31-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-30-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-162%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-189%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -50,7 +50,7 @@ pnpm run dev -- install-mcp --ide cursor
 | **Continuous Learning** | Pattern tái sử dụng | `instinct_add/get/prune/evolve` |
 | **Subagent Delegation** | Điều phối agent con chạy lệnh | `subagent_invoke` |
 
-## 30 MCP Tools
+## 31 MCP Tools
 
 <details>
 <summary><b>Session lifecycle (4 tools)</b></summary>
@@ -162,7 +162,7 @@ pnpm run dev -- install-mcp --ide cursor
 
 </details>
 
-## CLI Commands (14)
+## CLI Commands (17)
 
 ```bash
 harness init [path] [--stack auto|node|dotnet|python|go]   # Setup repo
@@ -179,6 +179,9 @@ harness summary [--path .] [--force]                        # Generate repo summ
 harness reindex [--path .]                                  # Force reindex repo
 harness export [--repo .] [--output FILE]                   # Export harness state
 harness import <file.json>                                  # Import harness state
+harness workers [--list] [--kill <id>] [--cleanup] [--repo path] # Manage workers
+harness hooks [--list] [--validate] [--dry-run --tool <name>] # Manage hooks
+harness report [--period 7d|30d|all] [--repo path]          # Get analytics report
 ```
 
 ## Built-in Skills (30)
@@ -247,7 +250,7 @@ Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 ```
 harness-os/
 ├── src/
-│   ├── index.ts              # MCP stdio server (30 tools, all wrapped)
+│   ├── index.ts              # MCP stdio server (31 tools, all wrapped)
 │   ├── cli/harness.ts        # CLI entry point
 │   ├── db/
 │   │   ├── client.ts         # SQLite + migrations
@@ -279,7 +282,7 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (162 tests passing)
+- **Testing:** Vitest (189 tests passing)
 
 ## Phát triển
 
@@ -287,8 +290,8 @@ harness-os/
 pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
-pnpm test             # Unit tests (162 tests)
-pnpm run smoke        # End-to-end MCP test (30 tools, 30 skills)
+pnpm test             # Unit tests (189 tests)
+pnpm run smoke        # End-to-end MCP test (31 tools, 30 skills)
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.
@@ -299,8 +302,8 @@ pnpm run smoke        # End-to-end MCP test (30 tools, 30 skills)
   - [Bắt đầu](./docs/01-getting-started.md) — Cài đặt, yêu cầu hệ thống
   - [Cấu hình IDE](./docs/02-ide-setup.md) — Setup cho 8 IDEs
   - [Workflow](./docs/04-workflow.md) — Lifecycle hàng ngày
-  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 27 MCP tools
-  - [CLI Reference](./docs/06-cli-reference.md) — 13 CLI commands
+  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 31 MCP tools
+  - [CLI Reference](./docs/06-cli-reference.md) — 17 CLI commands
   - [Skills](./docs/07-skills.md) — Hệ thống skills
   - [Instincts](./docs/08-instincts.md) — Continuous learning
   - [Troubleshooting](./docs/10-troubleshooting.md) — Xử lý lỗi & FAQ

@@ -108,6 +108,17 @@ async function main() {
     process.exit(1);
   }
 
+  // Update worker registry state
+  const workerId = (taskInput as any).worker_id;
+  if (workerId) {
+    try {
+      const { finishWorker } = await import("./lib/worker-registry.js");
+      finishWorker(workerId, status === "success" ? "finished" : "failed");
+    } catch (err: any) {
+      log("warn", `Worker registry update failed: ${err.message}`);
+    }
+  }
+
   process.exit(status === "success" ? 0 : 1);
 }
 

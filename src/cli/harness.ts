@@ -17,6 +17,9 @@ import { generateTree } from "../lib/tree.js";
 import { generateSummary, writeSummary } from "../lib/repo-summary.js";
 import { invalidateTreeHashCache } from "../lib/stale-cache.js";
 import { runOrchestrate } from "./orchestrator.js";
+import { listWorkers, killWorker, cleanupExpiredWorkers } from "../lib/worker-registry.js";
+import { loadHooksConfig, validateHooksConfig, dryRunHooks } from "../lib/hooks.js";
+import { generateReport } from "../lib/analytics.js";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -306,24 +309,22 @@ function cmdDoctor() {
     }
   }
 
-  // Check orphans (repos in DB vs filesystem)
+  // Check orphans (active sessions in DB)
   if (checkOrphans) {
     try {
       const db = getDb();
       const rows = db.prepare("SELECT id, repo_path FROM sessions WHERE status = 'active'").all() as Array<{ id: string; repo_path: string }>;
       let orphans = 0;
       for (const row of rows) {
-        if (!existsSync(row.repo_path)) {
-          orphans++;
-          if (fix) {
-            db.prepare("UPDATE sessions SET status = 'ended', ended_at = ? WHERE id = ?").run(
-              new Date().toISOString(),
-              row.id
-            );
-            console.log(`  🔧 Fixed orphan session: ${row.id} (${row.repo_path})`);
-          } else {
-            console.log(`  ⚠ Orphan session: ${row.id} → ${row.repo_path}`);
-          }
+        orphans++;
+        if (fix) {
+          db.prepare("UPDATE sessions SET status = 'orphaned', ended_at = ? WHERE id = ?").run(
+            new Date().toISOString(),
+            row.id
+          );
+          console.log(`  🔧 Fixed orphan session: ${row.id} (${row.repo_path})`);
+        } else {
+          console.log(`  ⚠ Orphan session: ${row.id} → ${row.repo_path}`);
         }
       }
       if (orphans === 0) {
@@ -477,6 +478,209 @@ function cmdInstincts() {
     console.log(JSON.stringify(instincts, null, 2));
     return;
   }
+}
+
+// === harness workers ===
+
+function cmdWorkers() {
+  const killFlag = getFlag("kill");
+  const cleanupFlag = hasFlag("cleanup");
+
+  if (killFlag) {
+    console.log(`\nKilling worker: ${killFlag}`);
+    const success = killWorker(killFlag);
+    if (success) {
+      console.log(`  ✓ Worker ${killFlag} killed successfully.\n`);
+      process.exit(0);
+    } else {
+      console.error(`  ✗ Worker ${killFlag} not found or not running.\n`);
+      process.exit(1);
+    }
+  }
+
+  if (cleanupFlag) {
+    console.log(`\nCleaning up expired workers...`);
+    const count = cleanupExpiredWorkers();
+    console.log(`  ✓ Cleaned up ${count} expired worker(s).\n`);
+    process.exit(0);
+  }
+
+  // Default: list workers
+  const repoPath = getFlag("repo");
+  const status = getFlag("status") || "running";
+
+  const workers = listWorkers({
+    repoPath: repoPath ? resolve(repoPath) : undefined,
+    status: status === "all" ? undefined : status,
+  });
+
+  console.log("\n=== Subagent Workers ===\n");
+  if (workers.length === 0) {
+    console.log("  (no workers found)\n");
+    return;
+  }
+
+  for (const w of workers) {
+    console.log(`  Worker ID:  ${w.worker_id}`);
+    console.log(`  PID:        ${w.pid || "N/A"}`);
+    console.log(`  Status:     ${w.status}`);
+    console.log(`  Command:    ${w.command}`);
+    console.log(`  Timeout At: ${w.timeout_at}`);
+    console.log("");
+  }
+}
+
+// === harness hooks ===
+
+function cmdHooks() {
+  const repoPath = resolve(getFlag("repo") || ".");
+  const validateFlag = hasFlag("validate");
+  const dryRunFlag = hasFlag("dry-run");
+
+  if (validateFlag) {
+    console.log(`\nValidating hooks config for: ${repoPath}`);
+    const result = validateHooksConfig(repoPath);
+    if (result.valid) {
+      console.log(`  ✓ hooks.yaml is valid.\n`);
+      process.exit(0);
+    } else {
+      console.error(`  ✗ hooks.yaml validation failed:`);
+      for (const err of result.errors) {
+        console.error(`    - ${err}`);
+      }
+      console.error("");
+      process.exit(1);
+    }
+  }
+
+  if (dryRunFlag) {
+    const tool = getFlag("tool");
+    const toolArgsStr = getFlag("args") || "{}";
+    if (!tool) {
+      console.error(`  ✗ Usage: harness hooks --dry-run --tool <tool_name> [--args 'JSON_STRING']\n`);
+      process.exit(1);
+    }
+    let toolArgs: Record<string, unknown> = {};
+    try {
+      toolArgs = JSON.parse(toolArgsStr);
+    } catch (err: any) {
+      console.error(`  ✗ Failed to parse JSON args: ${err.message}\n`);
+      process.exit(1);
+    }
+
+    console.log(`\nEvaluating hooks (dry-run) for tool '${tool}' with args: ${JSON.stringify(toolArgs)}`);
+    const result = dryRunHooks(repoPath, tool, toolArgs);
+
+    if (result.preToolBlock.matched) {
+      console.log(`\nHook: pre-tool-block`);
+      console.log(`  Rule matched: tool=${result.preToolBlock.rule?.tool}, pattern=${result.preToolBlock.rule?.pattern || "(always)"}`);
+      console.log(`  Match against args: YES`);
+    } else {
+      console.log(`\nHook: pre-tool-block`);
+      console.log(`  Match against args: NO`);
+    }
+
+    if (result.stopValidation !== undefined) {
+      console.log(`\nHook: stop-validation`);
+      console.log(`  Would block session_end: ${result.stopValidation.wouldBlock ? "YES" : "NO"}`);
+      if (result.stopValidation.wouldBlock) {
+        console.log(`  Reason: ${result.stopValidation.reason}`);
+      }
+    }
+
+    console.log(`\nResult: ${result.allowed ? "WOULD ALLOW" : "WOULD BLOCK"} tool execution\n`);
+    process.exit(result.allowed ? 0 : 1);
+  }
+
+  // Default: list hooks
+  console.log(`\n=== Active Hooks Rules for ${repoPath} ===\n`);
+  const config = loadHooksConfig(repoPath);
+  if (!config) {
+    console.log("  (no hooks configuration found or file missing)\n");
+    return;
+  }
+
+  if (config.pre_tool_block && config.pre_tool_block.length > 0) {
+    console.log("  [Pre-Tool Block Rules]");
+    for (const rule of config.pre_tool_block) {
+      console.log(`    - Tool:    ${rule.tool}`);
+      if (rule.pattern) console.log(`      Pattern: ${rule.pattern}`);
+      if (rule.message) console.log(`      Message: ${rule.message}`);
+    }
+    console.log("");
+  }
+
+  if (config.stop_validation) {
+    console.log("  [Stop Validation Config]");
+    if (config.stop_validation.required_steps) {
+      console.log(`    Required verify steps: [${config.stop_validation.required_steps.join(", ")}]`);
+    }
+    if (config.stop_validation.fail_on_warning !== undefined) {
+      console.log(`    Fail on warning:       ${config.stop_validation.fail_on_warning}`);
+    }
+    console.log("");
+  }
+}
+
+// === harness report ===
+
+function cmdReport() {
+  const period = (getFlag("period") || "7d") as "7d" | "30d" | "all";
+  const repoPath = getFlag("repo");
+  const format = getFlag("format") || "table";
+
+  const report = generateReport({ period, repoPath });
+
+  if (format === "json") {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  console.log(`\n=== Reliability Report (Period: ${report.period}) ===\n`);
+  console.log(`Reliability Score: ${report.reliability_score.toFixed(3)}\n`);
+
+  console.log("A. Tool Usage");
+  console.log("-----------------------------------------------------------------");
+  console.log("Tool                           Calls     Success    Error  Blocked");
+  console.log("-----------------------------------------------------------------");
+  if (report.tool_usage.length === 0) {
+    console.log("  (no data)");
+  } else {
+    for (const tu of report.tool_usage) {
+      console.log(
+        `${tu.tool.padEnd(28)}  ${tu.calls.toString().padStart(6)}  ${tu.success.toString().padStart(10)}  ${tu.error.toString().padStart(7)}  ${tu.blocked.toString().padStart(7)}`
+      );
+    }
+  }
+  console.log("-----------------------------------------------------------------\n");
+
+  console.log("B. Tool Latency");
+  console.log("----------------------------------");
+  console.log("Tool                           P50    P95");
+  console.log("----------------------------------");
+  if (report.tool_latency.length === 0) {
+    console.log("  (no data)");
+  } else {
+    for (const tl of report.tool_latency) {
+      console.log(`${tl.tool.padEnd(28)}  ${tl.p50.toFixed(2).padStart(4)}s  ${tl.p95.toFixed(2).padStart(4)}s`);
+    }
+  }
+  console.log("----------------------------------\n");
+
+  console.log("C. Skill Effectiveness");
+  console.log("-------------------------------------------------------------");
+  console.log("Skill                           Loaded   Sessions Passed  Rate");
+  console.log("-------------------------------------------------------------");
+  if (report.skill_effectiveness.length === 0) {
+    console.log("  (no data)");
+  } else {
+    for (const se of report.skill_effectiveness) {
+      console.log(
+        `${se.skill.padEnd(30)}  ${se.loaded.toString().padStart(6)}  ${se.sessions_passed.toString().padStart(15)}  ${se.rate.toString().padStart(3)}%`
+      );
+    }
+  }
+  console.log("-------------------------------------------------------------\n");
 }
 
 // === harness install-mcp ===
@@ -750,25 +954,39 @@ function cmdImport() {
 
 // === harness orchestrate ===
 
-function cmdOrchestrate() {
+async function cmdOrchestrate() {
   const title = args[1] || "Automated Orchestrated Task";
   const repo = getFlag("repo") || ".";
   const maxLoops = parseInt(getFlag("max-loops") || "3", 10);
   const stepsFlag = getFlag("steps");
   const steps = stepsFlag ? stepsFlag.split(",").map(s => s.trim()) : undefined;
+  const timeoutPerLoop = parseInt(getFlag("timeout-per-loop") || "300", 10);
+  const failFastOnFlag = getFlag("fail-fast-on");
+  const failFastPatterns = failFastOnFlag ? failFastOnFlag.split(",").map(s => s.trim()) : undefined;
 
-  const result = runOrchestrate(title, {
+  const result = await runOrchestrate(title, {
     repoPath: repo,
     maxLoops,
-    steps
+    steps,
+    timeoutPerLoop,
+    failFastPatterns
   });
+
+  // Map exit codes to messages
+  const exitMessages: Record<number, string> = {
+    0: "Success",
+    1: "Max loops reached",
+    2: "Timeout per loop exceeded",
+    3: "Fail-fast pattern matched"
+  };
 
   if (result.success) {
     process.stdout.write(`Success: ${result.message}\n`);
     process.exit(0);
   } else {
-    process.stderr.write(`Failure: ${result.message} (Error: ${result.error})\n`);
-    process.exit(1);
+    const exitMsg = exitMessages[result.exit_code] || "Unknown error";
+    process.stderr.write(`Failure (${exitMsg}): ${result.message} (Error: ${result.error})\n`);
+    process.exit(result.exit_code);
   }
 }
 
@@ -817,6 +1035,15 @@ switch (command) {
   case "import":
     cmdImport();
     break;
+  case "workers":
+    cmdWorkers();
+    break;
+  case "hooks":
+    cmdHooks();
+    break;
+  case "report":
+    cmdReport();
+    break;
   default:
     console.log(`
 harness-os — Local harness operator system for agentic coding
@@ -830,12 +1057,15 @@ Usage:
   harness tasks [--repo path] [--status pending|in-progress|done]
   harness instincts [--list] [--export]
   harness install-mcp --ide <cursor|claude-code|kiro|vscode|antigravity|opencode>
-  harness orchestrate <title> [--repo path] [--max-loops n] [--steps build,test]
+  harness orchestrate <title> [--repo path] [--max-loops n] [--steps build,test] [--timeout-per-loop 300] [--fail-fast-on "ENOSPC,EACCES,Cannot find module"]
   harness tree [--path .] [--depth 4] [--exclude PATTERN] [--output FILE]
   harness summary [--path .] [--force]
   harness reindex [--path .]
   harness export [--repo .] [--output FILE]
   harness import <file.json>
+  harness workers [--list] [--kill <id>] [--cleanup] [--repo path] [--status running|finished|failed|all]
+  harness hooks [--list] [--validate] [--dry-run --tool <tool> [--args <json>]] [--repo path]
+  harness report [--period 7d|30d|all] [--repo path] [--format json|table]
 `);
     break;
 }

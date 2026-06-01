@@ -10,7 +10,7 @@
 START → SELECT → EXECUTE → VERIFY → WRAP UP
 ```
 
-> **Skill reference:** Full lifecycle details including CTR Gate, artifact formats, and EPCC mapping are in `skills/harness-workflow/SKILL.md` (v2.0).
+> **Skill reference:** Full lifecycle details including CTR Gate, artifact formats, and RIPER-5 phases are in `skills/harness-workflow/SKILL.md` (v2.1).
 
 ---
 
@@ -212,15 +212,15 @@ Ví dụ đầy đủ: xem `skills/harness-workflow/references/artifact-formats-
 
 ---
 
-## EPCC Mapping
+## EPCC & RIPER-5 Mapping
 
-Harness lifecycle map với EPCC (Explore-Plan-Code-Check):
+Harness lifecycle map với EPCC (Explore-Plan-Code-Check) và RIPER-5:
 
-| EPCC | Harness Phase | Ghi chú |
-|------|---------------|---------|
-| Explore | START | Đọc context, load skills, review handoff |
-| Plan | SELECT + CTR Gate | Chọn task, tạo Plan artifact nếu cần |
-| Code | EXECUTE | Implement trong scope, log progress |
-| Check | VERIFY + WRAP UP | Chạy verify, ghi handoff |
+| EPCC | RIPER-5 Phase | Harness Phase | Ghi chú |
+|------|---------------|---------------|---------|
+| Explore | Research / Innovate | START | Đọc context, load skills, review handoff, nghiên cứu giải pháp |
+| Plan | Plan | SELECT + CTR Gate | Chọn task, thiết lập Allowed paths, tạo Plan artifact nếu cần |
+| Code | Execute | EXECUTE | Implement trong scope, log progress, điều phối subagents |
+| Check | Review | VERIFY + WRAP UP | Chạy verify, lưu bằng chứng (evidence), ghi handoff |
 
-Chi tiết: xem `skills/harness-workflow/SKILL.md` → section "Mapping với EPCC".
+Chi tiết: xem `skills/harness-workflow/SKILL.md` → section "RIPER-5 Spec-Driven Development Phases".

@@ -5,6 +5,8 @@ import { parseFrontmatter, type SkillFrontmatter } from "../lib/frontmatter.js";
 import { resolveHarnessDir, resolveGlobalHome } from "../lib/repo.js";
 import { log } from "../lib/logger.js";
 import { matchSkills, type SkillWithMetadata, type MatchContext } from "../lib/skill-matcher.js";
+import { auditLog } from "./observe.js";
+import { resolveToolContext } from "../lib/tool-context.js";
 
 export interface SkillLoadResult {
   name: string;
@@ -101,6 +103,18 @@ export function skillLoad(
   emitDeprecationWarning(name, meta);
 
   const metadata = (meta?.metadata as Record<string, unknown>) ?? undefined;
+
+  // Log skill loaded event
+  try {
+    const ctx = resolveToolContext({ repo_path: repoPath });
+    auditLog("skill_loaded", {
+      skill: name,
+      repo_id: ctx.repo_id,
+      session_id: ctx.session_id,
+    });
+  } catch {
+    // ignore
+  }
 
   return { name, content: raw, meta, metadata };
 }

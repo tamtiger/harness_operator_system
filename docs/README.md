@@ -1,6 +1,6 @@
 # Tài liệu harness-os
 
-> Hướng dẫn chi tiết sử dụng harness-os v1.3.3 — hệ thống harness operator chạy local cho agentic coding.
+> Hướng dẫn chi tiết sử dụng harness-os v1.4.0 — hệ thống harness operator chạy local cho agentic coding.
 > Phiên bản tài liệu khớp với codebase version.
 
 ---
@@ -16,7 +16,7 @@ Mọi tài liệu liên kết dưới đây đều sử dụng tiếng Việt đ
 | 🚀 **[03. Khởi tạo repo](./03-repo-init.md)** | Hướng dẫn chạy `harness init`, tạo AGENTS.md. |
 | 🔄 **[04. Quy trình làm việc](./04-workflow.md)** | Mô hình Session Lifecycle (Plan → Code → Verify → Handoff). |
 | 🧰 **[05. Danh mục Tools](./05-tools-reference.md)** | Hướng dẫn chi tiết 31 tools MCP. |
-| 💻 **[06. Lệnh CLI](./06-cli-reference.md)** | Chi tiết cách gọi các lệnh `harness cli` (14 lệnh). |
+| 💻 **[06. Lệnh CLI](./06-cli-reference.md)** | Chi tiết cách gọi các lệnh `harness cli` (17 lệnh). |
 | 🧠 **[07. Hệ thống Skills](./07-skills.md)** | Phân loại Tier 1 (Core) / Tier 2 (Contextual) / Tier 3. |
 | ⚡ **[08. Instincts](./08-instincts.md)** | Cách lưu trữ, tự động tiến hóa pattern (Continuous learning). |
 | 📁 **[09. Cấu trúc thư mục](./09-file-structure.md)** | Bố cục các file trạng thái trong `.harness/`. |
@@ -30,7 +30,7 @@ Mọi tài liệu liên kết dưới đây đều sử dụng tiếng Việt đ
 
 ---
 
-*Tài liệu cập nhật cho harness-os v1.3.3.*
+*Tài liệu cập nhật cho harness-os v1.4.0.*
 
 - 📖 [README chính](../README.md) — Tổng quan project
 - 🤖 [AGENTS.md](../AGENTS.md) — Hướng dẫn cho AI agent phát triển source

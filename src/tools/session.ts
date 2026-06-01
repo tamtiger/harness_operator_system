@@ -10,6 +10,7 @@ import { taskList } from "./task.js";
 import { skillList } from "./skill.js";
 import { getTier1Skills, type SkillWithMetadata } from "../lib/skill-matcher.js";
 import { checkStopValidation } from "../lib/hooks.js";
+import { cleanupExpiredWorkers } from "../lib/worker-registry.js";
 
 export interface SessionStartResult {
   session_id: string;
@@ -17,6 +18,7 @@ export interface SessionStartResult {
   pending_tasks_count: number;
   applicable_skills: string[];
   instructions_to_read: string[];
+  _warn?: string;
 }
 
 export interface SessionEndResult {
@@ -51,6 +53,30 @@ export function sessionStart(repoPath: string): SessionStartResult {
   // --- end v1.0 auto-migration ---
 
   const db = getDb();
+
+  // Auto-detect and recover orphaned sessions for this repo
+  const orphaned = db.prepare(
+    "SELECT id, started_at FROM sessions WHERE repo_path = ? AND status = 'active'"
+  ).all(repoPath) as Array<{ id: string; started_at: string }>;
+
+  let orphanWarning: string | undefined;
+
+  if (orphaned.length > 0) {
+    const nowStr = new Date().toISOString();
+    for (const s of orphaned) {
+      db.prepare("UPDATE sessions SET status = 'orphaned', ended_at = ? WHERE id = ?")
+        .run(nowStr, s.id);
+    }
+
+    // Log to progress
+    progressLog(repoPath, {
+      summary: `${orphaned.length} orphaned session(s) auto-closed (IDE likely crashed)`,
+      status: 'orphaned',
+    });
+
+    orphanWarning = `${orphaned.length} orphaned session(s) found and auto-closed. Check progress.md.`;
+  }
+
   const id = randomUUID();
   const now = new Date().toISOString();
 
@@ -83,13 +109,19 @@ export function sessionStart(repoPath: string): SessionStartResult {
   // Determine instructions to read
   const instructions: string[] = ["AGENTS.md", "skill:harness-workflow"];
 
-  return {
+  const result: SessionStartResult = {
     session_id: id,
     last_handoff: handoff,
     pending_tasks_count: pendingCount,
     applicable_skills: applicableSkills,
     instructions_to_read: instructions,
   };
+
+  if (orphanWarning) {
+    result._warn = orphanWarning;
+  }
+
+  return result;
 }
 
 export function sessionResume(repoPath: string): SessionStartResult {
@@ -119,6 +151,8 @@ export function sessionEnd(sessionId: string): SessionEndResult {
       error: stopValidationCheck.error,
     };
   }
+
+  cleanupExpiredWorkers(session.repo_path);
 
   db.prepare(`UPDATE sessions SET status = 'closed', ended_at = ? WHERE id = ?`).run(
     now,
@@ -182,6 +216,8 @@ export function sessionHandoff(
     summary,
     status: "handoff",
   });
+
+  cleanupExpiredWorkers(session.repo_path);
 
   // Close session
   const now = new Date().toISOString();

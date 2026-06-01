@@ -41,7 +41,22 @@ function runMigrations(db: Database.Database): void {
       tags TEXT NOT NULL DEFAULT '[]',
       confidence REAL NOT NULL DEFAULT 0.5,
       ttl_days INTEGER,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      success_count INTEGER DEFAULT 0,
+      failure_count INTEGER DEFAULT 0,
+      reference_count INTEGER DEFAULT 0,
+      last_outcome TEXT,
+      last_referenced_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS session_instinct_refs (
+      session_id TEXT NOT NULL,
+      instinct_id TEXT NOT NULL,
+      outcome TEXT, -- 'success', 'failure', or NULL if not yet known
+      referenced_at TEXT NOT NULL,
+      PRIMARY KEY (session_id, instinct_id),
+      FOREIGN KEY (session_id) REFERENCES sessions(id),
+      FOREIGN KEY (instinct_id) REFERENCES instincts(id)
     );
 
     CREATE TABLE IF NOT EXISTS audit_events (
@@ -58,6 +73,18 @@ function runMigrations(db: Database.Database): void {
       remote_url TEXT,
       registered_at TEXT NOT NULL,
       last_active TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS workers (
+      worker_id TEXT PRIMARY KEY,
+      pid INTEGER,
+      status TEXT NOT NULL DEFAULT 'running',
+      started_at TEXT NOT NULL,
+      timeout_at TEXT NOT NULL,
+      ended_at TEXT,
+      command TEXT,
+      repo_path TEXT,
+      session_id TEXT
     );
   `);
 }
