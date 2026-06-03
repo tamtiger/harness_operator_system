@@ -75,6 +75,39 @@ else
   exit 1
 fi
 {{/if_go}}
+{{#if_rust}}
+if command -v cargo &> /dev/null; then
+  cargo build
+  echo "✓ Rust project built"
+else
+  echo "✗ cargo not found"
+  echo "  Install: https://rustup.rs"
+  exit 1
+fi
+{{/if_rust}}
+{{#if_php}}
+if command -v php &> /dev/null; then
+  echo "✓ PHP $(php -v | head -1)"
+else
+  echo "✗ PHP not found"
+  echo "  Install XAMPP: https://www.apachefriends.org/"
+  echo "  Or PHP CLI:   https://windows.php.net/download/"
+  exit 1
+fi
+
+if command -v composer &> /dev/null; then
+  if [ -f composer.lock ]; then
+    composer install --no-dev
+  else
+    composer install
+  fi
+  echo "✓ PHP dependencies installed (composer)"
+else
+  echo "✗ Composer not found"
+  echo "  Install: https://getcomposer.org/download/"
+  exit 1
+fi
+{{/if_php}}
 
 # 3. Verify harness setup
 if [ -d .harness ]; then

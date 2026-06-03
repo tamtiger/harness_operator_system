@@ -1,64 +1,73 @@
 # Kế hoạch tích hợp PHP / XAMPP vào Harness-OS
 
-> Dựa trên phân tích mẫu tại `D:\xampp\htdocs\his` (CodeIgniter 3 + SQL Server + XAMPP)
+> Generic plan — hỗ trợ mọi PHP project (Composer-based)  
+> Updated: 2026-06-03 v2 — bỏ HIS-specific, fix {{#if_rust}} bug, cắt scope
 
 ---
 
 ## 1. Hiện trạng
 
-| Thành phần | Trạng thái |
-|-----------|-----------|
-| `detectRuntime()` — `src/lib/runtime.ts` | ❌ Không phát hiện `composer.json`, `.php` |
-| `verify.ts` — commands | ❌ Không có PHP install/build/test/lint |
-| `LINTABLE_EXTENSIONS` | ❌ Thiếu `.php` |
-| `verify.yaml.tpl` | ❌ Không có `{{#if_php}}` |
-| `init.sh.tpl` | ❌ Không có `{{#if_php}}` |
-| `AGENTS.md.tpl` | ❌ Không có `{{#if_php}}` |
-| `renderTemplate()` stacks list | ❌ Thiếu `"php"` |
-| CLI help text | ❌ Thiếu `php` |
-| Skills | ❌ Không có PHP skills |
-| `code_search.ts` | ✅ `.php` đã có trong SEARCHABLE_EXTENSIONS |
-| Symbol regex | ✅ Hoạt động với `.php` (class/function) |
+| Thành phần | Trạng thái | Ghi chú |
+|-----------|-----------|---------|
+| `detectRuntime()` — `src/lib/runtime.ts:61` | ❌ | Không phát hiện `composer.json`, `.php` |
+| `getPmCommands()` — `src/lib/runtime.ts:34` | ❌ | Chỉ switch `pnpm`/`npm`, không có `composer` |
+| `PackageManager` type — `src/lib/runtime.ts:4` | ❌ | Union thiếu `"composer"` |
+| `verify.ts` — `LINTABLE_EXTENSIONS` — `:65` | ❌ | Thiếu `.php`, `.phtml` |
+| `verify.ts` — `buildChangedOnlyLintCmd` — `:172` | ❌ | Fall-through generic không đúng cho PHPCS/PHPStan/Pint |
+| `verify.yaml.tpl` | ❌ | Không có `{{#if_php}}` **và** thiếu `{{#if_rust}}` (bug pre-existing) |
+| `init.sh.tpl` | ❌ | Không có `{{#if_php}}` **và** thiếu `{{#if_rust}}` (bug pre-existing) |
+| `AGENTS.md.tpl` | ❌ | Không có `{{#if_php}}` (đã có `{{#if_rust}}`) |
+| `renderTemplate()` stacks list — `harness.ts:194` | ❌ | Thiếu `"php"` |
+| CLI help text — `harness.ts:1052` | ❌ | Thiếu cả `php` **và** `rust` (bug pre-existing) |
+| `cmdInit()` PM selection — `harness.ts:70-77` | ❌ | Khi `--stack php` vẫn default `npm` |
+| Skills | ❌ | Không có PHP skills |
+| `code_search.ts` | ✅ | `.php` đã có trong `SEARCHABLE_EXTENSIONS` |
+| Symbol regex | ✅ | Hoạt động với `.php` (class/function) |
 
 ---
 
 ## 2. Kế hoạch thực hiện
 
-### Phase 1: Core Detection & Verify (cốt lõi)
+### Phase 1: Core Detection & Verify
 
-#### 1.1 `src/lib/runtime.ts` — Phát hiện stack PHP
+#### 1.1 `src/lib/runtime.ts` — Mở rộng cho PHP
 
-**Thêm type:**
+**Mở rộng `PackageManager` union (line 4):**
 ```typescript
 export type PackageManager = "npm" | "pnpm" | "composer";
 ```
 
-**Thêm detect `composer.json` vào `detectRuntime()` — đặt sau `.sln/.csproj`, trước `package.json`:**
-```
-composer.json tồn tại → runtime: "php", packageManager: "composer"
+**Thêm case `composer` trong `getPmCommands()` (line 34-59):**
+```typescript
+case "composer":
+  return {
+    install: repoPath && existsSync(join(repoPath, "composer.lock"))
+      ? "composer install --no-dev"
+      : "composer install",
+    build: "composer dump-autoload --optimize",
+    test: "vendor/bin/phpunit",
+    lint: "vendor/bin/phpcs",
+  };
 ```
 
-**Commands cho PHP:**
+**Thêm PHP detection vào `detectRuntime()` (line 61 — sau `.sln/.csproj`, trước `package.json`):**
 ```typescript
-{
-  runtime: "php",
-  packageManager: "composer",
-  commands: {
-    install: "composer install",
-    build: null,              // PHP là interpreted language
-    test: "vendor/bin/phpunit",  // fallback, verify.ts kiểm tra tồn tại
-    lint: "phpcs",            // hoặc "phpstan analyse" tùy dự án
-  }
+// Check for PHP (composer.json)
+if (existsSync(join(repoPath, "composer.json"))) {
+  return {
+    runtime: "php",
+    packageManager: "composer",
+    commands: getPmCommands("composer", repoPath),
+  };
 }
 ```
 
-**Cân nhắc thứ tự ưu tiên:**
-- Đề xuất: `.sln/.csproj` → `composer.json` → `package.json` → `pyproject.toml/requirements.txt` → `go.mod` → `Cargo.toml`
-- Lý do: Một số dự án PHP có cả `package.json` (dùng cho frontend assets). Nếu composer.json có trước, ưu tiên PHP. Nếu muốn override, dùng `--stack php` khi init.
+**Thứ tự ưu tiên detection:**
+`.sln/.csproj` → `composer.json` → `package.json` → `pyproject.toml/requirements.txt` → `go.mod` → `Cargo.toml`
 
 #### 1.2 `src/tools/verify.ts` — PHP trong verify pipeline
 
-**Thêm extensions:**
+**Thêm extensions (line 65):**
 ```typescript
 const LINTABLE_EXTENSIONS: Record<string, string[]> = {
   // ... existing ...
@@ -66,240 +75,244 @@ const LINTABLE_EXTENSIONS: Record<string, string[]> = {
 };
 ```
 
-**Thêm `buildChangedOnlyLintCmd()` handling cho PHP:**
+**Thêm PHP case vào `buildChangedOnlyLintCmd()` (line 172):**
 ```typescript
 if (runtimeName === "php") {
-  return `phpcs ${fileList}`;
+  return `${originalCmd} ${fileList}`;
 }
 ```
 
-**Cập nhật logic changed-only: không cần thay đổi — PHP đã có trong LINTABLE_EXTENSIONS nên filter sẽ chạy.**
+#### 1.3 Tests
 
-### Phase 2: Templates
+**`src/lib/runtime.test.ts` — thêm:**
+- `detectRuntime()` với `composer.json` → trả về `php` + `composer`
+- `detectRuntime()` với `composer.json` + `package.json` → `php` thắng (ưu tiên composer)
+- `detectRuntime()` với `.sln` + `composer.json` → `dotnet` thắng (ưu tiên sln)
+- `getPmCommands("composer")` với `composer.lock` → `composer install --no-dev`
+- `getPmCommands("composer")` không có lock → `composer install`
 
-#### 2.1 `templates/verify.yaml.tpl` — Thêm block PHP
+**`src/tools/verify.test.ts` — thêm:**
+- `filterLintableFiles` với `.php`, `.phtml` → giữ lại
+- `buildChangedOnlyLintCmd` cho `php` → command + files
+
+---
+
+### Phase 2: Templates & CLI (+ fix `{{#if_rust}}` bug)
+
+#### 2.1 `templates/verify.yaml.tpl` — Thêm `{{#if_rust}}` + `{{#if_php}}`
 
 ```yaml
+{{#if_rust}}
+runtime: rust
+commands:
+  install: null
+  build: "cargo build"
+  test: "cargo test"
+  lint: "cargo clippy"
+  typecheck: null
+timeouts:
+  build: 180
+  test: 300
+{{/if_rust}}
 {{#if_php}}
 runtime: php
+package_manager: composer
 commands:
   install: "composer install"
   build: null
   test: "vendor/bin/phpunit"
-  lint: "phpcs"
+  lint: "vendor/bin/phpcs"
   typecheck: null
-  # security_audit: "composer audit"
-  # simplify: null
 timeouts:
   build: 60
   test: 300
+  lint: 120
 {{/if_php}}
 ```
 
-#### 2.2 `templates/init.sh.tpl` — Thêm block PHP
+#### 2.2 `templates/init.sh.tpl` — Thêm `{{#if_rust}}` + `{{#if_php}}`
 
 ```bash
+{{#if_rust}}
+if command -v cargo &> /dev/null; then
+  cargo build
+  echo "✓ Rust project built"
+else
+  echo "✗ cargo not found"
+  echo "  Install: https://rustup.rs"
+  exit 1
+fi
+{{/if_rust}}
 {{#if_php}}
 if command -v php &> /dev/null; then
   echo "✓ PHP $(php -v | head -1)"
 else
   echo "✗ PHP not found"
   echo "  Install XAMPP: https://www.apachefriends.org/"
+  echo "  Or PHP CLI:   https://windows.php.net/download/"
   exit 1
 fi
 
 if command -v composer &> /dev/null; then
-  composer install
+  if [ -f composer.lock ]; then
+    composer install --no-dev
+  else
+    composer install
+  fi
   echo "✓ PHP dependencies installed (composer)"
 else
   echo "✗ Composer not found"
-  echo "  Install Composer: https://getcomposer.org/"
+  echo "  Install: https://getcomposer.org/download/"
   exit 1
-fi
-
-# Check for XAMPP-specific services
-if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ -n "$WINDIR" ]]; then
-  # Windows - check if XAMPP services are running via tasklist
-  if tasklist //FI "IMAGENAME eq httpd.exe" 2>/dev/null | findstr /i "httpd" > /dev/null 2>&1; then
-    echo "✓ XAMPP Apache is running"
-  else
-    echo "⚠ XAMPP Apache may not be running"
-    echo "  Start it from XAMPP Control Panel"
-  fi
 fi
 {{/if_php}}
 ```
 
-#### 2.3 `templates/AGENTS.md.tpl` — Thêm block PHP
+#### 2.3 `templates/AGENTS.md.tpl` — Thêm `{{#if_php}}`
 
 ```markdown
 {{#if_php}}
 ```bash
-composer install        # Install dependencies
-vendor/bin/phpunit      # Run tests
-phpcs                   # Lint check
+composer install         # Install dependencies
+composer dump-autoload   # Regenerate autoloader
+vendor/bin/phpunit       # Run tests
+vendor/bin/phpcs         # Lint (PSR-12)
 ```
 {{/if_php}}
 ```
 
-#### 2.4 `src/cli/harness.ts` — Cập nhật `renderTemplate()`
+#### 2.4 `src/cli/harness.ts` — 3 fixes
 
+1. Thêm `"php"` vào stacks array (line 194):
 ```typescript
 const stacks = ["node", "dotnet", "python", "go", "rust", "php"];
 ```
 
-#### 2.5 `src/cli/harness.ts` — Cập nhật CLI help text
-
+2. Fix CLI help text (line 1052 — thêm `rust` + `php`):
 ```
-harness init [path] [--stack auto|node|dotnet|python|go|php] [--force]
+harness init [path] [--stack auto|node|dotnet|python|go|rust|php] [--force]
 ```
 
-### Phase 3: PHP Skills
-
-#### 3.1 `skills/php-baseline/SKILL.md`
-
-Skill hướng dẫn cơ bản cho dự án PHP:
-- Cấu trúc project PHP (MVC, CodeIgniter, Laravel, Symfony)
-- Composer dependency management
-- XAMPP stack (Apache + PHP + MySQL/MariaDB)
-- Coding standards (PSR-1, PSR-4, PSR-12)
-
-#### 3.2 `skills/php-codeigniter-workflow/SKILL.md`
-
-Skill chuyên biệt cho CodeIgniter 3/4 (dựa trên mẫu HIS):
-- CI3 HMVC structure (controllers/M01..M36 pattern)
-- CI3 database configuration (SQL Server qua sqlsrv)
-- Migration system (scripts/migrate.php pattern)
-- Route conventions (~1000 routes)
-- BHYT/BHXH integration patterns
-- DevExtreme frontend + jQuery + Bootstrap workflow
-
-### Phase 4: XAMPP Integration — (Optional, Enhancement)
-
-#### 4.1 Verify step: Kiểm tra XAMPP services
-
-Trong verify pipeline, thêm step chạy kiểm tra XAMPP:
-
+3. Set `packageManager = "composer"` khi `stack === "php"` (line 70-77):
 ```typescript
-"xampp_check": "php -m | grep -i sqlsrv"  // Kiểm tra extension
-"xampp_db_check": "php -r \"new PDO('sqlsrv:Server=.;Database=his_dev', '', '');\""
-```
-
-#### 4.2 Harness `doctor` — Kiểm tra XAMPP
-
-Mở rộng `cmdDoctor()` để kiểm tra:
-- PHP CLI có sẵn? (php -v)
-- Composer? 
-- Extension SQL Server Driver (sqlsrv)?
-- Apache đang chạy? (httpd.exe process)
-- MySQL/MariaDB đang chạy? (mysqld.exe process)
-- Port 80, 3306, 443 có mở?
-
-```typescript
-// Logic mẫu cho doctor check XAMPP
-function checkXampp(): string[] {
-  const issues: string[] = [];
-  try {
-    execSync("php -v", { stdio: "pipe" });
-  } catch {
-    issues.push("PHP CLI not found in PATH");
-  }
-  // ... check composer, sqlsrv extension, apache, mysql ...
-  return issues;
+} else if (stack === "php") {
+  packageManager = "composer";
 }
 ```
 
-#### 4.3 Init template: Tạo `.harness/xampp.yaml`
+---
 
-File cấu hình XAMPP cho dự án:
-```yaml
-# .harness/xampp.yaml
-xampp:
-  php_version: "8.2"
-  apache_port: 80
-  mysql_port: 3306
-  db_driver: sqlsrv
-  db_host: "."
-  db_database: his_dev
-  db_auth: windows  # windows | userpass
-  
-services:
-  apache: required
-  mysql: optional
-```
+### Phase 3: PHP Skills (generic)
+
+#### 3.1 `skills/php-baseline/SKILL.md`
+
+Skill nền tảng PHP — áp dụng cho mọi dự án PHP:
+- Composer dependency management (PSR-4 autoload, `composer.json`, `composer.lock`)
+- PSR-1, PSR-4, PSR-12 coding standards
+- `declare(strict_types=1)` convention
+- Error handling: exceptions, custom error handlers
+- Testing: PHPUnit vs Pest, assertions, fixtures
+- Static analysis: PHPStan levels, Psalm
+- XAMPP stack overview (Apache + PHP + MySQL/MariaDB)
+
+#### 3.2 `skills/php-codeigniter-3-workflow/SKILL.md`
+
+Generic CI3 conventions (không project-specific):
+- HMVC structure (`application/controllers/`, `models/`, `views/`)
+- `MX_Controller` base class
+- Route conventions (`application/config/routes.php`)
+- Database configuration (`application/config/database.php`)
+- Migration system (`application/migrations/`)
+- Libraries & Helpers loading pattern
+- Form validation, session management
+- CI3 + XAMPP setup: base_url, .htaccess
+
+#### 3.3 `skills/php-codeigniter-4-workflow/SKILL.md`
+
+Generic CI4 conventions:
+- PSR-4 namespaces (`App\Controllers`, `App\Models`)
+- Spark CLI (`php spark` commands)
+- Routing (`app/Config/Routes.php`)
+- Migrations (`php spark migrate`)
+- Entities + Model factories
+- Filters (middleware-style)
+- Shield auth integration
 
 ---
 
-## 3. File thay đổi chi tiết
+### Phase 4: Documentation Sync
+
+| File | Update |
+|------|--------|
+| `docs/06-cli-reference.md` | Thêm `php` vào stacks |
+| `docs/07-skills.md` | 3 skills mới |
+| `CHANGELOG.md` | "Add PHP/XAMPP stack support + fix rust template blocks" |
+
+---
+
+## 3. File thay đổi tổng hợp
 
 | File | Loại | Mô tả |
 |------|------|-------|
-| `src/lib/runtime.ts` | Sửa | Thêm `PackageManager = "composer"`, thêm `detect composer.json`, thêm PHP commands |
-| `src/tools/verify.ts` | Sửa | Thêm `.php` vào `LINTABLE_EXTENSIONS`, thêm PHP case trong `buildChangedOnlyLintCmd` |
-| `src/tools/code_search.ts` | ✅ OK | `.php` đã có |
-| `templates/verify.yaml.tpl` | Sửa | Thêm `{{#if_php}}` block |
-| `templates/init.sh.tpl` | Sửa | Thêm `{{#if_php}}` block |
+| `src/lib/runtime.ts` | Sửa | `PackageManager` union + `composer` case + PHP detection |
+| `src/lib/runtime.test.ts` | Sửa | 5 test cases mới |
+| `src/tools/verify.ts` | Sửa | LINTABLE_EXTENSIONS + PHP lint cmd |
+| `src/tools/verify.test.ts` | Sửa | 2 test cases mới |
+| `templates/verify.yaml.tpl` | Sửa | Thêm `{{#if_rust}}` + `{{#if_php}}` blocks |
+| `templates/init.sh.tpl` | Sửa | Thêm `{{#if_rust}}` + `{{#if_php}}` blocks |
 | `templates/AGENTS.md.tpl` | Sửa | Thêm `{{#if_php}}` block |
-| `src/cli/harness.ts` | Sửa | Thêm `"php"` vào `stacks[]`, sửa help text |
-| `skills/php-baseline/SKILL.md` | Tạo mới | Skill PHP cơ bản |
-| `skills/php-codeigniter-workflow/SKILL.md` | Tạo mới | Skill CI3/CI4 workflow |
-| `docs/php-xampp-integration-plan.md` | Tạo mới | File này |
-| `scripts/smoke-test.ts` | Sửa | Cập nhật tool count (nếu thêm tools) |
+| `src/cli/harness.ts` | Sửa | stacks[], help text, PM selection |
+| `skills/php-baseline/SKILL.md` | Tạo mới | Generic PHP skill |
+| `skills/php-codeigniter-3-workflow/SKILL.md` | Tạo mới | Generic CI3 skill |
+| `skills/php-codeigniter-4-workflow/SKILL.md` | Tạo mới | Generic CI4 skill |
+| `docs/06-cli-reference.md` | Sửa | stack list |
+| `docs/07-skills.md` | Sửa | 3 skills mới |
+| `CHANGELOG.md` | Sửa | Entry mới |
 
 ---
 
-## 4. Lưu ý đặc thù cho dự án HIS (D:\xampp\htdocs\his)
+## 4. Hậu kiểm
 
-### 4.1 PHP version
-- `composer.json` yêu cầu `>=5.4`, thực tế dùng PHP 7.3 (theo README)
-- XAMPP hiện tại thường dùng PHP 8.x
-
-### 4.2 Database
-- SQL Server (sqlsrv driver), không phải MySQL mặc định của XAMPP
-- Cần PHP extension `sqlsrv` từ Microsoft (không có sẵn trong XAMPP mặc định)
-- **Giải pháp:** Thêm step kiểm tra sqlsrv extension khi verify
-
-### 4.3 Testing
-- PHPUnit 4.x/5.x (cũ), chỉ có 1 test file (`tests/test_bhyt_2026_validate.php`)
-- **Giải pháp:** verify mặc định `vendor/bin/phpunit`, fallback về null nếu không có phpunit.xml
-
-### 4.4 Build
-- PHP là interpreted → `build: null`
-- Nếu dùng các công cụ như: `npm run build` cho frontend assets → có thể thêm step riêng
-
-### 4.5 Lint
-- Dự án HIS không có PHPCS/PHPStan config hiện tại
-- **Giải pháp:** Mặc định `null`, cho phép cấu hình qua `.harness/verify.yaml`
-
-### 4.6 XAMPP Control Panel
-- Trên Windows, XAMPP Control Panel là GUI tool
-- Các dịch vụ: Apache (httpd.exe), MySQL (mysqld.exe), FileZilla, Mercury, Tomcat
-- Dùng `tasklist` để kiểm tra service đang chạy
-- Dùng `net start/stop` để quản lý
-
----
-
-## 5. Hậu kiểm
-
-Sau khi implement, chạy:
+### 4.1 Build & test
 
 ```bash
-# Build TypeScript
-pnpm run build
+pnpm run build              # TypeScript compile
+pnpm test                   # Unit tests — phải có test cases mới cho PHP
+pnpm run smoke              # Smoke test MCP server
+```
 
-# Unit tests — kiểm tra detectRuntime với composer.json
-pnpm test
+### 4.2 Init thử dự án PHP mẫu
 
-# Smoke test — kiểm tra tool count
-pnpm run smoke
-
-# Init thử dự án PHP mẫu
+```bash
 mkdir -p /tmp/test-php && cd /tmp/test-php
 echo '{"name":"test/php-app","require":{"php":">=7.4"}}' > composer.json
-harness init . --stack php
-cat .harness/verify.yaml  # Phải có PHP commands
-cat init.sh               # Phải có PHP block
 
-# Verify thử
-harness verify --repo .
+harness init .                          # auto-detect → php
+harness init . --stack php --force      # explicit
+
+cat .harness/verify.yaml      # Phải có PHP block
+cat init.sh                   # Phải có PHP block
+cat AGENTS.md                 # Phải có PHP section
 ```
+
+---
+
+## 5. Lịch trình đề xuất
+
+| Bước | Thời gian | Phụ thuộc |
+|------|-----------|-----------|
+| Phase 1 (runtime.ts + verify.ts + tests) | 2-3 giờ | — |
+| Phase 2 (templates + CLI + rust fix) | 1-1.5 giờ | Phase 1 |
+| Phase 3 (3 skills) | 1.5-2 giờ | Phase 1 |
+| Phase 4 (docs sync) | 30 phút | Phase 1-3 |
+| **Tổng** | **5-7 giờ** | |
+
+**Thứ tự**: Phase 1 → 2 → 3 → 4
+
+---
+
+## Deferred (không trong scope lần này)
+
+- XAMPP service checks (doctor, `xampp.yaml`) — chỉ implement khi cần verify trên XAMPP thật
+- CI/CD matrix cho PHP — chỉ cần khi muốn test PHP trong GitHub Actions
+- HIS-specific rulebook — tạo riêng (`rulebooks/php/`) khi bắt đầu code trên HIS

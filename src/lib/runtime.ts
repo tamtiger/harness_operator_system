@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-export type PackageManager = "npm" | "pnpm";
+export type PackageManager = "npm" | "pnpm" | "composer";
 
 export interface RuntimeInfo {
   runtime: string;
@@ -45,6 +45,15 @@ export function getPmCommands(pm: PackageManager, repoPath?: string): {
         test: "pnpm test",
         lint: "pnpm lint",
       };
+    case "composer":
+      return {
+        install: repoPath && existsSync(join(repoPath, "composer.lock"))
+          ? "composer install --no-dev"
+          : "composer install",
+        build: "composer dump-autoload --optimize",
+        test: "vendor/bin/phpunit",
+        lint: "vendor/bin/phpcs",
+      };
     case "npm":
     default:
       // For npm, check if lockfile exists
@@ -82,6 +91,15 @@ export function detectRuntime(repoPath: string): RuntimeInfo {
         test: "dotnet test --no-build",
         lint: "dotnet format --verify-no-changes",
       },
+    };
+  }
+
+  // Check for PHP (composer.json)
+  if (existsSync(join(repoPath, "composer.json"))) {
+    return {
+      runtime: "php",
+      packageManager: "composer",
+      commands: getPmCommands("composer", repoPath),
     };
   }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectRuntime } from "./runtime.js";
+import { detectRuntime, getPmCommands } from "./runtime.js";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -85,6 +85,68 @@ describe("detectRuntime", () => {
       const result = detectRuntime(dir);
       expect(result.runtime).toBe("dotnet");
       expect(result.commands.install).toBe("dotnet restore");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  it("detects php runtime from composer.json", () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, "composer.json"), "{}");
+    try {
+      const result = detectRuntime(dir);
+      expect(result.runtime).toBe("php");
+      expect(result.packageManager).toBe("composer");
+      expect(result.commands.install).toBe("composer install");
+      expect(result.commands.build).toBe("composer dump-autoload --optimize");
+      expect(result.commands.test).toBe("vendor/bin/phpunit");
+      expect(result.commands.lint).toBe("vendor/bin/phpcs");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  it("php takes priority over node when both composer.json and package.json exist", () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, "composer.json"), "{}");
+    writeFileSync(join(dir, "package.json"), "{}");
+    try {
+      const result = detectRuntime(dir);
+      expect(result.runtime).toBe("php");
+      expect(result.packageManager).toBe("composer");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  it("dotnet takes priority over php when both .sln and composer.json exist", () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, "MyApp.sln"), "");
+    writeFileSync(join(dir, "composer.json"), "{}");
+    try {
+      const result = detectRuntime(dir);
+      expect(result.runtime).toBe("dotnet");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  it("getPmCommands composer with lock uses --no-dev", () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, "composer.lock"), "{}");
+    try {
+      const cmds = getPmCommands("composer", dir);
+      expect(cmds.install).toBe("composer install --no-dev");
+    } finally {
+      rmSync(dir, { recursive: true });
+    }
+  });
+
+  it("getPmCommands composer without lock uses plain install", () => {
+    const dir = makeTempDir();
+    try {
+      const cmds = getPmCommands("composer", dir);
+      expect(cmds.install).toBe("composer install");
     } finally {
       rmSync(dir, { recursive: true });
     }

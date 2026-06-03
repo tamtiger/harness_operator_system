@@ -3,6 +3,24 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] — PHP/XAMPP Stack Integration
+
+### Added
+- **PHP runtime detection** — `src/lib/runtime.ts`: Added `"composer"` to `PackageManager` union, `getPmCommands` case for `composer`, and `detectRuntime` priority for `composer.json` (after `.sln/.csproj`, before `package.json`).
+- **PHP verify pipeline** — `src/tools/verify.ts`: Added `.php`/`.phtml` to `LINTABLE_EXTENSIONS`, `buildChangedOnlyLintCmd` case for `php` runtime.
+- **PHP stack in templates** — `templates/verify.yaml.tpl`, `templates/init.sh.tpl`, `templates/AGENTS.md.tpl`: Added `{{#if_php}}` conditional blocks with composer/phpunit/phpcs commands.
+- **PHP stack in CLI** — `src/cli/harness.ts`: Added `"php"` to stacks, `"composer"` package manager selection, and PM template variables for composer.
+- **3 PHP skills** — `skills/php-baseline/`, `skills/php-codeigniter-3-workflow/`, `skills/php-codeigniter-4-workflow/` with full SKILL.md documentation.
+- **Bug fix: Missing `{{#if_rust}}` blocks** — Added missing `{{#if_rust}}` blocks to `templates/verify.yaml.tpl` and `templates/init.sh.tpl`.
+- **Bug fix: CLI help text** — Added missing `rust` and `php` stacks in `harness init` help text (`src/cli/harness.ts:1052`).
+
+### Tests
+- Added 5 PHP runtime detection tests (`src/lib/runtime.test.ts`)
+- Added 4 PHP verify pipeline tests (`src/tools/verify.test.ts`)
+- Total: 198 tests passing
+
+---
+
 ## [1.4.0] — 2026-06-01
 
 ### Added

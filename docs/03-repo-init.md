@@ -7,7 +7,7 @@
 ## Lệnh `harness init`
 
 ```bash
-harness init /path/to/your/repo [--stack auto|node|dotnet|python|go] [--force]
+harness init /path/to/your/repo [--stack auto|node|dotnet|python|go|rust|php] [--force]
 ```
 
 ## Stack detection tự động

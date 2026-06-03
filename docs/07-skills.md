@@ -90,6 +90,14 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `csharp-code-review` | Code Review C# | Code review checklist cho C# / ABP | csharp, dotnet, review, code-review, pr, merge-request, c#, .net, đánh giá, yêu cầu hợp nhất |
 | `csharp-repair` | Sửa chữa C# | Sửa compile errors, runtime errors, test failures | csharp, dotnet, hotfix, repair, patch, urgent, c#, .net, vá, khẩn cấp |
 
+#### **PHP / XAMPP Stack (3 skills)**
+
+| Skill | Tiếng Việt | Mục đích | Keywords |
+|-------|-----------|----------|----------|
+| `php-baseline` | PHP Baseline | PHP conventions: Composer, PSR standards, PHPUnit, PHPStan, XAMPP stack | php, composer, psr, phpunit, phpstan, xampp, strict_types |
+| `php-codeigniter-3-workflow` | CI3 Workflow | CodeIgniter 3: HMVC, routing, database, migrations, form validation | codeigniter, ci3, hmvc, mx_controller, xampp |
+| `php-codeigniter-4-workflow` | CI4 Workflow | CodeIgniter 4: PSR-4, Spark CLI, entities, Shield auth, migrations | codeigniter, ci4, spark, psr-4, shield, entities |
+
 ---
 
 ### Tier 3 — On-Demand Skills (2 skills, không bao giờ tự động gợi ý)

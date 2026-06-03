@@ -1,0 +1,12 @@
+{
+  "name": "Auto Refresh MCP Token",
+  "version": "1.0.0",
+  "description": "Tu dong refresh Keycloak token truoc khi lam viec. Neu token con han (>30 phut) thi bo qua.",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell -ExecutionPolicy Bypass -File c:\\FPT\\MyProject\\harness_operator_system\\.kiro\\hooks\\refresh-token.ps1"
+  }
+}

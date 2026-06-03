@@ -37,7 +37,7 @@ harness <command> [options]
 Khởi tạo harness cho một repo.
 
 ```bash
-harness init [path] [--stack auto|node|dotnet|python|go] [--force]
+harness init [path] [--stack auto|node|dotnet|python|go|rust|php] [--force]
 ```
 
 | Flag | Mô tả |

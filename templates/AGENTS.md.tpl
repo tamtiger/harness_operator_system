@@ -50,6 +50,14 @@ go test ./...       # Run tests
 golangci-lint run   # Lint check
 ```
 {{/if_go}}
+{{#if_php}}
+```bash
+composer install         # Install dependencies
+composer dump-autoload   # Regenerate autoloader
+vendor/bin/phpunit       # Run tests
+vendor/bin/phpcs         # Lint (PSR-12)
+```
+{{/if_php}}
 {{#if_rust}}
 ```bash
 cargo build         # Build project

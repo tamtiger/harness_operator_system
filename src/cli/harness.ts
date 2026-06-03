@@ -66,9 +66,11 @@ function cmdInit() {
   const runtime = stackArg === "auto" ? detectRuntime(repoPath) : { runtime: stackArg };
   const stack = runtime.runtime;
 
-  // Detect package manager (only relevant for Node.js repos)
+  // Detect package manager
   let packageManager: string = "npm";
-  if (stack === "node" || stack === "auto") {
+  if (stack === "php") {
+    packageManager = "composer";
+  } else if (stack === "node" || stack === "auto") {
     if (pmArg !== "auto") {
       packageManager = pmArg; // npm, or pnpm
     } else if ("packageManager" in runtime) {
@@ -91,6 +93,10 @@ function cmdInit() {
     pmInstall = "pnpm install --frozen-lockfile";
     pmRun = "pnpm run";
     pmName = "pnpm";
+  } else if (packageManager === "composer") {
+    pmInstall = existsSync(join(repoPath, "composer.lock")) ? "composer install --no-dev" : "composer install";
+    pmRun = "composer";
+    pmName = "composer";
   } else {
     // npm (default)
     pmInstall = existsSync(join(repoPath, "package-lock.json")) ? "npm ci" : "npm install";
@@ -103,7 +109,6 @@ function cmdInit() {
     { path: ".harness/scope.yaml", template: "scope.yaml.tpl" },
     { path: ".harness/feature_list.json", template: "feature_list.json.tpl" },
     { path: ".harness/verify.yaml", template: "verify.yaml.tpl" },
-    { path: "init.sh", template: "init.sh.tpl" },
   ];
 
   const created: string[] = [];
@@ -191,7 +196,7 @@ function renderTemplate(
 
   // Handle conditional blocks: {{#if_<stack>}}...{{/if_<stack>}}
   const stack = vars.STACK;
-  const stacks = ["node", "dotnet", "python", "go", "rust"];
+  const stacks = ["node", "dotnet", "python", "go", "rust", "php"];
 
   for (const s of stacks) {
     const regex = new RegExp(`\\{\\{#if_${s}\\}\\}([\\s\\S]*?)\\{\\{/if_${s}\\}\\}`, "g");
@@ -1049,7 +1054,7 @@ switch (command) {
 harness-os — Local harness operator system for agentic coding
 
 Usage:
-  harness init [path] [--stack auto|node|dotnet|python|go] [--force]
+  harness init [path] [--stack auto|node|dotnet|python|go|rust|php] [--force]
   harness doctor
   harness status [--repo path] [--format json|table]
   harness verify [--repo path]

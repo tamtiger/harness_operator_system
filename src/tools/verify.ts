@@ -55,6 +55,7 @@ interface VerifyConfig {
   timeouts?: {
     build?: number;
     test?: number;
+    lint?: number;
   };
 }
 
@@ -68,6 +69,7 @@ const LINTABLE_EXTENSIONS: Record<string, string[]> = {
   python: [".py"],
   go: [".go"],
   rust: [".rs"],
+  php: [".php", ".phtml"],
 };
 
 function truncate(str: string, max: number): string {
@@ -162,14 +164,14 @@ export function parseVerifyYaml(content: string): VerifyConfig {
   return config;
 }
 
-function filterLintableFiles(files: string[], runtimeName: string): string[] {
+export function filterLintableFiles(files: string[], runtimeName: string): string[] {
   const exts = LINTABLE_EXTENSIONS[runtimeName];
   const filtered = exts ? files.filter((f) => exts.some((ext) => f.endsWith(ext))) : files;
   // Sanitize: only allow files with safe characters to prevent shell injection
   return filtered.filter((f) => /^[a-zA-Z0-9_\-\.\/\\]+$/.test(f));
 }
 
-function buildChangedOnlyLintCmd(
+export function buildChangedOnlyLintCmd(
   originalCmd: string,
   runtimeName: string,
   changedFiles: string[]
@@ -182,6 +184,9 @@ function buildChangedOnlyLintCmd(
     return `dotnet format --verify-no-changes --include ${fileList}`;
   }
   if (runtimeName === "node") {
+    return `${originalCmd} ${fileList}`;
+  }
+  if (runtimeName === "php") {
     return `${originalCmd} ${fileList}`;
   }
   // Fallback: run original command for other runtimes

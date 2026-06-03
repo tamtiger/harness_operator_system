@@ -54,3 +54,32 @@ timeouts:
   build: 120
   test: 300
 {{/if_go}}
+{{#if_rust}}
+runtime: rust
+commands:
+  install: null
+  build: "cargo build"
+  test: "cargo test"
+  lint: "cargo clippy"
+  typecheck: null
+  # security_audit: null
+  # simplify: null
+timeouts:
+  build: 180
+  test: 300
+{{/if_rust}}
+{{#if_php}}
+runtime: php
+commands:
+  install: "composer install"
+  build: null
+  test: "vendor/bin/phpunit"
+  lint: "vendor/bin/phpcs"
+  typecheck: null
+  # security_audit: null
+  # simplify: null
+timeouts:
+  build: 60
+  test: 300
+  lint: 120
+{{/if_php}}

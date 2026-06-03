@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseVerifyYaml, STEP_ORDER } from "./verify.js";
+import { parseVerifyYaml, STEP_ORDER, filterLintableFiles, buildChangedOnlyLintCmd } from "./verify.js";
 
 describe("parseVerifyYaml", () => {
   it("parses basic verify.yaml with all 7 steps", () => {
@@ -308,6 +308,53 @@ commands:
     // When explicit steps are provided to verifyRun(), they override the config
     // This is tested in the integration tests for verifyRun()
     expect(config.commands?.install).toBe("npm install");
+  });
+});
+
+describe("PHP runtime support", () => {
+  it("filterLintableFiles keeps .php and .phtml files", () => {
+    const files = ["index.php", "helper.phtml", "style.css", "script.js", "Class.php"];
+    const result = filterLintableFiles(files, "php");
+    expect(result).toEqual(["index.php", "helper.phtml", "Class.php"]);
+  });
+
+  it("filterLintableFiles returns empty for non-PHP files", () => {
+    const files = ["style.css", "script.js", "data.xml"];
+    const result = filterLintableFiles(files, "php");
+    expect(result).toEqual([]);
+  });
+
+  it("buildChangedOnlyLintCmd for php appends file list", () => {
+    const result = buildChangedOnlyLintCmd("vendor/bin/phpcs", "php", ["src/Controller.php", "src/Model.php"]);
+    expect(result).toBe("vendor/bin/phpcs src/Controller.php src/Model.php");
+  });
+
+  it("parseVerifyYaml handles php runtime config", () => {
+    const yaml = `
+runtime: php
+commands:
+  install: "composer install"
+  build: null
+  test: "vendor/bin/phpunit"
+  lint: "vendor/bin/phpcs"
+  typecheck: null
+  security_audit: null
+  simplify: null
+timeouts:
+  build: 60
+  test: 300
+  lint: 120
+`;
+    const config = parseVerifyYaml(yaml);
+    expect(config.runtime).toBe("php");
+    expect(config.commands?.install).toBe("composer install");
+    expect(config.commands?.build).toBeNull();
+    expect(config.commands?.test).toBe("vendor/bin/phpunit");
+    expect(config.commands?.lint).toBe("vendor/bin/phpcs");
+    expect(config.commands?.typecheck).toBeNull();
+    expect(config.timeouts?.build).toBe(60000);
+    expect(config.timeouts?.test).toBe(300000);
+    expect(config.timeouts?.lint).toBe(120000);
   });
 });
 
