@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { resolve, join, basename, dirname } from "node:path";
-import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync, renameSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { detectRuntime } from "../lib/runtime.js";
@@ -111,6 +111,19 @@ function cmdInit() {
     { path: ".harness/verify.yaml", template: "verify.yaml.tpl" },
   ];
 
+  // Rename existing AGENTS.md unless --force
+  let oldAgentsNote = "";
+  if (!force) {
+    const agentsPath = join(repoPath, "AGENTS.md");
+    if (existsSync(agentsPath)) {
+      const backupName = "AGENTS_OLD.md";
+      renameSync(agentsPath, join(repoPath, backupName));
+      oldAgentsNote =
+        `> **Note:** Original AGENTS.md preserved as \`${backupName}\`. ` +
+        `Refer to it for project-specific instructions that may need to be merged.\n`;
+    }
+  }
+
   const created: string[] = [];
   const skipped: string[] = [];
 
@@ -137,6 +150,7 @@ function cmdInit() {
       PM_INSTALL: pmInstall,
       PM_RUN: pmRun,
       VERSION: packageJson.version,
+      OLD_AGENTS_NOTE: oldAgentsNote,
     });
 
     const dir = dirname(targetPath);
