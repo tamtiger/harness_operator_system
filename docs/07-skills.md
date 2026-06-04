@@ -22,7 +22,7 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 
 ---
 
-## 30 Built-in Skills
+## 31 Built-in Skills
 
 ### Tier 1 — Core Workflow (3 skills, luôn gợi ý)
 
@@ -36,7 +36,7 @@ Những skill cốt lõi được gợi ý ở mỗi session_start, không phụ
 
 ---
 
-### Tier 2 — Contextual Skills (25 skills, gợi ý theo keyword)
+### Tier 2 — Contextual Skills (26 skills, gợi ý theo keyword)
 
 Những skill được gợi ý dựa trên từ khóa trong task title/scope. Mỗi skill có keywords tiếng Anh + tiếng Việt.
 
@@ -50,7 +50,7 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `spec-driven-workflow` | Quy trình Hướng Spec | RIPER-5 phases (Research → Innovate → Plan → Execute → Review) | riper, riper-5, deep-dive, phase-detail, chi tiết pha |
 | `brainstorming` | Động não giải pháp | Khung brainstorm giải pháp đa phương án với tradeoff matrix | brainstorm, ideate, explore, approach, tradeoff, ý tưởng, phương án |
 
-#### **Quy trình Phát triển (7 skills)**
+#### **Quy trình Phát triển (8 skills)**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
@@ -61,6 +61,7 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `parallel-coordination` | Phối hợp Song song | Phân rã công việc thành track độc lập, quản lý dependencies | parallel, concurrent, decompose, independent, fan-out, stage, song song, độc lập, giai đoạn |
 | `edge-case-generation` | Sinh Test Biên | Sinh hệ thống test case biên (boundary, failure, adversarial) | edge-case, boundary, adversarial, fuzz, negative, overflow, biên, đối kháng, tràn |
 | `subagent-driven-development` | Phát triển qua Subagent | Điều phối và ủy thác công việc cho các agent con qua tool | subagent, parallel, worker, delegate, dispatch, phân công |
+| `deep-learning-review` | Học Sâu sau Session | Sinh tài liệu learning có cấu trúc (elii style), Scope Guard, Mode Auto-Detection | learn, review, session, project, explain, understand, recap, knowledge, học, hiểu, giải thích, tổng kết |
 
 #### **Chất lượng & Bảo mật (4 skills)**
 

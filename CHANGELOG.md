@@ -3,6 +3,22 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased] — Deep Learning Review Enhancements
+
+### Added
+- **Skill: `deep-learning-review` v1.1 — Enhanced Learning Workflow**
+  - **Scope Guard** — Skip trivial sessions (<3 tool calls) or small projects (<3 files) automatically
+  - **Mode Auto-Detection** — Automatically select session/project mode based on trigger or user keywords
+  - **5-Phase Workflow** — Gather Context → Determine Mode → Analyze → Generate → Save & Present
+  - **Harness Tool Integration Table** — Clear mapping of phase → tool (`harness_status`, `audit_log`, `instinct_add`)
+  - **Anti-Patterns Table** — 7 common mistakes (copy-paste code, omit "why", too long docs, no examples, etc.)
+  - **Example Output** — Abbreviated Mode A demonstrating expected depth, tone, and structure
+
+### Tests
+- Total: 198 tests passing (all existing tests remain green)
+
+---
+
 ## [Unreleased] — PHP/XAMPP Stack Integration
 
 ### Added

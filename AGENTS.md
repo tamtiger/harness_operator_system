@@ -15,7 +15,7 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Version:** 1.4.0
 - **Tools:** 31 MCP tools across 11 modules
 - **Tests:** 189 unit tests (vitest) + smoke test
-- **Skills:** 30 built-in skills with tiered keyword matching
+- **Skills:** 31 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, codebase search, and observability.
 
@@ -458,7 +458,7 @@ harness-os/
 │           ├── vitest.ts     # Vitest JSON output parser
 │           └── generic.ts    # Generic test output parser
 │
-├── skills/                   # 30 built-in skills (YAML frontmatter + markdown)
+├── skills/                   # 31 built-in skills (YAML frontmatter + markdown)
 │   ├── karpathy-guidelines/SKILL.md
 │   ├── harness-workflow/SKILL.md
 │   ├── tdd-workflow/SKILL.md
@@ -482,6 +482,7 @@ harness-os/
 │   ├── deep-research/SKILL.md
 │   ├── brainstorming/SKILL.md
 │   ├── subagent-driven-development/SKILL.md
+│   ├── deep-learning-review/SKILL.md
 │   ├── code-review-workflow/SKILL.md
 │   ├── finishing-a-development-branch/SKILL.md
 │   ├── csharp-baseline/SKILL.md

@@ -6,7 +6,7 @@
 [![Version](https://img.shields.io/badge/version-1.4.0-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-31-blue)](#)
-[![Skills](https://img.shields.io/badge/skills-30-blue)](#)
+[![Skills](https://img.shields.io/badge/skills-31-blue)](#)
 [![Tests](https://img.shields.io/badge/tests-189%20passing-brightgreen)](#)
 
 ## Đây là gì?
@@ -211,7 +211,7 @@ Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 - `spec-driven-workflow` — RIPER-5 phases (Research → Innovate → Plan → Execute → Review)
 - `brainstorming` — **NEW** — Khung brainstorm giải pháp đa phương án với tradeoff matrix
 
-**Development Workflows (7 skills)**
+**Development Workflows (8 skills)**
 - `tdd-workflow` — Test-Driven Development (red-green-refactor)
 - `read-first` — Đọc code trước khi viết (search patterns, tránh trùng lặp)
 - `systematic-diagnosis` — Chẩn đoán lỗi có hệ thống
@@ -219,6 +219,7 @@ Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 - `parallel-coordination` — Phân rã công việc thành track độc lập
 - `edge-case-generation` — Sinh test case biên (boundary conditions)
 - `subagent-driven-development` — **NEW** — Kỹ thuật chia nhỏ task, ủy thác qua `subagent_invoke`
+- `deep-learning-review` — **NEW** — Học sâu sau session/project, sinh tài liệu knowledge retention
 
 **Quality & Security (4 skills)**
 - `security-audit` — STRIDE threat modeling + OWASP Top 10
