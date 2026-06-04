@@ -13,6 +13,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
   - **Harness Tool Integration Table** — Clear mapping of phase → tool (`harness_status`, `audit_log`, `instinct_add`)
   - **Anti-Patterns Table** — 7 common mistakes (copy-paste code, omit "why", too long docs, no examples, etc.)
   - **Example Output** — Abbreviated Mode A demonstrating expected depth, tone, and structure
+  - **Example Answer Document** — `deep-learning-review.answer.md` with 10 Q&A pairs showing complete learning doc
+
+- **Template: `AGENTS.md.tpl` v1.1 — Improved Agent Guidance**
+  - **Template version comment** — Clear metadata header for template maintenance
+  - **Quality Rubric section** — What good sessions look like (handoff written, progress logged, verify pass, 0 scope violations)
+  - **Troubleshooting section** — 6 common issues with solutions (MCP not responding, lint fails, skill not found, etc.)
+  - **Expanded Subagents guidance** — When to use (2+ independent tasks) vs when NOT to use (single file edit)
+  - **Reorganized Skills recommendations** — Categorized into Core/Development/Design/Completion groups
+  - **Added `deep-learning-review` skill** to Session Completion category
 
 ### Tests
 - Total: 198 tests passing (all existing tests remain green)

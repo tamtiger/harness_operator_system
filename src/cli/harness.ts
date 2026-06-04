@@ -46,7 +46,14 @@ function getProjectRoot(): string {
 // === harness init ===
 
 function cmdInit() {
-  let rawPath = args[1] || ".";
+  // Find first positional arg that is not a flag
+  let rawPath = ".";
+  for (let i = 1; i < args.length; i++) {
+    if (!args[i].startsWith("-")) {
+      rawPath = args[i];
+      break;
+    }
+  }
   // Expand ~ to home directory (not done automatically on Windows CMD)
   if (rawPath === "~" || rawPath.startsWith("~/") || rawPath.startsWith("~\\")) {
     rawPath = join(homedir(), rawPath.slice(2));
@@ -203,6 +210,9 @@ function renderTemplate(
   content: string,
   vars: Record<string, string>
 ): string {
+  // Remove template metadata comments (<!-- ... -->)
+  content = content.replace(/<!--[\s\S]*?-->/g, "");
+
   // Replace {{VAR}} placeholders
   for (const [key, val] of Object.entries(vars)) {
     content = content.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
