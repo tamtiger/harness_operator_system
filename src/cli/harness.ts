@@ -11,7 +11,7 @@ import { skillLoad, skillList } from "../tools/skill.js";
 import { verifyRun } from "../tools/verify.js";
 import { harnessStatus } from "../tools/observe.js";
 import { taskList } from "../tools/task.js";
-import { instinctGet } from "../tools/instinct.js";
+import { instinctGet, instinctAdd } from "../tools/instinct.js";
 import { getDb } from "../db/client.js";
 import { generateTree } from "../lib/tree.js";
 import { generateSummary, writeSummary } from "../lib/repo-summary.js";
@@ -46,7 +46,21 @@ function getProjectRoot(): string {
 // === harness init ===
 
 function cmdInit() {
-  let rawPath = args[1] || ".";
+  // Find the first argument after 'init' that is not a flag/option value
+  let rawPath = ".";
+  for (let i = 1; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith("-")) {
+      // If it has a value, skip next element too
+      if (arg === "--stack" || arg === "--pm") {
+        i++;
+      }
+      continue;
+    }
+    rawPath = arg;
+    break;
+  }
+
   // Expand ~ to home directory (not done automatically on Windows CMD)
   if (rawPath === "~" || rawPath.startsWith("~/") || rawPath.startsWith("~\\")) {
     rawPath = join(homedir(), rawPath.slice(2));
@@ -1009,6 +1023,51 @@ async function cmdOrchestrate() {
   }
 }
 
+// === harness knowledge ===
+
+function cmdKnowledge() {
+  const listFlag = hasFlag("list") || args.length === 1;
+  const addFlag = hasFlag("add");
+  const typeFlag = getFlag("type");
+  const tagsFlag = getFlag("tags");
+
+  const types = typeFlag ? typeFlag.split(",").map(t => t.trim()) : undefined;
+  const tags = tagsFlag ? tagsFlag.split(",").map(t => t.trim()) : undefined;
+
+  if (addFlag) {
+    const description = args.slice(2).filter(arg => !arg.startsWith("--")).join(" ");
+    if (!description) {
+      console.error("  ✗ Usage: harness knowledge --add --type <type> <description> [--tags <tags>]");
+      process.exit(1);
+    }
+    const { id } = instinctAdd(
+      description,
+      tags || [],
+      0.9,
+      undefined,
+      typeFlag as any || "instinct"
+    );
+    console.log(`\n✓ Added knowledge (ID: ${id.slice(0, 8)})\n`);
+    return;
+  }
+
+  if (listFlag) {
+    const { instincts } = instinctGet(tags, undefined, undefined, types);
+    console.log("\n=== Knowledge Items ===\n");
+    if (instincts.length === 0) {
+      console.log("  (no knowledge found)");
+      return;
+    }
+    for (const item of instincts) {
+      console.log(`  [${item.type}] [${item.confidence.toFixed(1)}] ${item.description}`);
+      console.log(`    tags: ${item.tags.join(", ")}`);
+      if (item.resolution) console.log(`    resolution: ${item.resolution}`);
+      console.log("");
+    }
+    return;
+  }
+}
+
 // === Main dispatch ===
 
 switch (command) {
@@ -1063,6 +1122,9 @@ switch (command) {
   case "report":
     cmdReport();
     break;
+  case "knowledge":
+    cmdKnowledge();
+    break;
   default:
     console.log(`
 harness-os — Local harness operator system for agentic coding
@@ -1085,6 +1147,8 @@ Usage:
   harness workers [--list] [--kill <id>] [--cleanup] [--repo path] [--status running|finished|failed|all]
   harness hooks [--list] [--validate] [--dry-run --tool <tool> [--args <json>]] [--repo path]
   harness report [--period 7d|30d|all] [--repo path] [--format json|table]
+  harness knowledge [--type lesson|pattern|decision|...] [--tags "tag1,tag2"] [--list]
+  harness knowledge --add --type decision <description> [--tags "tag1,tag2"]
 `);
     break;
 }

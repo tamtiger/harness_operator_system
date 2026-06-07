@@ -8,6 +8,13 @@
 
 Instincts là patterns ngắn gọn mà agent học được từ kinh nghiệm. Chúng nhẹ hơn skills — chỉ là 1 câu mô tả + tags + confidence score.
 
+Từ v1.5.0, Instincts đóng vai trò là lớp lưu trữ tri thức tổng quát và được phân chia thành các loại (`type`):
+- `instinct`: Pattern phản xạ nhanh thông thường.
+- `lesson`: Bài học kinh nghiệm rút ra từ lỗi sai hoặc thành công.
+- `pattern` / `anti_pattern`: Mẫu thiết kế/cách tiếp cận tốt hoặc xấu cần tránh.
+- `decision`: Quyết định kiến trúc (ADR) hoặc thiết kế dự án.
+- `experiment`: Nhật ký các thử nghiệm (thất bại hoặc thành công) giúp tránh lặp lại thử nghiệm vô ích.
+
 ---
 
 ## Lifecycle

@@ -91,15 +91,18 @@ CREATE TABLE IF NOT EXISTS reflections (
 
 ---
 
-## New MCP Tools (2 tools)
+## New & Enhanced MCP Tools (1 New Tool, 2 Modified Tools)
 
-### `reflection_run`
+### `reflection_run` [NEW]
 
-Trigger reflection analysis on a completed session/task.
+Trigger reflection analysis on a completed session/task. 
+
+> [!NOTE]
+> Để tránh việc MCP server hoạt động như một LLM (tự sinh ý nghĩa và mô tả lesson), `reflection_run` chỉ trích xuất các số liệu thống kê thô (raw statistics) và các mẫu sự kiện (event patterns) từ `audit_events`. Agent (LLM) sẽ đọc dữ liệu này và tự quyết định việc rút ra lesson để gọi `instinct_add` một cách tường minh.
 
 ```typescript
 server.registerTool("reflection_run", {
-  description: "Run reflection analysis on a completed task. Extracts lessons, patterns, and updates knowledge.",
+  description: "Retrieve raw tool execution statistics, error frequencies, and patterns from a completed task or session for reflection. (The agent should review these stats and explicitly call instinct_add to save lessons).",
   inputSchema: {
     session_id: z.string().describe("Session to reflect on"),
     task_id: z.string().optional().describe("Specific task (if omitted, reflects on entire session)"),
@@ -109,59 +112,76 @@ server.registerTool("reflection_run", {
 ```
 
 **What it does:**
-1. Query `audit_events` for the session — extract tool calls, errors, retries, duration
-2. Query `session_instinct_refs` — which instincts were used
-3. Analyze patterns:
-   - Same tool failed multiple times? → Create `type: 'pattern'` instinct
-   - Session took >3 loops to pass? → Create `type: 'lesson'` instinct
-   - New architectural decision made? → Create `type: 'decision'` instinct
-4. Check if similar lesson already exists (fuzzy match on description) → update confidence instead of duplicate
-5. Return structured findings + actions taken
+1. Query `audit_events` for the session — count tool calls, errors, retries, and compute duration.
+2. Group errors by tool and message pattern.
+3. Identify potential issues (e.g., a single tool called >5 times, a tool failing >2 times, long execution time).
+4. Save the reflection summary into the `reflections` table.
+5. Return the raw metrics and findings.
 
 **Output:**
-
 ```json
 {
-  "findings": [
-    { "type": "lesson", "description": "verify_run fails on Windows when path contains spaces", "confidence": 0.5 },
-    { "type": "pattern", "description": "code_search_grep called 8 times before finding correct file", "confidence": 0.4 }
-  ],
-  "actions_taken": [
-    { "action": "instinct_add", "id": "uuid-1", "type": "lesson" },
-    { "action": "instinct_add", "id": "uuid-2", "type": "pattern" }
-  ],
-  "session_summary": {
+  "reflection_id": "uuid-reflection-123",
+  "metrics": {
     "total_tool_calls": 45,
-    "errors": 3,
-    "retries": 2,
-    "duration_seconds": 340
-  }
+    "errors_count": 3,
+    "duration_seconds": 340,
+    "repeated_tool_calls": {
+      "code_search_grep": 8
+    },
+    "failed_tools": [
+      { "tool": "verify_run", "error": "verify_run fails on Windows when path contains spaces", "count": 2 }
+    ]
+  },
+  "suggested_topics": ["verify_run windows path", "code_search_grep frequency"]
 }
 ```
 
-### `knowledge_query`
+---
 
-Query accumulated knowledge (lessons, patterns, decisions) relevant to a task.
+### `instinct_get` [MODIFY]
+
+Mở rộng `instinct_get` hiện có để hỗ trợ tìm kiếm mờ (fuzzy semantic matching) và lọc theo type. Tránh thêm tool `knowledge_query` làm phình số lượng tool và tăng cognitive load cho agent.
 
 ```typescript
-server.registerTool("knowledge_query", {
-  description: "Query accumulated knowledge (lessons, patterns, anti-patterns, decisions) relevant to a task context.",
+server.registerTool("instinct_get", {
+  description: "Retrieve instincts, lessons, patterns, and decisions matching criteria.",
   inputSchema: {
-    query: z.string().describe("Natural language query or task description"),
-    types: z.array(z.enum(["lesson", "pattern", "anti_pattern", "decision", "experiment"])).optional(),
-    tags: z.array(z.string()).optional(),
+    tags: z.array(z.string()).optional().describe("Filter by exact tags"),
     min_confidence: z.number().optional().describe("Minimum confidence threshold (default 0.4)"),
+    session_id: z.string().optional().describe("Filter by session ID"),
+    type: z.array(z.enum(["instinct", "lesson", "pattern", "anti_pattern", "decision", "experiment"])).optional().describe("Filter by type"),
+    query: z.string().optional().describe("Fuzzy query string (uses skill-matcher tokenizer to match description + tags)"),
   },
 });
 ```
 
-**What it does:**
-1. Tokenize query (reuse `skill-matcher.ts` tokenizer)
-2. Search instincts WHERE `type IN (requested_types)` AND tags match AND confidence >= threshold
-3. Rank by relevance (token overlap + confidence weight)
-4. Return top-K results
+**Fuzzy Match logic:**
+1. Nếu có `query`, token hóa query bằng tokenizer trong `skill-matcher.ts`.
+2. Truy vấn SQLite tìm instincts khớp một phần từ khóa trong description và tags.
+3. Sắp xếp kết quả theo trọng số kết hợp (token overlap + confidence).
 
-**Difference from `instinct_get`:** `instinct_get` filters by exact tags. `knowledge_query` does fuzzy semantic matching on description + tags combined.
+---
+
+### `instinct_add` [MODIFY]
+
+Cập nhật signature và schema để hỗ trợ lưu trữ các metadata mới:
+
+```typescript
+server.registerTool("instinct_add", {
+  description: "Save a new instinct, lesson, anti-pattern, or architectural decision.",
+  inputSchema: {
+    description: z.string().describe("Description of the lesson, pattern, or decision"),
+    tags: z.array(z.string()).describe("Tags for categorizing this knowledge"),
+    confidence: z.number().optional().describe("Bayesian confidence (defaults to 0.5)"),
+    ttl_days: z.number().optional().describe("TTL in days"),
+    type: z.enum(["instinct", "lesson", "pattern", "anti_pattern", "decision", "experiment"]).optional().describe("Type of knowledge (defaults to 'instinct')"),
+    context: z.string().optional().describe("JSON string containing context details (e.g. task_id, repo)"),
+    resolution: z.string().optional().describe("Resolution strategy or workaround details"),
+    review_trigger: z.string().optional().describe("Condition or trigger to re-evaluate this knowledge"),
+  },
+});
+```
 
 ---
 
@@ -360,18 +380,19 @@ instinctAdd(
 
 | Item | Effort | Dependency |
 |---|---|---|
-| Schema migration (type, context, resolution columns) | S | v1.4 schema |
-| `reflection_run` tool | M | audit_events + instinct system |
-| `knowledge_query` tool | M | skill-matcher tokenizer |
+| Schema migration (type, context, resolution columns, reflections table) with idempotent checks | S | v1.4 schema |
+| `reflection_run` tool (returns raw metrics and event patterns) | M | audit_events + reflections DB |
+| Extended `instinct_get` (fuzzy matching with query param + type filtering) | M | skill-matcher tokenizer |
 | Never Again file injection in `session_start` | S | None |
 | `harness knowledge` CLI command | S | Schema |
-| Update smoke test (33 tools) | S | New tools |
+| **Documentation Sync (AGENTS.md, README, templates, docs/)** | S | All above |
+| Update smoke test (32 tools registered) | S | New tools |
 
 ### Phase 2 — Automation (v1.5.1)
 
 | Item | Effort | Dependency |
 |---|---|---|
-| Post-task reflection hook (hooks.yaml extension) | M | Phase 1 |
+| Post-task reflection hook (hooks.yaml parser extension) | M | Phase 1 |
 | Auto changelog append | S | session_handoff |
 | Doc drift detection | M | audit_events analysis |
 | Pre-task knowledge injection in `session_start` | S | Phase 1 |
@@ -407,7 +428,7 @@ After v1.5:
 ```
 Session 1: Agent makes mistake X
   → reflection_run detects pattern
-  → instinct_add(type='lesson', description='...')
+  → LLM Agent processes stats and calls instinct_add(type='lesson', description='...')
 
 Session 2: session_start
   → relevant_knowledge includes lesson about X
@@ -429,15 +450,16 @@ Session 3: Same mistake attempted
 
 | # | Criterion | Verify |
 |---|---|---|
-| 1 | `reflection_run` extracts ≥1 finding from a session with errors | Unit test with mock audit data |
-| 2 | `knowledge_query("podman volume")` returns relevant lessons | Unit test with seeded instincts |
+| 1 | `reflection_run` extracts raw metrics/patterns from a session | Unit test with mock audit data |
+| 2 | Extended `instinct_get(query: "podman volume")` returns fuzzy matches | Unit test with seeded instincts |
 | 3 | `session_start` includes `never_again` field when file exists | Unit test |
 | 4 | `session_start` includes `relevant_knowledge` from past lessons | Unit test |
 | 5 | Instinct with `type: 'lesson'` survives `instinct_prune` if confidence > 0.3 | Unit test |
 | 6 | `harness knowledge --type decision --list` shows ADRs | CLI test |
 | 7 | Duplicate lesson detection: same description → update confidence, not insert | Unit test |
-| 8 | 33 tools registered in smoke test | Smoke test |
-| 9 | `pnpm run build` passes, all tests pass | CI |
+| 8 | 32 tools registered in smoke test | Smoke test |
+| 9 | **Documentation Sync: AGENTS.md, README.md, templates/AGENTS.md.tpl and docs/ are fully updated** | Review of files |
+| 10 | `pnpm run build` passes, all tests pass | CI |
 
 ---
 

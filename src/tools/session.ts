@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import { getDb, registerRepo, updateRepoLastActive } from "../db/client.js";
 import { detectRuntime } from "../lib/runtime.js";
 import { readRepoConfig, createRepoConfig, resolveGlobalRepoPath } from "../lib/repo-identity.js";
@@ -11,6 +12,7 @@ import { skillList } from "./skill.js";
 import { getTier1Skills, type SkillWithMetadata } from "../lib/skill-matcher.js";
 import { checkStopValidation } from "../lib/hooks.js";
 import { cleanupExpiredWorkers } from "../lib/worker-registry.js";
+import { instinctGet, type InstinctRecord } from "./instinct.js";
 
 export interface SessionStartResult {
   session_id: string;
@@ -18,6 +20,8 @@ export interface SessionStartResult {
   pending_tasks_count: number;
   applicable_skills: string[];
   instructions_to_read: string[];
+  never_again: string[];
+  relevant_knowledge: InstinctRecord[];
   _warn?: string;
 }
 
@@ -109,12 +113,47 @@ export function sessionStart(repoPath: string): SessionStartResult {
   // Determine instructions to read
   const instructions: string[] = ["AGENTS.md", "skill:harness-workflow"];
 
+  // Read never_again.md warnings
+  const neverAgainPath = join(repoPath, ".harness", "never_again.md");
+  let neverAgainWarnings: string[] = [];
+  if (existsSync(neverAgainPath)) {
+    try {
+      const content = readFileSync(neverAgainPath, "utf-8");
+      neverAgainWarnings = content
+        .split("\n")
+        .filter((line) => line.trim().startsWith("- "))
+        .map((line) => line.trim().slice(2).trim());
+    } catch {}
+  }
+
+  // Get relevant knowledge
+  const contextText = [
+    ...(handoff?.next_steps ?? []),
+    ...tasks.map((t) => t.title),
+  ].join(" ");
+
+  let relevantKnowledge: InstinctRecord[] = [];
+  if (contextText.trim().length > 0) {
+    try {
+      const knowledgeResult = instinctGet(
+        undefined,
+        0.4,
+        undefined,
+        ["lesson", "pattern", "anti_pattern", "decision"],
+        contextText
+      );
+      relevantKnowledge = knowledgeResult.instincts.slice(0, 5);
+    } catch {}
+  }
+
   const result: SessionStartResult = {
     session_id: id,
     last_handoff: handoff,
     pending_tasks_count: pendingCount,
     applicable_skills: applicableSkills,
     instructions_to_read: instructions,
+    never_again: neverAgainWarnings,
+    relevant_knowledge: relevantKnowledge,
   };
 
   if (orphanWarning) {

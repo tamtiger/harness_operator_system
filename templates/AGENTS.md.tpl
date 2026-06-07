@@ -162,8 +162,9 @@ cargo clippy        # Lint check
 | Invoke subagent | `subagent_invoke({ role, prompt, context_files, commands })` |
 | Search codebase | `code_search_grep({ query })` |
 | Find codebase symbols | `code_search_symbols({ query })` |
-| Add instinct | `instinct_add({ description, tags })` |
-| Get instincts | `instinct_get({ tags })` |
+| Add instinct | `instinct_add({ description, tags, type, context, resolution })` |
+| Get instincts | `instinct_get({ tags, type, query })` |
+| Run reflection | `reflection_run({ session_id, trigger })` |
 
 ### Repo Summary
 
@@ -183,6 +184,7 @@ You can run these commands from the terminal to manage the harness session and c
 - `harness workers` — List, monitor, or terminate active subagent worker processes.
 - `harness hooks` — Inspect or validate your hook configurations.
 - `harness doctor` — Verify that harness-os dependencies and environment are working correctly.
+- `harness knowledge` — View or manage learned lessons, patterns, and ADR decisions in SQLite.
 
 ---
 
@@ -195,6 +197,7 @@ You can run these commands from the terminal to manage the harness session and c
 - `.harness/handoff_last.json` — context for next session
 - `.harness/config.yaml` — repo identity and configuration
 - `.harness/repo-summary.md` — directory tree map and stack information (read first)
+- `.harness/never_again.md` — critical warnings/rules that must not be repeated (created manually or auto-generated)
 
 ---
 

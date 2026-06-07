@@ -36,6 +36,7 @@ your-repo/
     ├── skills/                   # Repo-specific skills (override global)
     │   └── repo-conventions/
     │       └── SKILL.md
+    ├── never_again.md            # Các lỗi nghiêm cấm không được lặp lại
     └── handoff_last.json         # Context cho session tiếp theo
 ```
 
@@ -52,6 +53,7 @@ your-repo/
 | `.harness/scope.yaml` | Forbidden paths + allowed paths per task | Agent (qua `scope_check`) | Human |
 | `.harness/verify.yaml` | Lệnh verify (install/build/test/lint) | Agent (qua `verify_run`) | Human / `harness init` |
 | `.harness/hooks.yaml` | Pre-tool blocking và rules stop validation | MCP server | Human |
+| `.harness/never_again.md` | Cấm lặp lại các lỗi nghiêm trọng | Agent | Human / Agent (auto) |
 | `.harness/handoff_last.json` | State cho session sau | Agent | Agent (qua `session_handoff`) |
 | `~/.harness/harness.sqlite` | Sessions, tasks, instincts, audit | MCP server | MCP server |
 | `~/.harness/audit.jsonl` | Event stream (append-only) | Debug/trace | MCP server (auto) |

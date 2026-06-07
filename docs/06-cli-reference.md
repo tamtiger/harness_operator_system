@@ -29,6 +29,7 @@ harness <command> [options]
 | `workers` | Quản lý subagent workers chạy nền |
 | `hooks` | Kiểm tra và dry-run hook rules |
 | `report` | Sinh báo cáo reliability của hệ thống |
+| `knowledge` | Quản lý tri thức đã học (lessons, decisions, v.v.) |
 
 ---
 
@@ -428,4 +429,29 @@ harness report [--period 7d|30d|all] [--repo path] [--format json|table]
 ```bash
 harness report
 harness report --period 30d --format json
+```
+
+---
+
+## `harness knowledge`
+
+Xem hoặc quản lý tri thức đã tích lũy (lessons, patterns, anti_patterns, decisions, experiments) trong cơ sở dữ liệu SQLite.
+
+```bash
+harness knowledge [--type type] [--tags tags] [--list] [--add] <description>
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--list` | Liệt kê các tri thức (default) |
+| `--add` | Thêm tri thức mới thủ công |
+| `--type` | Lọc hoặc chỉ định loại tri thức (`lesson`, `pattern`, `decision`, `anti_pattern`, v.v.) |
+| `--tags` | Lọc hoặc chỉ định tags (comma-separated) |
+
+**Ví dụ:**
+
+```bash
+harness knowledge --list --type decision
+harness knowledge --list --tags "windows,podman"
+harness knowledge --add --type decision "Sử dụng pnpm thay vì npm cho dự án monorepo" --tags "npm,pnpm,monorepo"
 ```

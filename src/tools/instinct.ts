@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "../db/client.js";
+import { tokenize, expandTokens } from "../lib/skill-matcher.js";
 
 export interface InstinctRecord {
   id: string;
@@ -13,6 +14,10 @@ export interface InstinctRecord {
   reference_count: number;
   last_outcome: string | null;
   last_referenced_at: string | null;
+  type: string;
+  context: string | null;
+  resolution: string | null;
+  review_trigger: string | null;
 }
 
 export interface InstinctAddResult {
@@ -39,15 +44,34 @@ export function instinctAdd(
   description: string,
   tags: string[],
   confidence?: number,
-  ttlDays?: number
+  ttlDays?: number,
+  type?: "instinct" | "lesson" | "pattern" | "anti_pattern" | "decision" | "experiment",
+  context?: string,
+  resolution?: string,
+  reviewTrigger?: string
 ): InstinctAddResult {
   const db = getDb();
   const id = randomUUID();
   const now = new Date().toISOString();
 
   db.prepare(
-    `INSERT INTO instincts (id, description, tags, confidence, ttl_days, created_at, success_count, failure_count, reference_count) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0)`
-  ).run(id, description, JSON.stringify(tags), confidence ?? 0.5, ttlDays ?? null, now);
+    `INSERT INTO instincts (
+      id, description, tags, confidence, ttl_days, created_at, 
+      success_count, failure_count, reference_count, 
+      type, context, resolution, review_trigger
+    ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?)`
+  ).run(
+    id,
+    description,
+    JSON.stringify(tags),
+    confidence ?? 0.5,
+    ttlDays ?? null,
+    now,
+    type ?? "instinct",
+    context ?? null,
+    resolution ?? null,
+    reviewTrigger ?? null
+  );
 
   return { id };
 }
@@ -55,7 +79,9 @@ export function instinctAdd(
 export function instinctGet(
   tags?: string[],
   minConfidence?: number,
-  sessionId?: string
+  sessionId?: string,
+  type?: string[],
+  query?: string
 ): InstinctGetResult {
   const db = getDb();
 
@@ -73,7 +99,16 @@ export function instinctGet(
     reference_count: number;
     last_outcome: string | null;
     last_referenced_at: string | null;
+    type: string;
+    context: string | null;
+    resolution: string | null;
+    review_trigger: string | null;
   }>;
+
+  // Filter by type
+  if (type && type.length > 0) {
+    rows = rows.filter((row) => type.includes(row.type));
+  }
 
   // Filter by tags
   if (tags && tags.length > 0) {
@@ -86,6 +121,33 @@ export function instinctGet(
   // Filter by min confidence
   if (minConfidence !== undefined) {
     rows = rows.filter((row) => row.confidence >= minConfidence);
+  }
+
+  // Fuzzy match by query
+  if (query) {
+    const queryTokens = expandTokens(tokenize(query));
+    if (queryTokens.length > 0) {
+      rows = rows
+        .map((row) => {
+          const descTokens = tokenize(row.description);
+          const rowTags = JSON.parse(row.tags) as string[];
+          const tagTokens = rowTags.flatMap((t) => tokenize(t));
+          const allTokens = new Set([...descTokens, ...tagTokens]);
+
+          let matches = 0;
+          for (const t of queryTokens) {
+            if (allTokens.has(t)) {
+              matches++;
+            }
+          }
+
+          const score = matches > 0 ? (matches / queryTokens.length) * 0.7 + row.confidence * 0.3 : 0;
+          return { row, score };
+        })
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((item) => item.row);
+    }
   }
 
   // Track references and update Bayesian confidence
@@ -138,6 +200,10 @@ export function instinctGet(
     reference_count: row.reference_count,
     last_outcome: row.last_outcome,
     last_referenced_at: row.last_referenced_at,
+    type: row.type,
+    context: row.context,
+    resolution: row.resolution,
+    review_trigger: row.review_trigger,
   }));
 
   return { instincts, available_tags: Array.from(tagSet).sort() };
