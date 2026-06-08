@@ -1038,7 +1038,22 @@ function cmdKnowledge() {
   const tags = tagsFlag ? tagsFlag.split(",").map(t => t.trim()) : undefined;
 
   if (addFlag) {
-    const description = args.slice(2).filter(arg => !arg.startsWith("--")).join(" ");
+    const descParts: string[] = [];
+    for (let i = 1; i < args.length; i++) {
+      const arg = args[i];
+      if (arg === "--add" || arg === "--list") {
+        continue;
+      }
+      if (arg === "--type" || arg === "--tags") {
+        i++; // Skip flag and its value
+        continue;
+      }
+      if (arg.startsWith("--")) {
+        continue;
+      }
+      descParts.push(arg);
+    }
+    const description = descParts.join(" ");
     if (!description) {
       console.error("  ✗ Usage: harness knowledge --add --type <type> <description> [--tags <tags>]");
       process.exit(1);

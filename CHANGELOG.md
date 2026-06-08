@@ -3,6 +3,26 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.0] — 2026-06-08
+
+### Added
+- **Self-Learning & Knowledge Evolution Layer**:
+  - **New tool: `reflection_run`**: Extract raw execution metrics, tool frequencies, and error patterns from session/task audit events.
+  - **Fuzzy Instinct Search**: Extended `instinct_get` with fuzzy query matching using the skill-matcher tokenizer and type filters.
+  - **Rich Knowledge Metadata**: Extended `instinct_add` to support `type` (instinct, lesson, pattern, anti_pattern, decision, experiment), `context`, `resolution`, and `review_trigger`.
+  - **Never Again System**: Added `.harness/never_again.md` file-based system, injecting critical warnings and relevant past knowledge/lessons into `session_start` and `session_resume` response context.
+  - **`harness knowledge` CLI Command**: Command-line tool to list, filter, and add lessons, decisions (ADRs), experiments, and patterns in the SQLite DB.
+  - **Reflections Tracking**: Added `reflections` table in SQLite schema to keep lightweight task reflection summaries.
+
+### Changed
+- **CLI improvements & fixes**: Fixed duplicate `rawPath` declarations and options parsing in `harness init`.
+
+### Tests
+- Added `src/tools/reflection.test.ts` (1 test) and `src/tools/instinct.test.ts` (2 tests).
+- Total: 202 tests passing (Vitest) + MCP smoke test validated for all 32 tools.
+
+---
+
 ## [Unreleased] — Deep Learning Review Enhancements
 
 ### Added
