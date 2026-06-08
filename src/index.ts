@@ -10,6 +10,7 @@ import { taskCreate, taskUpdate, taskList } from "./tools/task.js";
 import { verifyRun } from "./tools/verify.js";
 import { skillLoad, skillList, skillCreateFromSession, skillSuggest } from "./tools/skill.js";
 import { instinctAdd, instinctGet, instinctPrune, instinctEvolve, instinctPromote, recordInstinctOutcomes } from "./tools/instinct.js";
+import { reflectionRun } from "./tools/reflection.js";
 import { getDb } from "./db/client.js";
 import { detectRuntime } from "./lib/runtime.js";
 import {
@@ -355,18 +356,46 @@ server.registerTool(
   )
 );
 
-// === Instinct tools ===
+// === Instinct & Reflection tools ===
+
+server.registerTool(
+  "reflection_run",
+  {
+    description: "Retrieve raw tool execution statistics, error frequencies, and patterns from a completed task or session for reflection.",
+    inputSchema: {
+      session_id: z.string().describe("Session ID to analyze"),
+      task_id: z.string().optional().describe("Specific task ID to analyze"),
+      trigger: z.enum(["task_complete", "task_failed", "session_handoff"]).describe("Trigger condition for this reflection"),
+    },
+  },
+  makeHandler(
+    "reflection_run",
+    ({
+      session_id,
+      task_id,
+      trigger,
+    }: {
+      session_id: string;
+      task_id?: string;
+      trigger: "task_complete" | "task_failed" | "session_handoff";
+    }) => reflectionRun(session_id, task_id, trigger)
+  )
+);
 
 server.registerTool(
   "instinct_add",
   {
-    description: "Add a new instinct (reusable pattern learned from experience).",
+    description: "Add a new instinct (reusable pattern learned from experience, lesson, pattern, decision, etc).",
     inputSchema: {
-    description: z.string().describe("What the instinct captures"),
-    tags: z.array(z.string()).describe("Tags for filtering (e.g. ['node', 'testing'])"),
-    confidence: z.number().optional().describe("Initial confidence (0-1, default 0.5)"),
-    ttl_days: z.number().optional().describe("Time-to-live in days (null = permanent)"),
-  },
+      description: z.string().describe("What the instinct captures"),
+      tags: z.array(z.string()).describe("Tags for filtering (e.g. ['node', 'testing'])"),
+      confidence: z.number().optional().describe("Initial confidence (0-1, default 0.5)"),
+      ttl_days: z.number().optional().describe("Time-to-live in days (null = permanent)"),
+      type: z.enum(["instinct", "lesson", "pattern", "anti_pattern", "decision", "experiment"]).optional().describe("Type of knowledge"),
+      context: z.string().optional().describe("JSON string context details"),
+      resolution: z.string().optional().describe("Resolution strategy or workaround"),
+      review_trigger: z.string().optional().describe("Trigger condition to re-evaluate this knowledge"),
+    },
   },
   makeHandler(
     "instinct_add",
@@ -375,29 +404,50 @@ server.registerTool(
       tags,
       confidence,
       ttl_days,
+      type,
+      context,
+      resolution,
+      review_trigger,
     }: {
       description: string;
       tags: string[];
       confidence?: number;
       ttl_days?: number;
-    }) => instinctAdd(description, tags, confidence, ttl_days)
+      type?: "instinct" | "lesson" | "pattern" | "anti_pattern" | "decision" | "experiment";
+      context?: string;
+      resolution?: string;
+      review_trigger?: string;
+    }) => instinctAdd(description, tags, confidence, ttl_days, type, context, resolution, review_trigger)
   )
 );
 
 server.registerTool(
   "instinct_get",
   {
-    description: "Get instincts, optionally filtered by tags. Also returns available_tags for discovery.",
+    description: "Get instincts, optionally filtered by tags, type, or query. Also returns available_tags.",
     inputSchema: {
-    tags: z.array(z.string()).optional().describe("Filter by tags (any match)"),
-    min_confidence: z.number().optional().describe("Minimum confidence threshold"),
-    session_id: z.string().optional().describe("Session ID for tracking references (auto-resolved if not provided)"),
-  },
+      tags: z.array(z.string()).optional().describe("Filter by tags (any match)"),
+      min_confidence: z.number().optional().describe("Minimum confidence threshold"),
+      session_id: z.string().optional().describe("Session ID for tracking references"),
+      type: z.array(z.enum(["instinct", "lesson", "pattern", "anti_pattern", "decision", "experiment"])).optional().describe("Filter by types"),
+      query: z.string().optional().describe("Fuzzy query string using skill-matcher tokenizer to match description + tags"),
+    },
   },
   makeHandler(
     "instinct_get",
-    ({ tags, min_confidence, session_id }: { tags?: string[]; min_confidence?: number; session_id?: string }) =>
-      instinctGet(tags, min_confidence, session_id)
+    ({
+      tags,
+      min_confidence,
+      session_id,
+      type,
+      query,
+    }: {
+      tags?: string[];
+      min_confidence?: number;
+      session_id?: string;
+      type?: string[];
+      query?: string;
+    }) => instinctGet(tags, min_confidence, session_id, type, query)
   )
 );
 

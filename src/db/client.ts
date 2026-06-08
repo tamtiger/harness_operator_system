@@ -86,7 +86,35 @@ function runMigrations(db: Database.Database): void {
       repo_path TEXT,
       session_id TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS reflections (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      task_id TEXT,
+      trigger TEXT NOT NULL,
+      findings TEXT NOT NULL,
+      actions_taken TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (session_id) REFERENCES sessions(id)
+    );
   `);
+
+  // Idempotent column migrations for instincts table
+  const cols = db.prepare("PRAGMA table_info(instincts)").all() as Array<{ name: string }>;
+  const colNames = cols.map(c => c.name);
+
+  if (!colNames.includes("type")) {
+    db.exec("ALTER TABLE instincts ADD COLUMN type TEXT DEFAULT 'instinct'");
+  }
+  if (!colNames.includes("context")) {
+    db.exec("ALTER TABLE instincts ADD COLUMN context TEXT");
+  }
+  if (!colNames.includes("resolution")) {
+    db.exec("ALTER TABLE instincts ADD COLUMN resolution TEXT");
+  }
+  if (!colNames.includes("review_trigger")) {
+    db.exec("ALTER TABLE instincts ADD COLUMN review_trigger TEXT");
+  }
 }
 
 export function getDb(): Database.Database {

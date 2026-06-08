@@ -67,6 +67,7 @@ async function main() {
       "skill_suggest",
       "code_search_grep",
       "code_search_symbols",
+      "reflection_run",
     ];
 
     if (toolNames.length !== expected.length) {
@@ -146,6 +147,18 @@ async function main() {
       throw new Error("instinct_get returned no instincts");
     }
     console.log(`✓ instinct_get — found ${getData.instincts.length} instinct(s)`);
+
+    // Call reflection_run
+    const reflectRes = await client.callTool({
+      name: "reflection_run",
+      arguments: { session_id: sessionData.session_id, trigger: "session_handoff" },
+    });
+    const reflectContent = reflectRes.content as Array<{ type: string; text: string }>;
+    const reflectData = JSON.parse(reflectContent[0].text);
+    if (!reflectData.reflection_id) {
+      throw new Error("reflection_run missing reflection_id");
+    }
+    console.log(`✓ reflection_run — reflection_id: ${reflectData.reflection_id}`);
 
     // Call session_end
     await client.callTool({

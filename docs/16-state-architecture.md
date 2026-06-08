@@ -83,9 +83,10 @@ Location: `~/.harness/harness.sqlite` (override with `HARNESS_HOME` env var)
 ```sql
 sessions              (id, repo_path, status, started_at, ended_at)
 tasks                 (id, session_id, title, scope, status, created_at)
-instincts             (id, description, tags, confidence, ttl_days, created_at, success_count, failure_count, reference_count, last_outcome, last_referenced_at)
+instincts             (id, description, tags, confidence, ttl_days, created_at, success_count, failure_count, reference_count, last_outcome, last_referenced_at, type, context, resolution, review_trigger)
 session_instinct_refs (session_id, instinct_id, outcome, referenced_at)
 workers               (worker_id, pid, status, started_at, timeout_at, ended_at, command, repo_path, session_id)
+reflections           (id, session_id, task_id, trigger, findings, actions_taken, created_at)
 audit_events          (id, event_type, payload, created_at)
 ```
 
@@ -93,7 +94,7 @@ audit_events          (id, event_type, payload, created_at)
 
 - WAL mode for concurrent reads
 - Foreign keys enabled
-- Additive-only migrations (never drop/alter columns)
+- Additive-only migrations (never drop/alter columns, check with `table_info`)
 
 ---
 

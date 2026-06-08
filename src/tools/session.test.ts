@@ -5,6 +5,8 @@ import { readRepoConfig, createRepoConfig } from "../lib/repo-identity.js";
 import { handoffRead, progressLog } from "./state.js";
 import { taskList } from "./task.js";
 import { skillList } from "./skill.js";
+import { instinctGet } from "./instinct.js";
+
 
 vi.mock("../db/client.js", () => ({
   getDb: vi.fn(),
@@ -41,6 +43,11 @@ vi.mock("./task.js", () => ({
 
 vi.mock("./skill.js", () => ({
   skillList: vi.fn(() => ({ skills: [] })),
+}));
+
+vi.mock("./instinct.js", () => ({
+  instinctGet: vi.fn(() => ({ instincts: [], available_tags: [] })),
+  instinctAdd: vi.fn(),
 }));
 
 describe("session start and orphan recovery", () => {
@@ -107,5 +114,32 @@ describe("session start and orphan recovery", () => {
 
     expect(result._warn).toBeUndefined();
     expect(progressLog).not.toHaveBeenCalled();
+  });
+
+  it("includes never_again and relevant_knowledge in output", () => {
+    const mockConfig = { repo_id: "repo-uuid-123" };
+    (readRepoConfig as any).mockReturnValue(mockConfig);
+    const mockDb = {
+      prepare: vi.fn().mockImplementation(() => ({
+        all: vi.fn().mockReturnValue([]),
+        run: vi.fn(),
+      })),
+    };
+    (getDb as any).mockReturnValue(mockDb);
+
+    (handoffRead as any).mockReturnValue({
+      handoff: { next_steps: ["fix windows paths"] }
+    });
+
+    vi.mocked(instinctGet).mockReturnValue({
+      instincts: [{ id: "inst-1", description: "test lesson", type: "lesson", tags: [] } as any],
+      available_tags: []
+    });
+
+    const result = sessionStart("/mock/repo");
+    expect(result.never_again).toEqual([]);
+    expect(result.relevant_knowledge).toEqual([
+      { id: "inst-1", description: "test lesson", type: "lesson", tags: [] }
+    ]);
   });
 });

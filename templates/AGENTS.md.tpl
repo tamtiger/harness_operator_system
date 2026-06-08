@@ -16,6 +16,22 @@
 
 ---
 
+## ⚠️ MANDATORY: RUN THIS FIRST — BEFORE ANYTHING ELSE
+
+**Do not read files. Do not plan. Do not write code. Run this first:**
+
+```
+session_start(".")
+```
+
+**Wait for it to complete. Do not skip this step.**
+
+If you skip `session_start`, you are operating without context: no task list, no session ID, no handoff from the previous agent. Every other step in this file depends on the output of `session_start`.
+
+> **Skipping `session_start` = task failed. Stop and run it now.**
+
+---
+
 ## Project Overview
 
 This is a **{{STACK}}** project managed by harness-os. The harness ensures agents verify before claiming done, stay within scope, maintain context across sessions, and learn from patterns.
@@ -24,6 +40,34 @@ This is a **{{STACK}}** project managed by harness-os. The harness ensures agent
 - **Stack:** {{STACK}}
 - **Package Manager:** {{PM_NAME}}
 - **Harness version:** {{VERSION}}
+
+---
+
+## Workflow — Follow In Order, No Exceptions
+
+```
+[ ] 1. session_start(".")              ← MANDATORY FIRST ACTION
+[ ] 2. repo_summary_read(".")          ← understand codebase
+[ ] 3. Read last handoff context        ← review .harness/handoff_last.json or session_start output
+[ ] 4. Pick ONE task from session output
+[ ] 5. scope_check(".", file_path)     ← before editing EACH file
+[ ] 6. Make changes incrementally
+[ ] 7. progress_log(".", { summary, status: "in-progress" })
+[ ] 8. verify_run(".")                 ← ALL steps must pass
+[ ] 9. session_handoff(...)            ← MANDATORY LAST ACTION
+```
+
+### What happens if you skip steps
+
+| Skipped step | Consequence |
+|---|---|
+| `session_start` | No task context. Risk of duplicate or conflicting work. Session ID missing — handoff will fail. |
+| `repo_summary_read` | May edit wrong files or use wrong stack patterns. |
+| Read last handoff | You repeat work the previous agent already did, or miss critical context. |
+| `scope_check` | Risk editing forbidden paths. Harness will flag violation. |
+| `progress_log` | Next session loses mid-task context. |
+| `verify_run` | Task is NOT done. Build may be broken. Do not call handoff. |
+| `session_handoff` | All progress context is lost. Next agent starts blind. |
 
 ---
 
@@ -80,9 +124,14 @@ cargo clippy        # Lint check
 
 ---
 
-## Test Commands
+## Rules — Violation = Task Failed
 
-Run `verify_run(".")` to execute the full verification pipeline (install → build → test → lint). All steps must pass before marking a task as done.
+1. **`session_start` before anything** — No exceptions. First action, every session.
+2. **Verify before done** — Always run `verify_run` before marking any task complete.
+3. **Stay in scope** — Check `scope_check` before editing files outside your task's scope.
+4. **Log progress** — Use `progress_log` after each meaningful change.
+5. **Handoff at end** — Always call `session_handoff` before ending a session.
+6. **No silent failures** — If verification fails, fix it or report it. Never pretend it passed.
 
 ---
 
@@ -109,16 +158,23 @@ Run `verify_run(".")` to execute the full verification pipeline (install → bui
 
 Before you can use harness tools, one-time setup is required:
 
-1. **Install CLI** — `npm install -g harness-os` or use the project's local install
-2. **Install MCP config** — Run `harness install-mcp --ide cursor` (or your IDE name)
-   - This configures your IDE to connect to the harness MCP server
-   - Supported IDEs: `cursor`, `vscode`, `claude-code`, `kiro`, `antigravity`, `opencode`
-3. **Verify** — Run `harness doctor` to confirm everything works
-4. **Initialize** — Run `harness init` (already done if you're reading this file)
-
----
-
-## Harness-OS MCP Tools
+| Action | Tool |
+|--------|------|
+| Start work | `session_start(".")` |
+| Check scope | `scope_check(".", file_path)` |
+| Run verification | `verify_run(".")` |
+| Log progress | `progress_log(".", { summary, status })` |
+| End session | `session_handoff(session_id, summary, unfinished, next_steps)` |
+| Create task | `task_create(session_id, title, scope)` |
+| Update task | `task_update(task_id, { status, notes })` |
+| Load skill | `skill_load("skill-name")` |
+| Read repo summary | `repo_summary_read(".")` |
+| Invoke subagent | `subagent_invoke({ role, prompt, context_files, commands })` |
+| Search codebase | `code_search_grep({ query })` |
+| Find codebase symbols | `code_search_symbols({ query })` |
+| Add instinct | `instinct_add({ description, tags, type, context, resolution })` |
+| Get instincts | `instinct_get({ tags, type, query })` |
+| Run reflection | `reflection_run({ session_id, trigger })` |
 
 These are the 31 MCP tools available through the harness server. Tools are organized by domain and callable directly by the agent.
 
@@ -359,6 +415,14 @@ harness skills --list             # List all available skills
 | `.harness/repo-summary.md` | Directory tree map and stack information (read first) |
 | `.harness/repo-summary.meta.json` | Repository metadata |
 | `.harness/artifacts/` | Plans, research, and review documents |
+- `.harness/progress.md` — session history
+- `.harness/feature_list.json` — scope boundaries
+- `.harness/scope.yaml` — forbidden/allowed paths
+- `.harness/verify.yaml` — verification commands
+- `.harness/handoff_last.json` — context for next session
+- `.harness/config.yaml` — repo identity and configuration
+- `.harness/repo-summary.md` — directory tree map and stack information (read first)
+- `.harness/never_again.md` — critical warnings/rules that must not be repeated (created manually or auto-generated)
 
 ---
 
@@ -386,3 +450,12 @@ Use `skill_list()` to see all available skills. Recommended starting points:
 - `finishing-a-development-branch` — Proper branch completion workflow
 - `deep-learning-review` — Generate learning docs after session/project (elii style)
 - `code-review-workflow` — Self-review checklist before merge
+- `verification-loop` — never skip verification
+- `read-first` — read and understand before writing
+
+---
+
+## ⚠️ REMINDER: Did you run `session_start(".")`?
+
+If not, **stop and run it now**. No exceptions. Every step above depends on it.
+

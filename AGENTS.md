@@ -12,9 +12,9 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.4.0
-- **Tools:** 31 MCP tools across 11 modules
-- **Tests:** 189 unit tests (vitest) + smoke test
+- **Version:** 1.5.0
+- **Tools:** 32 MCP tools across 12 modules
+- **Tests:** 202 unit tests (vitest) + smoke test
 - **Skills:** 31 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, codebase search, and observability.
@@ -76,6 +76,7 @@ Each file exports pure functions grouped by domain. The MCP registration happens
 | `repo_summary.ts` | `repoSummaryRead` | Repository summary |
 | `subagent.ts` | `subagentInvoke` | Subagent execution |
 | `code_search.ts` | `codeSearchGrep`, `codeSearchSymbols` | Codebase searching |
+| `reflection.ts` | `reflectionRun` | Session/task reflection |
 
 ### 3.3 Lib Helpers — `src/lib/`
 
@@ -110,10 +111,11 @@ Schema tables (created via `runMigrations()` in `client.ts`):
 ```sql
 sessions (id TEXT PK, repo_path TEXT, status TEXT, started_at TEXT, ended_at TEXT)
 tasks (id TEXT PK, session_id TEXT FK, title TEXT, scope TEXT, status TEXT, created_at TEXT)
-instincts (id TEXT PK, description TEXT, tags TEXT, confidence REAL, ttl_days INTEGER, created_at TEXT, success_count INTEGER, failure_count INTEGER, reference_count INTEGER, last_outcome TEXT, last_referenced_at TEXT)
+instincts (id TEXT PK, description TEXT, tags TEXT, confidence REAL, ttl_days INTEGER, created_at TEXT, success_count INTEGER, failure_count INTEGER, reference_count INTEGER, last_outcome TEXT, last_referenced_at TEXT, type TEXT, context TEXT, resolution TEXT, review_trigger TEXT)
 session_instinct_refs (session_id TEXT FK, instinct_id TEXT FK, outcome TEXT, referenced_at TEXT)
 workers (worker_id TEXT PK, pid INTEGER, status TEXT, started_at TEXT, timeout_at TEXT, ended_at TEXT, command TEXT, repo_path TEXT, session_id TEXT)
 audit_events (id INTEGER PK AUTOINCREMENT, event_type TEXT, payload TEXT, created_at TEXT)
+reflections (id TEXT PK, session_id TEXT FK, task_id TEXT, trigger TEXT, findings TEXT, actions_taken TEXT, created_at TEXT)
 ```
 
 Database settings:
@@ -138,6 +140,7 @@ Commands:
 - `harness workers [--list] [--kill <id>] [--cleanup] [--repo path]`
 - `harness hooks [--list] [--validate] [--dry-run --tool <tool> [--args <json>]]`
 - `harness report [--period 7d|30d|all] [--repo path] [--format json|table]`
+- `harness knowledge [--type lesson|pattern|decision|...] [--tags "tag1,tag2"] [--list] [--add]`
 
 The CLI dispatches via a `switch` statement on the first positional argument.
 

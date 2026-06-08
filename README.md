@@ -3,11 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.4.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-31-blue)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-32-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-31-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-189%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-202%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -47,10 +47,10 @@ pnpm run dev -- install-mcp --ide cursor
 | **Verification** | Bằng chứng công việc đúng | `verify_run` |
 | **Scope** | Ranh giới ngăn drift | `scope_check`, `scope_get` |
 | **Lifecycle** | Luồng session từ đầu→cuối | `session_start/resume/end/handoff` |
-| **Continuous Learning** | Pattern tái sử dụng | `instinct_add/get/prune/evolve` |
+| **Continuous Learning & Reflection** | Pattern tái sử dụng & Tự kiểm điểm | `instinct_add/get/prune/evolve/promote`, `reflection_run` |
 | **Subagent Delegation** | Điều phối agent con chạy lệnh | `subagent_invoke` |
 
-## 31 MCP Tools
+## 32 MCP Tools
 
 <details>
 <summary><b>Session lifecycle (4 tools)</b></summary>
@@ -126,11 +126,20 @@ pnpm run dev -- install-mcp --ide cursor
 
 | Tool | Mô tả |
 |---|---|
-| `instinct_add` | Thêm pattern đã học (kèm confidence + TTL) |
-| `instinct_get` | Truy vấn theo tags + min_confidence |
+| `instinct_add` | Thêm pattern đã học (kèm confidence, TTL, type, context, resolution, review_trigger) |
+| `instinct_get` | Truy vấn theo tags, min_confidence, type, fuzzy query |
 | `instinct_prune` | Xóa instincts low-confidence/expired (có dry_run) |
 | `instinct_evolve` | Group 5+ instincts cùng tag → suggest skill draft |
 | `instinct_promote` | Pending → permanent (xóa TTL, boost confidence) |
+
+</details>
+
+<details>
+<summary><b>Reflection (1 tool)</b></summary>
+
+| Tool | Mô tả |
+|---|---|
+| `reflection_run` | Trích xuất chỉ số thống kê thô, tần suất gọi tool và các mẫu lỗi từ session để agent tự phản biện |
 
 </details>
 
@@ -162,7 +171,7 @@ pnpm run dev -- install-mcp --ide cursor
 
 </details>
 
-## CLI Commands (17)
+## CLI Commands (18)
 
 ```bash
 harness init [path] [--stack auto|node|dotnet|python|go]   # Setup repo
@@ -182,6 +191,7 @@ harness import <file.json>                                  # Import harness sta
 harness workers [--list] [--kill <id>] [--cleanup] [--repo path] # Manage workers
 harness hooks [--list] [--validate] [--dry-run --tool <name>] # Manage hooks
 harness report [--period 7d|30d|all] [--repo path]          # Get analytics report
+harness knowledge [--type type] [--tags tags] [--list] [--add] # Manage learned knowledge
 ```
 
 ## Built-in Skills (30)
@@ -251,12 +261,12 @@ Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 ```
 harness-os/
 ├── src/
-│   ├── index.ts              # MCP stdio server (31 tools, all wrapped)
+│   ├── index.ts              # MCP stdio server (32 tools, all wrapped)
 │   ├── cli/harness.ts        # CLI entry point
 │   ├── db/
 │   │   ├── client.ts         # SQLite + migrations
 │   │   └── audit.ts          # JSONL append helper
-│   ├── tools/                # 9 tool modules
+│   ├── tools/                # 10 tool modules
 │   └── lib/
 │       ├── runtime.ts        # Stack detection
 │       ├── repo.ts           # Path helpers
@@ -291,8 +301,8 @@ harness-os/
 pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
-pnpm test             # Unit tests (189 tests)
-pnpm run smoke        # End-to-end MCP test (31 tools, 30 skills)
+pnpm test             # Unit tests (202 tests)
+pnpm run smoke        # End-to-end MCP test (32 tools, 30 skills)
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.
