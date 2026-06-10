@@ -3,6 +3,29 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.1] — 2026-06-10
+
+### Added
+- **Workflow & Ceremony Optimizations**:
+  - **Lockfile Caching**: Auto-compute and cache lockfile hashes (`.harness/lockfile_hash.txt`) during `verify_run` `install` step, bypassing installation if lockfile is unchanged.
+  - **Quick Start Mode**: Added `quick` and `quick_task_title` options to `sessionStart`/`sessionResume` and the `harness quick-start` CLI command.
+  - **Optional Verification Steps**: Supported marking verify steps as `optional: true` in `verify.yaml`, preventing optional step failures from blocking validation.
+  - **CLI Flags**: Supported `--skip-install` and `--force-install` flags in `harness verify`.
+- **Database & Logging Resilience**:
+  - **Clean Connection Closing**: Automatically closes SQLite DB connection on process `exit` and termination signals (`SIGINT`, `SIGTERM`), preventing locks.
+  - **Non-truncating Timestamped Audit Backups**: Compresses entire `audit.jsonl` log to `audit.<timestamp>.jsonl.gz` every time the file size grows by another 10MB, without truncating the original log file.
+
+### Changed
+- **API updates**: Registered quick start options and new verify flags in MCP schemas.
+
+### Tests
+- Added lockfile cache and optional steps tests to `src/tools/verify.test.ts`, and quick session start tests to `src/tools/session.test.ts`.
+- Added unit tests for timestamp-based audit log compression in `src/db/audit.test.ts`.
+- Total: 207 unit tests passing (Vitest) + MCP smoke test validated for all 32 tools.
+
+
+---
+
 ## [1.5.0] — 2026-06-08
 
 ### Added

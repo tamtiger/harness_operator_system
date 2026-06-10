@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { detectRuntime } from "../lib/runtime.js";
 import { parseVitestJson, type ParsedTestResult } from "../lib/parsers/vitest.js";
 import { parseGenericOutput } from "../lib/parsers/generic.js";
@@ -29,6 +30,8 @@ export interface VerifyOptions {
   fail_fast?: boolean;       // default true
   changed_only?: boolean;    // default false — lint only changed files
   task_id?: string;          // if provided, auto-save evidence
+  force_install?: boolean;
+  skip_steps?: string[];
 }
 
 export interface VerifyResult {
@@ -56,6 +59,15 @@ interface VerifyConfig {
     build?: number;
     test?: number;
     lint?: number;
+  };
+  optional?: {
+    install?: boolean;
+    build?: boolean;
+    test?: boolean;
+    lint?: boolean;
+    typecheck?: boolean;
+    security_audit?: boolean;
+    simplify?: boolean;
   };
 }
 
@@ -113,7 +125,7 @@ function loadVerifyConfig(repoPath: string): VerifyConfig | null {
 }
 
 export function parseVerifyYaml(content: string): VerifyConfig {
-  const config: VerifyConfig = { commands: {}, timeouts: {} };
+  const config: VerifyConfig = { commands: {}, timeouts: {}, optional: {} };
   const lines = content.split("\n");
   let section = "";
 
@@ -159,6 +171,14 @@ export function parseVerifyYaml(content: string): VerifyConfig {
       }
       continue;
     }
+
+    if (section === "optional" && stripped.includes(":")) {
+      const [key, ...rest] = stripped.split(":");
+      const val = rest.join(":").trim().replace(/^["']|["']$/g, "");
+      const optKey = key.trim() as keyof NonNullable<VerifyConfig["optional"]>;
+      config.optional![optKey] = val === "true";
+      continue;
+    }
   }
 
   return config;
@@ -193,21 +213,66 @@ export function buildChangedOnlyLintCmd(
   return originalCmd;
 }
 
+function getLockfilePath(repoPath: string, runtime: string): string | null {
+  const possibleFiles: Record<string, string[]> = {
+    node: ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "bun.lockb"],
+    dotnet: ["packages.lock.json"],
+    python: ["poetry.lock", "Pipfile.lock", "requirements.txt", "pyproject.toml"],
+    go: ["go.sum", "go.mod"],
+    rust: ["Cargo.lock"],
+    php: ["composer.lock"],
+  };
+
+  const files = possibleFiles[runtime] || [];
+  for (const file of files) {
+    const p = join(repoPath, file);
+    if (existsSync(p)) return p;
+  }
+  const allCommon = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "bun.lockb", "composer.lock", "go.sum", "Cargo.lock", "poetry.lock", "requirements.txt"];
+  for (const file of allCommon) {
+    const p = join(repoPath, file);
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
+
+function computeFileHash(filePath: string): string {
+  try {
+    const content = readFileSync(filePath);
+    return createHash("sha256").update(content).digest("hex");
+  } catch {
+    return "";
+  }
+}
+
+function checkDepsDirExists(repoPath: string, runtime: string): boolean {
+  if (runtime === "node") return existsSync(join(repoPath, "node_modules"));
+  if (runtime === "php") return existsSync(join(repoPath, "vendor"));
+  if (runtime === "python") return existsSync(join(repoPath, ".venv")) || existsSync(join(repoPath, "venv"));
+  return true;
+}
+
 export function verifyRun(
   repoPath: string,
   options: VerifyOptions = {}
 ): VerifyResult {
-  const { steps, fail_fast = true, changed_only = false, task_id } = options;
+  const { steps, fail_fast = true, changed_only = false, task_id, force_install = false, skip_steps = [] } = options;
   const absPath = resolve(repoPath);
   const verifyConfig = loadVerifyConfig(absPath);
   const runtime = detectRuntime(absPath);
+  const skipStepsSet = new Set(skip_steps);
 
   const stepsToRun: { name: string; cmd: string; timeout: number }[] = [];
+
+  const addStep = (name: string, cmd: string, timeout: number) => {
+    if (skipStepsSet.has(name)) return;
+    stepsToRun.push({ name, cmd, timeout });
+  };
 
   if (steps && steps.length > 0) {
     // Explicit steps provided
     for (const step of steps) {
-      stepsToRun.push({ name: step, cmd: step, timeout: DEFAULT_TIMEOUT });
+      addStep(step, step, DEFAULT_TIMEOUT);
     }
   } else if (verifyConfig?.commands) {
     // Use verify.yaml config — iterate over STEP_ORDER for canonical ordering
@@ -218,16 +283,16 @@ export function verifyRun(
       const cmd = cmds[step as keyof typeof cmds];
       if (cmd !== null && cmd !== undefined) {
         const timeout = (timeouts[step as keyof typeof timeouts] || DEFAULT_TIMEOUT);
-        stepsToRun.push({ name: step, cmd, timeout });
+        addStep(step, cmd, timeout);
       }
     }
   } else {
     // Fallback to auto-detected runtime commands
     const cmds = runtime.commands;
-    if (cmds.install) stepsToRun.push({ name: "install", cmd: cmds.install, timeout: DEFAULT_TIMEOUT });
-    if (cmds.build) stepsToRun.push({ name: "build", cmd: cmds.build, timeout: DEFAULT_TIMEOUT });
-    if (cmds.test) stepsToRun.push({ name: "test", cmd: cmds.test, timeout: DEFAULT_TIMEOUT });
-    if (cmds.lint) stepsToRun.push({ name: "lint", cmd: cmds.lint, timeout: DEFAULT_TIMEOUT });
+    if (cmds.install) addStep("install", cmds.install, DEFAULT_TIMEOUT);
+    if (cmds.build) addStep("build", cmds.build, DEFAULT_TIMEOUT);
+    if (cmds.test) addStep("test", cmds.test, DEFAULT_TIMEOUT);
+    if (cmds.lint) addStep("lint", cmds.lint, DEFAULT_TIMEOUT);
   }
 
   if (stepsToRun.length === 0) {
@@ -275,26 +340,81 @@ export function verifyRun(
       }
     }
 
-    const startTime = Date.now();
-    const { ok, output } = runCommand(step.cmd, absPath, step.timeout);
-    const duration_ms = Date.now() - startTime;
+    const isOptional = verifyConfig?.optional?.[step.name as keyof typeof verifyConfig.optional] === true;
+    const runtimeName = verifyConfig?.runtime || runtime.runtime;
 
-    const stepResult: StepResult = {
-      name: step.name,
-      passed: ok,
-      output: truncate(output, MAX_STEP_OUTPUT),
-      duration_ms,
-    };
-    stepResults.push(stepResult);
+    let ok = true;
+    let output = "";
+    let duration_ms = 0;
 
-    outputs.push(`=== ${step.name} (${ok ? "PASS" : "FAIL"}) ===\n${output}`);
+    // Lockfile cache check for install step
+    let skippedByCache = false;
+    if (step.name === "install" && !force_install) {
+      const lockfile = getLockfilePath(absPath, runtimeName);
+      if (lockfile) {
+        const currentHash = computeFileHash(lockfile);
+        const hashFile = join(absPath, ".harness", "lockfile_hash.txt");
+        let cachedHash = "";
+        if (existsSync(hashFile)) {
+          try {
+            cachedHash = readFileSync(hashFile, "utf-8").trim();
+          } catch {}
+        }
+        const depsExists = checkDepsDirExists(absPath, runtimeName);
+        if (currentHash && currentHash === cachedHash && depsExists) {
+          skippedByCache = true;
+          ok = true;
+          output = "Lockfile unchanged and dependencies directory exists — skipping install.";
+        }
+      }
+    }
+
+    if (skippedByCache) {
+      const stepResult: StepResult = {
+        name: step.name,
+        passed: ok,
+        output,
+        duration_ms: 0,
+      };
+      stepResults.push(stepResult);
+      outputs.push(`=== ${step.name} (SKIP — cached) ===\n${output}`);
+    } else {
+      const startTime = Date.now();
+      const runRes = runCommand(step.cmd, absPath, step.timeout);
+      duration_ms = Date.now() - startTime;
+      ok = runRes.ok;
+      output = runRes.output;
+
+      // Update lockfile hash cache on successful install
+      if (step.name === "install" && ok) {
+        const lockfile = getLockfilePath(absPath, runtimeName);
+        if (lockfile) {
+          const currentHash = computeFileHash(lockfile);
+          if (currentHash) {
+            try {
+              const harnessDir = join(absPath, ".harness");
+              writeFileSync(join(harnessDir, "lockfile_hash.txt"), currentHash, "utf-8");
+            } catch {}
+          }
+        }
+      }
+
+      const stepResult: StepResult = {
+        name: step.name,
+        passed: ok,
+        output: truncate(output, MAX_STEP_OUTPUT),
+        duration_ms,
+      };
+      stepResults.push(stepResult);
+      outputs.push(`=== ${step.name} (${ok ? "PASS" : "FAIL"}${isOptional ? " [OPTIONAL]" : ""}) ===\n${output}`);
+    }
 
     // Parse test output if this is the test step
     if (step.name === "test") {
       testResults = parseVitestJson(output) || parseGenericOutput(output);
     }
 
-    if (!ok) {
+    if (!ok && !isOptional) {
       allPassed = false;
       if (fail_fast) {
         break; // Stop on first failure

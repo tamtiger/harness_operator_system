@@ -15,7 +15,8 @@ harness <command> [options]
 | `init` | Khởi tạo harness cho repo |
 | `doctor` | Health check hệ thống |
 | `status` | Snapshot trạng thái hiện tại |
-| `verify` | Chạy verify pipeline thủ công |
+| `verify` | Chạy verify pipeline thủ công (hỗ trợ skip/force install) |
+| `quick-start` | Khởi tạo session nhanh với task mặc định và '*' scope |
 | `skills` | Duyệt skills |
 | `tasks` | Liệt kê tasks |
 | `instincts` | Duyệt/export instincts |
@@ -110,14 +111,21 @@ harness status --repo ~/projects/my-api
 Chạy verify pipeline thủ công.
 
 ```bash
-harness verify [--repo path]
+harness verify [--repo path] [--skip-install] [--force-install]
 ```
+
+| Flag | Mô tả |
+|------|--------|
+| `--repo` | Đường dẫn repo (default: `.`) |
+| `--skip-install` | Bỏ qua bước `install` (chạy trực tiếp build/test/lint) |
+| `--force-install` | Ép buộc cài đặt dependencies, bỏ qua lockfile cache |
 
 **Ví dụ:**
 
 ```bash
 harness verify
-harness verify --repo ~/projects/my-api
+harness verify --skip-install
+harness verify --repo ~/projects/my-api --force-install
 ```
 
 **Output ví dụ:**
@@ -125,8 +133,42 @@ harness verify --repo ~/projects/my-api
 ```
 === harness verify: /home/user/my-project ===
 
-  Steps run: pnpm install, pnpm run build, pnpm run test, pnpm run lint
+  Steps run: pnpm run build, pnpm run test, pnpm run lint (install skipped by request)
   Result: ✅ PASSED
+```
+
+---
+
+## `harness quick-start`
+
+Khởi tạo nhanh một phiên làm việc (session) và tự động tạo một task ở trạng thái `in-progress` cùng phạm vi file (`scope`) mặc định là `*`. Hữu ích cho các sửa đổi nhỏ, bỏ qua các bước thiết lập rườm rà.
+
+```bash
+harness quick-start [--repo path] [--title "Task Title"]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--repo` | Đường dẫn repo (default: `.`) |
+| `--title` | Tiêu đề của task được tự động tạo (default: "Quick modification") |
+
+**Ví dụ:**
+
+```bash
+harness quick-start
+harness quick-start --title "Sửa lỗi chính tả trong ExceptionCode.cs"
+```
+
+**Output ví dụ:**
+
+```
+=== harness quick-start: /home/user/my-project ===
+
+  ✓ Session started: 5ddccbfc-2f8b-4342-a5e9-69e8605b0ae0
+  ✓ Task created: Sửa lỗi chính tả trong ExceptionCode.cs (e794df1f)
+  ✓ Scope set to '*'
+
+  Ready for quick modifications! Run 'harness verify' when done.
 ```
 
 ---

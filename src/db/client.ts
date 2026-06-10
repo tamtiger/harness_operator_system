@@ -125,6 +125,20 @@ export function getDb(): Database.Database {
   _db.pragma("journal_mode = WAL");
   _db.pragma("foreign_keys = ON");
   runMigrations(_db);
+
+  // Auto-close on process exit
+  process.once("exit", () => {
+    closeDb();
+  });
+
+  const onSignal = () => {
+    closeDb();
+    process.exit(130);
+  };
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+
+
   return _db;
 }
 

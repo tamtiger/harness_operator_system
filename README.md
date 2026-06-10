@@ -3,7 +3,7 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.5.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.5.1-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-32-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-31-blue)](#)
@@ -171,13 +171,14 @@ pnpm run dev -- install-mcp --ide cursor
 
 </details>
 
-## CLI Commands (18)
+## CLI Commands (19)
 
 ```bash
 harness init [path] [--stack auto|node|dotnet|python|go]   # Setup repo
 harness doctor [--check-skills-frontmatter] [--fix]        # Health check
 harness status [--repo path] [--format json|table]          # Snapshot
-harness verify [--repo path]                                # Run verify pipeline
+harness verify [--repo path] [--skip-install] [--force-install] # Run verify pipeline
+harness quick-start [--repo path] [--title "Task Title"]   # Quick session setup
 harness skills [--list | --show <name>]                     # Browse skills
 harness tasks [--repo path] [--status pending|done]         # List tasks
 harness instincts [--list | --export]                       # Browse instincts

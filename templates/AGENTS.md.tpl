@@ -295,7 +295,8 @@ Run these from the terminal (not inside the agent). All commands support `--help
 |---------|-------------|
 | `harness status [--repo path] [--format json\|table]` | View active session, pending tasks, recent instincts |
 | `harness init [path] [--stack auto\|node\|dotnet\|python\|go\|rust\|php] [--force]` | Initialize harness for a repo |
-| `harness verify [--repo path]` | Run verification pipeline manually |
+| `harness verify [--repo path] [--skip-install] [--force-install]` | Run verification pipeline manually (skip/force install) |
+| `harness quick-start [--repo path] [--title "Task Title"]` | Start a quick session with auto-task and '*' scope |
 | `harness tasks [--repo path] [--status <status>]` | List all logged tasks and their current statuses |
 | `harness skills [--list] [--show <name>] [--stack <filter>]` | Browse and view skill content |
 | `harness instincts [--list] [--export]` | List or export all instincts |

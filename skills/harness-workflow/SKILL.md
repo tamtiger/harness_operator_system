@@ -48,6 +48,13 @@ Skip the formal CTR block when:
 - User explicitly says "skip CTR"
 - Task is a direct continuation of a previous session's unfinished item
 
+### The Quick-Fix Path (Lối đi tắt)
+
+For minor modifications (typos, formatting, single-file doc fixes):
+1. **Quick start**: Call `session_start({ repo_path: ".", quick: true })` or run `harness quick-start` in terminal. This automatically creates an active task and opens scope to `*`.
+2. **Fast verification**: Run `verify_run({ repo_path: ".", skip_steps: ["install"] })` or `harness verify --skip-install` to skip dependency caching logic.
+3. **Atomic Wrap Up**: Call `session_handoff()` to close the session.
+
 ### CTR Storage
 
 When a Plan file is created, the CTR block is stored as the `## CTR` section inside that Plan file at:

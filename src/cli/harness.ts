@@ -9,6 +9,7 @@ import { createRepoConfig, resolveGlobalRepoPath } from "../lib/repo-identity.js
 import { registerRepo } from "../db/client.js";
 import { skillLoad, skillList } from "../tools/skill.js";
 import { verifyRun } from "../tools/verify.js";
+import { sessionStart } from "../tools/session.js";
 import { harnessStatus } from "../tools/observe.js";
 import { taskList } from "../tools/task.js";
 import { instinctGet, instinctAdd } from "../tools/instinct.js";
@@ -428,15 +429,45 @@ function cmdStatus() {
 
 function cmdVerify() {
   const repoPath = resolve(getFlag("repo") || ".");
+  const skipInstall = hasFlag("skip-install");
+  const forceInstall = hasFlag("force-install");
+
   console.log(`\n=== harness verify: ${repoPath} ===\n`);
 
-  const result = verifyRun(repoPath);
+  const skipSteps = skipInstall ? ["install"] : [];
+
+  const result = verifyRun(repoPath, {
+    force_install: forceInstall,
+    skip_steps: skipSteps,
+  });
 
   console.log(`  Steps run: ${result.steps_run.join(", ")}`);
   console.log(`  Result: ${result.passed ? "✅ PASSED" : "❌ FAILED"}`);
 
   if (!result.passed) {
     console.log(`\n  Output:\n${result.output}`);
+    process.exit(1);
+  }
+}
+
+// === harness quick-start ===
+
+function cmdQuickStart() {
+  const repoPath = resolve(getFlag("repo") || ".");
+  const title = getFlag("title") || "Quick modification";
+
+  console.log(`\n=== harness quick-start: ${repoPath} ===\n`);
+
+  try {
+    const result = sessionStart(repoPath, { quick: true, quick_task_title: title });
+    console.log(`  ✓ Session started: ${result.session_id}`);
+    if (result.quick_task_id) {
+      console.log(`  ✓ Task created: ${title} (${result.quick_task_id.slice(0, 8)})`);
+      console.log(`  ✓ Scope set to '*'`);
+    }
+    console.log(`\n  Ready for quick modifications! Run 'harness verify' when done.\n`);
+  } catch (err: any) {
+    console.error(`  ✗ Failed to start quick session: ${err.message}`);
     process.exit(1);
   }
 }
@@ -1104,6 +1135,9 @@ switch (command) {
   case "verify":
     cmdVerify();
     break;
+  case "quick-start":
+    cmdQuickStart();
+    break;
   case "skills":
     cmdSkills();
     break;
@@ -1151,7 +1185,8 @@ Usage:
   harness init [path] [--stack auto|node|dotnet|python|go|rust|php] [--force]
   harness doctor
   harness status [--repo path] [--format json|table]
-  harness verify [--repo path]
+  harness verify [--repo path] [--skip-install] [--force-install]
+  harness quick-start [--repo path] [--title "Task Title"]
   harness skills [--list] [--show <name>] [--stack <filter>]
   harness tasks [--repo path] [--status pending|in-progress|done]
   harness instincts [--list] [--export]

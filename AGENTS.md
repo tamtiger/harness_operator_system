@@ -12,7 +12,7 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.5.0
+- **Version:** 1.5.1
 - **Tools:** 32 MCP tools across 12 modules
 - **Tests:** 202 unit tests (vitest) + smoke test
 - **Skills:** 31 built-in skills with tiered keyword matching
@@ -131,7 +131,8 @@ Commands:
 - `harness init [path] [--stack auto|node|dotnet|python|go] [--force]`
 - `harness doctor`
 - `harness status [--repo path] [--format json|table]`
-- `harness verify [--repo path]`
+- `harness verify [--repo path] [--skip-install] [--force-install]`
+- `harness quick-start [--repo path] [--title "Task Title"]`
 - `harness skills [--list] [--show <name>] [--stack <filter>]`
 - `harness tasks [--repo path] [--status <status>]`
 - `harness instincts [--list] [--export]`

@@ -36,7 +36,12 @@ Trước khi bắt đầu task phức tạp, agent thực hiện CTR (Context-Ta
 - Single-file fix, doc-only change
 - User nói "skip CTR"
 
-Chi tiết đầy đủ: xem `skills/harness-workflow/SKILL.md` → section "CTR Gate (Pre-flight)".
+### Lối đi tắt (Quick-Fix Path) cho thay đổi nhỏ
+Đối với các thay đổi rất nhỏ (sửa lỗi chính tả, chỉnh tài liệu, cấu hình nhỏ):
+1. Khởi động nhanh session & task bằng lệnh: `harness quick-start --title "Sửa lỗi nhỏ"` hoặc gọi tool `session_start({ repo_path: ".", quick: true })`.
+2. Tiến hành chỉnh sửa code.
+3. Chạy verify nhanh: `harness verify --skip-install` (bỏ qua install vì dependencies không đổi).
+4. Gọi `session_handoff()` để đóng session.
 
 ---
 

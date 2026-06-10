@@ -142,4 +142,25 @@ describe("session start and orphan recovery", () => {
       { id: "inst-1", description: "test lesson", type: "lesson", tags: [] }
     ]);
   });
+
+  it("handles quick start options by auto-creating task", () => {
+    const mockConfig = { repo_id: "repo-uuid-123" };
+    (readRepoConfig as any).mockReturnValue(mockConfig);
+    const mockRun = vi.fn();
+    const mockDb = {
+      prepare: vi.fn().mockImplementation(() => ({
+        all: vi.fn().mockReturnValue([]),
+        run: mockRun,
+      })),
+    };
+    (getDb as any).mockReturnValue(mockDb);
+
+    const result = sessionStart("/mock/repo", { quick: true, quick_task_title: "My Quick Task" });
+    expect(result.quick_task_id).toBeDefined();
+    expect(progressLog).toHaveBeenCalledWith("/mock/repo", {
+      task_id: result.quick_task_id,
+      summary: "Started quick modification: My Quick Task",
+      status: "in-progress",
+    });
+  });
 });

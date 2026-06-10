@@ -22,6 +22,7 @@ export interface SessionStartResult {
   instructions_to_read: string[];
   never_again: string[];
   relevant_knowledge: InstinctRecord[];
+  quick_task_id?: string;
   _warn?: string;
 }
 
@@ -40,7 +41,12 @@ export interface SessionHandoffResult {
   error?: string;
 }
 
-export function sessionStart(repoPath: string): SessionStartResult {
+export interface SessionStartOptions {
+  quick?: boolean;
+  quick_task_title?: string;
+}
+
+export function sessionStart(repoPath: string, options: SessionStartOptions = {}): SessionStartResult {
   // --- v1.0 auto-migration: config, register, migrate, ensure dirs ---
   let config = readRepoConfig(repoPath);
   if (!config) config = createRepoConfig(repoPath);
@@ -87,6 +93,23 @@ export function sessionStart(repoPath: string): SessionStartResult {
   db.prepare(
     `INSERT INTO sessions (id, repo_path, status, started_at) VALUES (?, ?, 'active', ?)`
   ).run(id, repoPath, now);
+
+  // If quick start is selected, auto-create an active task
+  let quickTaskId: string | undefined;
+  if (options.quick || options.quick_task_title) {
+    quickTaskId = randomUUID();
+    const taskTitle = options.quick_task_title || "Quick modification";
+    db.prepare(`
+      INSERT INTO tasks (id, session_id, title, scope, status, created_at)
+      VALUES (?, ?, ?, '*', 'in-progress', ?)
+    `).run(quickTaskId, id, taskTitle, now);
+
+    progressLog(repoPath, {
+      task_id: quickTaskId,
+      summary: `Started quick modification: ${taskTitle}`,
+      status: "in-progress",
+    });
+  }
 
   // Read last handoff
   const { handoff } = handoffRead(repoPath);
@@ -156,6 +179,10 @@ export function sessionStart(repoPath: string): SessionStartResult {
     relevant_knowledge: relevantKnowledge,
   };
 
+  if (quickTaskId) {
+    result.quick_task_id = quickTaskId;
+  }
+
   if (orphanWarning) {
     result._warn = orphanWarning;
   }
@@ -163,9 +190,9 @@ export function sessionStart(repoPath: string): SessionStartResult {
   return result;
 }
 
-export function sessionResume(repoPath: string): SessionStartResult {
+export function sessionResume(repoPath: string, options: SessionStartOptions = {}): SessionStartResult {
   // Same as session_start but semantically "continue previous work"
-  return sessionStart(repoPath);
+  return sessionStart(repoPath, options);
 }
 
 export function sessionEnd(sessionId: string): SessionEndResult {

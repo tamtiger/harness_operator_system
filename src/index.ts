@@ -99,18 +99,34 @@ server.registerTool(
   "session_start",
   {
     description: "Start a new harness session for a repo. Returns session ID, last handoff, and pending tasks.",
-    inputSchema: { repo_path: z.string().describe("Absolute or relative path to the repo") },
+    inputSchema: {
+      repo_path: z.string().describe("Absolute or relative path to the repo"),
+      quick: z.boolean().optional().describe("If true, auto-creates a quick active task and sets scope to *"),
+      quick_task_title: z.string().optional().describe("Custom title for the quick task"),
+    },
   },
-  makeHandler("session_start", ({ repo_path }: { repo_path: string }) => sessionStart(repo_path))
+  makeHandler(
+    "session_start",
+    ({ repo_path, quick, quick_task_title }: { repo_path: string; quick?: boolean; quick_task_title?: string }) =>
+      sessionStart(repo_path, { quick, quick_task_title })
+  )
 );
 
 server.registerTool(
   "session_resume",
   {
     description: "Resume work on a repo (alias for session_start with 'continue' semantics).",
-    inputSchema: { repo_path: z.string().describe("Absolute or relative path to the repo") },
+    inputSchema: {
+      repo_path: z.string().describe("Absolute or relative path to the repo"),
+      quick: z.boolean().optional().describe("If true, auto-creates a quick active task and sets scope to *"),
+      quick_task_title: z.string().optional().describe("Custom title for the quick task"),
+    },
   },
-  makeHandler("session_resume", ({ repo_path }: { repo_path: string }) => sessionResume(repo_path))
+  makeHandler(
+    "session_resume",
+    ({ repo_path, quick, quick_task_title }: { repo_path: string; quick?: boolean; quick_task_title?: string }) =>
+      sessionResume(repo_path, { quick, quick_task_title })
+  )
 );
 
 server.registerTool(
@@ -227,17 +243,21 @@ server.registerTool(
     fail_fast: z.boolean().optional().describe("Stop on first failure (default true)"),
     changed_only: z.boolean().optional().describe("Lint only changed files (default false)"),
     task_id: z.string().optional().describe("If provided, auto-save evidence for this task"),
+    force_install: z.boolean().optional().describe("If true, bypass lockfile cache and force dependency installation (default false)"),
+    skip_steps: z.array(z.string()).optional().describe("List of verification steps to skip"),
   },
   },
   makeHandler(
     "verify_run",
-    ({ repo_path, steps, fail_fast, changed_only, task_id }: {
+    ({ repo_path, steps, fail_fast, changed_only, task_id, force_install, skip_steps }: {
       repo_path: string;
       steps?: string[];
       fail_fast?: boolean;
       changed_only?: boolean;
       task_id?: string;
-    }) => verifyRun(repo_path, { steps, fail_fast, changed_only, task_id })
+      force_install?: boolean;
+      skip_steps?: string[];
+    }) => verifyRun(repo_path, { steps, fail_fast, changed_only, task_id, force_install, skip_steps })
   )
 );
 

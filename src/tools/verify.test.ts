@@ -416,4 +416,19 @@ timeouts:
     expect(config.timeouts?.build).toBeUndefined();
     expect(config.timeouts?.test).toBe(300000);
   });
+
+  it("parses optional steps correctly", () => {
+    const yaml = `
+commands:
+  install: "npm install"
+  build: "npm run build"
+optional:
+  install: true
+  build: false
+`;
+    const config = parseVerifyYaml(yaml);
+    expect(config.optional?.install).toBe(true);
+    expect(config.optional?.build).toBe(false);
+    expect(config.optional?.test).toBeUndefined();
+  });
 });
