@@ -7,6 +7,6 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "powershell -ExecutionPolicy Bypass -File c:\\FPT\\MyProject\\harness_operator_system\\.kiro\\hooks\\refresh-token.ps1"
+    "command": "powershell -ExecutionPolicy Bypass -File C:\\Users\\tamnt167\\.kiro\\hooks\\refresh-token.ps1"
   }
 }

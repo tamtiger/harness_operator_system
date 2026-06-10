@@ -42,6 +42,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
   - **Expanded Subagents guidance** — When to use (2+ independent tasks) vs when NOT to use (single file edit)
   - **Reorganized Skills recommendations** — Categorized into Core/Development/Design/Completion groups
   - **Added `deep-learning-review` skill** to Session Completion category
+  - **Conditional `session_start`** — Only mandate starting a session for development tasks, allowing read-only queries to bypass it.
+  - **Explicit `harness-workflow` loading** — Added a workflow step to explicitly load `harness-workflow` via `skill_load` to ensure RIPER-5 and CTR gate guidelines are executed.
 
 ### Tests
 - Total: 198 tests passing (all existing tests remain green)

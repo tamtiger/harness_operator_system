@@ -16,9 +16,9 @@
 
 ---
 
-## ⚠️ MANDATORY: RUN THIS FIRST — BEFORE ANYTHING ELSE
+## ⚠️ MANDATORY: RUN THIS FIRST FOR DEVELOPMENT TASKS
 
-**Do not read files. Do not plan. Do not write code. Run this first:**
+**If you are assigned a development, coding, debugging, or verification task, run this first before doing anything else (do not read files, plan, or write code without starting a session):**
 
 ```
 session_start(".")
@@ -26,9 +26,9 @@ session_start(".")
 
 **Wait for it to complete. Do not skip this step.**
 
-If you skip `session_start`, you are operating without context: no task list, no session ID, no handoff from the previous agent. Every other step in this file depends on the output of `session_start`.
+If you are just answering questions, explaining concepts, or performing basic read-only queries without a development/coding task, you do not need to call `session_start`.
 
-> **Skipping `session_start` = task failed. Stop and run it now.**
+If you are doing a development task, skipping `session_start` = task failed. Stop and run it now.
 
 ---
 
@@ -45,16 +45,19 @@ This is a **{{STACK}}** project managed by harness-os. The harness ensures agent
 
 ## Workflow — Follow In Order, No Exceptions
 
+For development tasks, follow this workflow in order:
+
 ```
-[ ] 1. session_start(".")              ← MANDATORY FIRST ACTION
-[ ] 2. repo_summary_read(".")          ← understand codebase
-[ ] 3. Read last handoff context        ← review .harness/handoff_last.json or session_start output
-[ ] 4. Pick ONE task from session output
-[ ] 5. scope_check(".", file_path)     ← before editing EACH file
-[ ] 6. Make changes incrementally
-[ ] 7. progress_log(".", { summary, status: "in-progress" })
-[ ] 8. verify_run(".")                 ← ALL steps must pass
-[ ] 9. session_handoff(...)            ← MANDATORY LAST ACTION
+[ ] 1. session_start(".")              ← MANDATORY FIRST ACTION (if assigned a task)
+[ ] 2. skill_load("harness-workflow")  ← Load core workflow (RIPER-5 & CTR gate)
+[ ] 3. repo_summary_read(".")          ← understand codebase
+[ ] 4. Read last handoff context        ← review .harness/handoff_last.json or session_start output
+[ ] 5. Pick/create ONE task in session
+[ ] 6. scope_check(".", file_path)     ← before editing EACH file
+[ ] 7. Make changes incrementally
+[ ] 8. progress_log(".", { summary, status: "in-progress" })
+[ ] 9. verify_run(".")                 ← ALL steps must pass
+[ ] 10. session_handoff(...)           ← MANDATORY LAST ACTION to save progress
 ```
 
 ### What happens if you skip steps
@@ -62,6 +65,7 @@ This is a **{{STACK}}** project managed by harness-os. The harness ensures agent
 | Skipped step | Consequence |
 |---|---|
 | `session_start` | No task context. Risk of duplicate or conflicting work. Session ID missing — handoff will fail. |
+| `skill_load("harness-workflow")` | Risk of not running harness-workflow (RIPER-5 phases, CTR gate format, and rules). |
 | `repo_summary_read` | May edit wrong files or use wrong stack patterns. |
 | Read last handoff | You repeat work the previous agent already did, or miss critical context. |
 | `scope_check` | Risk editing forbidden paths. Harness will flag violation. |
@@ -126,7 +130,7 @@ cargo clippy        # Lint check
 
 ## Rules — Violation = Task Failed
 
-1. **`session_start` before anything** — No exceptions. First action, every session.
+1. **`session_start` before dev tasks** — Start a session before starting any coding/dev task.
 2. **Verify before done** — Always run `verify_run` before marking any task complete.
 3. **Stay in scope** — Check `scope_check` before editing files outside your task's scope.
 4. **Log progress** — Use `progress_log` after each meaningful change.
@@ -317,10 +321,11 @@ session_start → load skills → select task → execute → verify → handoff
 
 ### Before You Start
 
-1. Run `session_start({ repo_path: "." })` to get context, pending tasks, and suggested skills
-2. Read this file and `.harness/repo-summary.md` to understand the codebase
-3. Use `skill_suggest({ task_title })` or `skill_list()` to load relevant skills
-4. Read `handoff_read({ repo_path: "." })` to pick up from previous session
+1. Run `session_start({ repo_path: "." })` for development tasks to get context, pending tasks, and suggested skills
+2. Load the core workflow skill using `skill_load("harness-workflow")` to align on RIPER-5 and CTR guidelines
+3. Read this file and `.harness/repo-summary.md` to understand the codebase
+4. Use `skill_suggest({ task_title })` or `skill_list()` to load other relevant skills
+5. Read `handoff_read({ repo_path: "." })` to pick up from previous session
 
 ### During Work
 
