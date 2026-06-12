@@ -143,8 +143,14 @@ server.registerTool(
     inputSchema: {
     session_id: z.string().describe("Session ID"),
     summary: z.string().describe("Summary of what was accomplished"),
-    unfinished: z.array(z.string()).describe("List of unfinished items"),
-    next_steps: z.array(z.string()).describe("Suggested next steps for following session"),
+    unfinished: z.preprocess(
+      (val) => typeof val === "string" ? [val] : val,
+      z.array(z.string())
+    ).describe("List of unfinished items (accepts string or array)"),
+    next_steps: z.preprocess(
+      (val) => typeof val === "string" ? [val] : val,
+      z.array(z.string())
+    ).describe("Suggested next steps for following session (accepts string or array)"),
     verify_status: z.object({
       passed: z.boolean(),
       steps_run: z.array(z.string()),

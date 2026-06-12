@@ -248,7 +248,7 @@ export function sessionEnd(sessionId: string): SessionEndResult {
     .get(sessionId) as { repo_path: string; started_at: string } | undefined;
 
   if (!session) {
-    throw new Error(`Session not found: ${sessionId}`);
+    return { session_id: sessionId, status: "error", duration_seconds: 0, error: `Session not found: ${sessionId}` };
   }
 
   // Hook validation check
@@ -292,7 +292,7 @@ export function sessionHandoff(
     .get(sessionId) as { repo_path: string; started_at: string; verify_called: number } | undefined;
 
   if (!session) {
-    throw new Error(`Session not found: ${sessionId}`);
+    return { session_id: sessionId, error: `Session not found: ${sessionId}` };
   }
 
   // Hook validation check

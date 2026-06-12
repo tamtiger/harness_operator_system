@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ### Changed
 - **Adapter & Template Updates**: Updated `AGENTS.md.tpl`, `AGENTS.md`, `codex/AGENTS.md`, and `copilot/copilot-instructions.md` to reflect the new dynamic suggestions, workflow phases, and tool counts (30 tools, down from 32).
 
+### Improved
+- **DX: Flexible `session_handoff` input** — `unfinished` and `next_steps` parameters now accept both a single string and an array of strings via `z.preprocess` auto-coercion, eliminating Zod validation errors when agents pass a string instead of an array.
+- **DX: Consistent error returns** — `sessionEnd()` and `sessionHandoff()` no longer `throw` on session-not-found; they return `{ error: "..." }` objects, following the project convention of never throwing from tool handlers.
+
 ### Removed
 - **Passive feature_list module**: Removed `feature_list_read` and `feature_list_update` MCP tools, their code in `state.ts`, templates, unit tests, and documentation.
 - **Dead files**: Deleted obsolete `init.sh.tpl` and `feature_list.json.tpl` templates.
