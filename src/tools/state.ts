@@ -44,65 +44,6 @@ export function progressLog(
   return { ok: true };
 }
 
-// === feature_list ===
-
-export interface Feature {
-  id: string;
-  name: string;
-  status?: string;
-  [key: string]: unknown;
-}
-
-export function featureListRead(
-  repoPath: string
-): { features: Feature[] } {
-  const stateDir = resolveStateDir(repoPath);
-  const filePath = join(stateDir, "feature_list.json");
-
-  if (!existsSync(filePath)) {
-    return { features: [] };
-  }
-
-  try {
-    const raw = readFileSync(filePath, "utf-8");
-    const data = JSON.parse(raw);
-    return { features: Array.isArray(data.features) ? data.features : [] };
-  } catch {
-    return { features: [] };
-  }
-}
-
-export function featureListUpdate(
-  repoPath: string,
-  featureId: string,
-  patch: Record<string, unknown>
-): { feature: Feature } {
-  const stateDir = resolveStateDir(repoPath);
-  const fileName = "feature_list.json";
-
-  const filePath = join(stateDir, fileName);
-  let data: { features: Feature[] } = { features: [] };
-
-  if (existsSync(filePath)) {
-    try {
-      data = JSON.parse(readFileSync(filePath, "utf-8"));
-    } catch {
-      data = { features: [] };
-    }
-  }
-
-  const idx = data.features.findIndex((f) => f.id === featureId);
-  if (idx >= 0) {
-    data.features[idx] = { ...data.features[idx], ...patch } as Feature;
-  } else {
-    data.features.push({ id: featureId, name: featureId, ...patch } as Feature);
-  }
-
-  writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
-
-  const feature = data.features.find((f) => f.id === featureId)!;
-  return { feature };
-}
 
 // === handoff ===
 

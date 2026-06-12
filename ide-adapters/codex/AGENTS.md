@@ -16,9 +16,16 @@
 2. Read `.harness/handoff_last.json` for where to continue
 3. Check `.harness/scope.yaml` for forbidden paths
 4. Work on the highest-priority pending task
-5. Verify: install → build → test → lint (all must pass)
-6. Update `.harness/progress.md` with what was accomplished
-7. Write `.harness/handoff_last.json` with next steps
+5. **NEW:** If using MCP, check `suggested_skills` in session_start response for task-specific skills
+6. Verify: install → build → test → lint (all must pass)
+7. Update `.harness/progress.md` with what was accomplished
+8. Write `.harness/handoff_last.json` with next steps
+
+## Skills (if MCP available)
+
+After `session_start`, check `suggested_skills` in the response.
+Load relevant skills with `skill_load("skill-name")`.
+Core skills: `harness-workflow`, `karpathy-guidelines`, `strategic-compact`.
 
 ## Verification Commands
 

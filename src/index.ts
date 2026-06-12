@@ -15,8 +15,6 @@ import { getDb } from "./db/client.js";
 import { detectRuntime } from "./lib/runtime.js";
 import {
   progressLog,
-  featureListRead,
-  featureListUpdate,
   handoffWrite,
   handoffRead,
 } from "./tools/state.js";
@@ -571,38 +569,6 @@ server.registerTool(
   )
 );
 
-server.registerTool(
-  "feature_list_read",
-  {
-    description: "Read the feature list from .harness/feature_list.json.",
-    inputSchema: { repo_path: z.string().describe("Path to the repo") },
-  },
-  makeHandler("feature_list_read", ({ repo_path }: { repo_path: string }) => featureListRead(repo_path))
-);
-
-server.registerTool(
-  "feature_list_update",
-  {
-    description: "Update a feature entry in .harness/feature_list.json (upsert).",
-    inputSchema: {
-    repo_path: z.string().describe("Path to the repo"),
-    feature_id: z.string().describe("Feature ID"),
-    patch: z.record(z.string(), z.unknown()).describe("Fields to merge"),
-  },
-  },
-  makeHandler(
-    "feature_list_update",
-    ({
-      repo_path,
-      feature_id,
-      patch,
-    }: {
-      repo_path: string;
-      feature_id: string;
-      patch: Record<string, unknown>;
-    }) => featureListUpdate(repo_path, feature_id, patch)
-  )
-);
 
 server.registerTool(
   "handoff_write",

@@ -43,6 +43,7 @@ vi.mock("./task.js", () => ({
 
 vi.mock("./skill.js", () => ({
   skillList: vi.fn(() => ({ skills: [] })),
+  skillSuggest: vi.fn(() => ({ suggested_skills: [], total_available: 0 })),
 }));
 
 vi.mock("./instinct.js", () => ({

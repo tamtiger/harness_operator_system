@@ -74,7 +74,6 @@ claude mcp remove harness
         "scope_get",
         "scope_check",
         "handoff_read",
-        "feature_list_read",
         "task_list"
       ]
     }
@@ -193,12 +192,12 @@ Copilot không hỗ trợ MCP. Sử dụng file `.github/copilot-instructions.md
 
 | IDE | Loại | MCP Tools | Auto-approve | Cài tự động |
 |-----|------|-----------|--------------|-------------|
-| Cursor | MCP | ✅ 26 tools | Không | `harness install-mcp --ide cursor` |
-| Claude Code | MCP | ✅ 26 tools | Không | `claude mcp add harness ...` |
-| Kiro | MCP | ✅ 26 tools | ✅ 11 tools | `harness install-mcp --ide kiro` |
-| VS Code | MCP | ✅ 26 tools | Không | `harness install-mcp --ide vscode` |
-| Antigravity | MCP | ✅ 26 tools | Không | `harness install-mcp --ide antigravity` |
-| OpenCode | MCP | ✅ 26 tools | Không | `harness install-mcp --ide opencode` |
+| Cursor | MCP | ✅ 30 tools | Không | `harness install-mcp --ide cursor` |
+| Claude Code | MCP | ✅ 30 tools | Không | `claude mcp add harness ...` |
+| Kiro | MCP | ✅ 30 tools | ✅ 10 tools | `harness install-mcp --ide kiro` |
+| VS Code | MCP | ✅ 30 tools | Không | `harness install-mcp --ide vscode` |
+| Antigravity | MCP | ✅ 30 tools | Không | `harness install-mcp --ide antigravity` |
+| OpenCode | MCP | ✅ 30 tools | Không | `harness install-mcp --ide opencode` |
 | Codex | Instruction | ❌ | — | `harness init` (tạo AGENTS.md) |
 | Copilot | Instruction | ❌ | — | Copy `copilot-instructions.md` |
 

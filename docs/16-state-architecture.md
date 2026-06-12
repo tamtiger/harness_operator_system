@@ -20,7 +20,6 @@ Each initialized repo has a `.harness/` directory containing:
 .harness/
 ├── config.yaml           # Repo identity (UUID, name, stack)
 ├── progress.md           # Append-only session log
-├── feature_list.json     # Feature scope boundaries
 ├── scope.yaml            # Allowed/forbidden paths
 ├── verify.yaml           # Verification pipeline config
 ├── handoff_last.json     # Last session handoff
@@ -81,7 +80,7 @@ Location: `~/.harness/harness.sqlite` (override with `HARNESS_HOME` env var)
 ### Tables
 
 ```sql
-sessions              (id, repo_path, status, started_at, ended_at)
+sessions              (id, repo_path, status, started_at, ended_at, current_phase, verify_called)
 tasks                 (id, session_id, title, scope, status, created_at)
 instincts             (id, description, tags, confidence, ttl_days, created_at, success_count, failure_count, reference_count, last_outcome, last_referenced_at, type, context, resolution, review_trigger)
 session_instinct_refs (session_id, instinct_id, outcome, referenced_at)
@@ -129,7 +128,6 @@ Restores exported state into the current repo's `.harness/` directory.
   "state": {
     "config.yaml": "...",
     "progress.md": "...",
-    "feature_list.json": "...",
     "handoff_last.json": "..."
   }
 }

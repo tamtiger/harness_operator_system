@@ -168,10 +168,24 @@ describe("skill-matcher", () => {
       expect(tier1Results.map((r) => r.name)).toContain("harness-workflow");
     });
 
-    it("excludes tier 3 skills", () => {
-      const results = matchSkills(allSkills, { taskTitle: "anything" });
-      const tier3Results = results.filter((r) => r.tier === 3);
-      expect(tier3Results).toHaveLength(0);
+    it("matches tier 3 skills only on strong keyword match (score >= 2.0)", () => {
+      const customSkills = [
+        ...allSkills,
+        {
+          name: "verification-loop",
+          metadata: {
+            tier: 3,
+            keywords: ["lint", "ci", "security_audit"],
+          },
+        },
+      ];
+      // Test 1: title has "lint ci security" -> strong match
+      const results1 = matchSkills(customSkills, { taskTitle: "lint ci security" });
+      expect(results1.map((r) => r.name)).toContain("verification-loop");
+
+      // Test 2: title has "lint" only -> weak match, should exclude
+      const results2 = matchSkills(customSkills, { taskTitle: "lint code" });
+      expect(results2.map((r) => r.name)).not.toContain("verification-loop");
     });
 
     it("matches tier 2 skills by keywords", () => {

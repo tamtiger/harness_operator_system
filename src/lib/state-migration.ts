@@ -12,7 +12,6 @@ export interface MigrationResult {
 
 const MIGRATE_FILES = [
   "progress.md",
-  "feature_list.json",
   "handoff_last.json",
 ];
 

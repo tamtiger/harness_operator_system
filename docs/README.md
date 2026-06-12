@@ -1,6 +1,6 @@
 # Tài liệu harness-os
 
-> Hướng dẫn chi tiết sử dụng harness-os v1.5.1 — hệ thống harness operator chạy local cho agentic coding.
+> Hướng dẫn chi tiết sử dụng harness-os v1.5.2 — hệ thống harness operator chạy local cho agentic coding.
 > Phiên bản tài liệu khớp với codebase version.
 
 ---
@@ -30,7 +30,7 @@ Mọi tài liệu liên kết dưới đây đều sử dụng tiếng Việt đ
 
 ---
 
-*Tài liệu cập nhật cho harness-os v1.5.1.*
+*Tài liệu cập nhật cho harness-os v1.5.2.*
 
 - 📖 [README chính](../README.md) — Tổng quan project
 - 🤖 [AGENTS.md](../AGENTS.md) — Hướng dẫn cho AI agent phát triển source

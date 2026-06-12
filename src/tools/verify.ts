@@ -7,6 +7,7 @@ import { parseVitestJson, type ParsedTestResult } from "../lib/parsers/vitest.js
 import { parseGenericOutput } from "../lib/parsers/generic.js";
 import { getChangedFiles } from "../lib/git-diff.js";
 import { saveEvidence } from "../lib/evidence.js";
+import { getDb } from "../db/client.js";
 
 export const STEP_ORDER = [
   "install",
@@ -42,6 +43,7 @@ export interface VerifyResult {
   test_results?: ParsedTestResult | null;
   evidence_path?: string;
   changed_files?: string[];
+  workflow_guidance?: { current_phase: string; next_action: string };
 }
 
 interface VerifyConfig {
@@ -437,12 +439,35 @@ export function verifyRun(
     }
   }
 
+  let workflow_guidance: { current_phase: string; next_action: string } | undefined;
+
+  if (task_id) {
+    try {
+      const db = getDb();
+      const row = db.prepare("SELECT session_id FROM tasks WHERE id = ?").get(task_id) as { session_id: string | null } | undefined;
+      if (row && row.session_id) {
+        db.prepare("UPDATE sessions SET current_phase = 'VERIFY', verify_called = 1 WHERE id = ?")
+          .run(row.session_id);
+        
+        workflow_guidance = {
+          current_phase: "VERIFY",
+          next_action: allPassed
+            ? "All checks passed. Proceed to session_handoff() to save progress"
+            : "Verification failed. Fix issues and run verify_run() again",
+        };
+      }
+    } catch {
+      // ignore db errors in case verify_run is run standalone without tables
+    }
+  }
+
   const result: VerifyResult = {
     passed: allPassed,
     output: truncate(outputs.join("\n\n"), MAX_OUTPUT),
     steps_run: stepsRan,
     step_results: stepResults,
     test_results: testResults,
+    ...(workflow_guidance ? { workflow_guidance } : {}),
   };
 
   if (evidencePath) {

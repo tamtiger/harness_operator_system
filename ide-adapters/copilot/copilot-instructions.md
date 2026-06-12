@@ -8,6 +8,10 @@
 1. Read `.harness/progress.md` — understand what was done previously
 2. Read `.harness/handoff_last.json` — continue from where the last session left off
 3. Check `.harness/scope.yaml` — know what files are off-limits
+4. **NEW:** If harness MCP tools are available:
+   - `session_start` returns `suggested_skills` — load them with `skill_load`
+   - Follow `workflow_guidance.next_action` for phase navigation
+   - Check `suggested_skills` on `task_create` response too
 
 ## Rules
 

@@ -12,9 +12,9 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.5.1
-- **Tools:** 32 MCP tools across 12 modules
-- **Tests:** 202 unit tests (vitest) + smoke test
+- **Version:** 1.5.2
+- **Tools:** 30 MCP tools across 11 modules
+- **Tests:** 207 unit tests (vitest) + smoke test
 - **Skills:** 31 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, codebase search, and observability.
@@ -34,7 +34,7 @@ pnpm run build
 # Run unit tests (189 tests)
 pnpm test
 
-# Run smoke test (boots MCP server, calls all 31 tools)
+# Run smoke test (boots MCP server, calls all 30 tools)
 pnpm run smoke
 
 # Dev mode (tsx, no build needed)
@@ -70,7 +70,7 @@ Each file exports pure functions grouped by domain. The MCP registration happens
 | `verify.ts` | `verifyRun` | Verification pipeline |
 | `skill.ts` | `skillLoad`, `skillList`, `skillCreateFromSession`, `skillSuggest` | Skill management |
 | `instinct.ts` | `instinctAdd`, `instinctGet`, `instinctPrune`, `instinctEvolve`, `instinctPromote` | Learning |
-| `state.ts` | `progressLog`, `featureListRead`, `featureListUpdate`, `handoffWrite`, `handoffRead` | State files |
+| `state.ts` | `progressLog`, `handoffWrite`, `handoffRead` | State files |
 | `scope.ts` | `scopeGet`, `scopeCheck` | Scope enforcement |
 | `observe.ts` | `auditLog`, `harnessStatus` | Observability |
 | `repo_summary.ts` | `repoSummaryRead` | Repository summary |
@@ -425,7 +425,7 @@ harness-os/
 ├── TASK_IMPLEMENT.md                  # Task breakdown
 │
 ├── src/
-│   ├── index.ts              # MCP stdio server entry — registers all 31 tools
+│   ├── index.ts              # MCP stdio server entry — registers all 30 tools
 │   ├── cli/
 │   │   ├── harness.ts        # CLI entry point (init, doctor, status, verify, etc.)
 │   │   └── orchestrator.ts   # Ralph Loop Orchestrator implementation
@@ -438,7 +438,7 @@ harness-os/
 │   │   ├── verify.ts         # verify_run (install/build/test/lint pipeline)
 │   │   ├── skill.ts          # skill_load/list/create_from_session/suggest
 │   │   ├── instinct.ts       # instinct_add/get/prune/evolve/promote
-│   │   ├── state.ts          # progress_log, feature_list, handoff read/write
+│   │   ├── state.ts          # progress_log, handoff read/write
 │   │   ├── scope.ts          # scope_get, scope_check (glob matching)
 │   │   ├── observe.ts        # audit_log, harness_status
 │   │   ├── repo_summary.ts   # repo_summary_read
@@ -604,7 +604,7 @@ Whenever you implement or modify features, you **MUST** immediately update:
    - [docs/02-ide-setup.md](docs/02-ide-setup.md) (Cấu hình cho các IDE)
    - [docs/03-repo-init.md](docs/03-repo-init.md) (Khởi tạo repository)
    - [docs/04-workflow.md](docs/04-workflow.md) (Daily workflow & RIPER-5 mapping)
-   - [docs/05-tools-reference.md](docs/05-tools-reference.md) (Chi tiết parameters/schemas của 31 MCP tools)
+   - [docs/05-tools-reference.md](docs/05-tools-reference.md) (Chi tiết parameters/schemas của 30 MCP tools)
    - [docs/06-cli-reference.md](docs/06-cli-reference.md) (Danh sách 17 lệnh CLI)
    - [docs/07-skills.md](docs/07-skills.md) (Hệ thống skills)
    - [docs/08-instincts.md](docs/08-instincts.md) (Học instincts, Bayesian confidence)

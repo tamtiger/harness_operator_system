@@ -46,13 +46,11 @@ describe("state-migration.ts", () => {
       const harnessDir = join(tempDir, ".harness");
       mkdirSync(harnessDir, { recursive: true });
       writeFileSync(join(harnessDir, "progress.md"), "# Progress", "utf-8");
-      writeFileSync(join(harnessDir, "feature_list.json"), "{}", "utf-8");
 
       const result = migrateRepoState(tempDir, repoId);
 
       expect(result.migrated).toBe(true);
       expect(result.files_copied).toContain("progress.md");
-      expect(result.files_copied).toContain("feature_list.json");
       expect(result.errors).toHaveLength(0);
     });
 

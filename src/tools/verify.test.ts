@@ -1,5 +1,22 @@
-import { describe, it, expect } from "vitest";
-import { parseVerifyYaml, STEP_ORDER, filterLintableFiles, buildChangedOnlyLintCmd } from "./verify.js";
+import { describe, it, expect, vi } from "vitest";
+import { parseVerifyYaml, STEP_ORDER, filterLintableFiles, buildChangedOnlyLintCmd, verifyRun } from "./verify.js";
+import { getDb } from "../db/client.js";
+
+vi.mock("../db/client.js", () => ({
+  getDb: vi.fn(),
+}));
+
+vi.mock("../lib/runtime.js", () => ({
+  detectRuntime: vi.fn(() => ({ runtime: "node", commands: {} })),
+}));
+
+vi.mock("../lib/git-diff.js", () => ({
+  getChangedFiles: vi.fn(() => []),
+}));
+
+vi.mock("../lib/evidence.js", () => ({
+  saveEvidence: vi.fn(() => ({ saved: true, path: "/mock/evidence.json" })),
+}));
 
 describe("parseVerifyYaml", () => {
   it("parses basic verify.yaml with all 7 steps", () => {
@@ -430,5 +447,32 @@ optional:
     expect(config.optional?.install).toBe(true);
     expect(config.optional?.build).toBe(false);
     expect(config.optional?.test).toBeUndefined();
+  });
+});
+
+describe("verifyRun phase transition", () => {
+  it("updates session phase to VERIFY and sets verify_called to 1 when task_id is provided", () => {
+    const mockRun = vi.fn();
+    const mockGet = vi.fn().mockReturnValue({ session_id: "session-123" });
+    const mockPrepare = vi.fn().mockImplementation((query) => {
+      if (query.includes("SELECT session_id")) {
+        return { get: mockGet };
+      }
+      return { run: mockRun };
+    });
+
+    const mockDb = { prepare: mockPrepare };
+    (getDb as any).mockReturnValue(mockDb);
+
+    const result = verifyRun("/mock/repo", { task_id: "task-123", steps: ["install"] });
+
+    expect(mockPrepare).toHaveBeenCalledWith(
+      "SELECT session_id FROM tasks WHERE id = ?"
+    );
+    expect(mockPrepare).toHaveBeenCalledWith(
+      "UPDATE sessions SET current_phase = 'VERIFY', verify_called = 1 WHERE id = ?"
+    );
+    expect(mockRun).toHaveBeenCalled();
+    expect(result.workflow_guidance?.current_phase).toBe("VERIFY");
   });
 });

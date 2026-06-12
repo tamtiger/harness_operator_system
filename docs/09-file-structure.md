@@ -26,10 +26,8 @@
 ```
 your-repo/
 ├── AGENTS.md                     # Entry point cho agent
-├── init.sh                       # Health check + install script
 └── .harness/
     ├── progress.md               # Session history (human + agent readable)
-    ├── feature_list.json         # Scope boundaries per feature
     ├── scope.yaml                # Forbidden/allowed paths + per-task rules
     ├── verify.yaml               # Verification commands per stack
     ├── hooks.yaml                # Pre-tool blocking and stop validation rules
@@ -47,9 +45,7 @@ your-repo/
 | File | Mục đích | Ai đọc | Ai ghi |
 |------|----------|--------|--------|
 | `AGENTS.md` | Entry point — rules + workflow cho agent | Agent | `harness init` |
-| `init.sh` | Health check script (Node version, deps, etc.) | Human/CI | `harness init` |
 | `.harness/progress.md` | Log tiến độ qua các session | Agent + Human | Agent (qua `progress_log`) |
-| `.harness/feature_list.json` | Danh sách features + scope | Agent | Agent (qua `feature_list_update`) |
 | `.harness/scope.yaml` | Forbidden paths + allowed paths per task | Agent (qua `scope_check`) | Human |
 | `.harness/verify.yaml` | Lệnh verify (install/build/test/lint) | Agent (qua `verify_run`) | Human / `harness init` |
 | `.harness/hooks.yaml` | Pre-tool blocking và rules stop validation | MCP server | Human |

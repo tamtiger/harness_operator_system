@@ -8,20 +8,34 @@ import { migrateRepoState } from "../lib/state-migration.js";
 import { ensureDir } from "../lib/repo.js";
 import { handoffRead, handoffWrite, progressLog, type HandoffData } from "./state.js";
 import { taskList } from "./task.js";
-import { skillList } from "./skill.js";
+import { skillList, skillSuggest } from "./skill.js";
 import { getTier1Skills, type SkillWithMetadata } from "../lib/skill-matcher.js";
 import { checkStopValidation } from "../lib/hooks.js";
 import { cleanupExpiredWorkers } from "../lib/worker-registry.js";
 import { instinctGet, type InstinctRecord } from "./instinct.js";
+
+export interface SuggestedSkill {
+  name: string;
+  score: number;
+  reason: string;
+}
+
+export interface WorkflowGuidance {
+  current_phase: string;
+  next_action: string;
+  ctr_needed: boolean;
+}
 
 export interface SessionStartResult {
   session_id: string;
   last_handoff: HandoffData | null;
   pending_tasks_count: number;
   applicable_skills: string[];
+  suggested_skills: SuggestedSkill[];
   instructions_to_read: string[];
   never_again: string[];
   relevant_knowledge: InstinctRecord[];
+  workflow_guidance: WorkflowGuidance;
   quick_task_id?: string;
   _warn?: string;
 }
@@ -39,6 +53,7 @@ export interface SessionHandoffResult {
   progress_logged?: boolean;
   duration_seconds?: number;
   error?: string;
+  _warn?: string;
 }
 
 export interface SessionStartOptions {
@@ -133,8 +148,31 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
   const tier1Results = getTier1Skills(skillsWithMeta);
   const applicableSkills = tier1Results.map((r) => r.name);
 
+  // Auto-suggest skills based on context
+  const stack = runtime.runtime !== "unknown" ? runtime.runtime : undefined;
+  const firstTask = tasks.find(t => t.status === "pending") || tasks[0];
+  const taskTitle = firstTask ? firstTask.title : undefined;
+  const taskScope = firstTask ? firstTask.scope || undefined : undefined;
+  const suggestRes = skillSuggest(taskTitle, taskScope, stack, 15, repoPath);
+  
+  const suggestedSkills = suggestRes.suggested_skills
+    .filter(s => s.tier >= 2)
+    .slice(0, 3)
+    .map(s => ({
+      name: s.name,
+      score: s.score,
+      reason: `Matched for stack ${stack || "generic"} and task context`
+    }));
+
   // Determine instructions to read
   const instructions: string[] = ["AGENTS.md", "skill:harness-workflow"];
+  const stackBaseline = `${runtime.runtime}-baseline`;
+  if (skills.some(s => s.name === stackBaseline)) {
+    instructions.push(`skill:${stackBaseline}`);
+  }
+  if (suggestedSkills.length > 0 && suggestedSkills[0].score >= 1.5) {
+    instructions.push(`skill:${suggestedSkills[0].name}`);
+  }
 
   // Read never_again.md warnings
   const neverAgainPath = join(repoPath, ".harness", "never_again.md");
@@ -174,9 +212,15 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
     last_handoff: handoff,
     pending_tasks_count: pendingCount,
     applicable_skills: applicableSkills,
+    suggested_skills: suggestedSkills,
     instructions_to_read: instructions,
     never_again: neverAgainWarnings,
     relevant_knowledge: relevantKnowledge,
+    workflow_guidance: {
+      current_phase: "START",
+      next_action: "Read instructions_to_read, review last_handoff, then load suggested skills and proceed to SELECT phase",
+      ctr_needed: false
+    }
   };
 
   if (quickTaskId) {
@@ -242,10 +286,10 @@ export function sessionHandoff(
 ): SessionHandoffResult {
   const db = getDb();
 
-  // Get session's repo_path and started_at
+  // Get session's repo_path, started_at and verify_called status
   const session = db
-    .prepare(`SELECT repo_path, started_at FROM sessions WHERE id = ?`)
-    .get(sessionId) as { repo_path: string; started_at: string } | undefined;
+    .prepare(`SELECT repo_path, started_at, verify_called FROM sessions WHERE id = ?`)
+    .get(sessionId) as { repo_path: string; started_at: string; verify_called: number } | undefined;
 
   if (!session) {
     throw new Error(`Session not found: ${sessionId}`);
@@ -264,6 +308,11 @@ export function sessionHandoff(
   const durationSeconds = Math.round(
     (Date.now() - new Date(session.started_at).getTime()) / 1000
   );
+
+  let warning: string | undefined;
+  if (!session.verify_called) {
+    warning = "⚠️ verify_run() was not called during this session. Consider running verification before ending.";
+  }
 
   // Write handoff file
   const { path: handoffPath } = handoffWrite(
@@ -285,9 +334,9 @@ export function sessionHandoff(
 
   cleanupExpiredWorkers(session.repo_path);
 
-  // Close session
+  // Close session and update phase to WRAP_UP
   const now = new Date().toISOString();
-  db.prepare(`UPDATE sessions SET status = 'closed', ended_at = ? WHERE id = ?`).run(
+  db.prepare(`UPDATE sessions SET status = 'closed', ended_at = ?, current_phase = 'WRAP_UP' WHERE id = ?`).run(
     now,
     sessionId
   );
@@ -297,5 +346,6 @@ export function sessionHandoff(
     handoff_path: handoffPath,
     progress_logged: true,
     duration_seconds: durationSeconds,
+    ...(warning ? { _warn: warning } : {}),
   };
 }

@@ -3,7 +3,7 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.5.1-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.5.2-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-32-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-31-blue)](#)
@@ -294,7 +294,7 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (189 tests passing)
+- **Testing:** Vitest (211 tests passing)
 
 ## Phát triển
 
@@ -302,8 +302,8 @@ harness-os/
 pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
-pnpm test             # Unit tests (202 tests)
-pnpm run smoke        # End-to-end MCP test (32 tools, 30 skills)
+pnpm test             # Unit tests (211 tests)
+pnpm run smoke        # End-to-end MCP test (30 tools, 31 skills)
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.
@@ -314,7 +314,7 @@ pnpm run smoke        # End-to-end MCP test (32 tools, 30 skills)
   - [Bắt đầu](./docs/01-getting-started.md) — Cài đặt, yêu cầu hệ thống
   - [Cấu hình IDE](./docs/02-ide-setup.md) — Setup cho 8 IDEs
   - [Workflow](./docs/04-workflow.md) — Lifecycle hàng ngày
-  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 31 MCP tools
+  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 30 MCP tools
   - [CLI Reference](./docs/06-cli-reference.md) — 17 CLI commands
   - [Skills](./docs/07-skills.md) — Hệ thống skills
   - [Instincts](./docs/08-instincts.md) — Continuous learning

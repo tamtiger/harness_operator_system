@@ -208,16 +208,30 @@ export function matchSkills(
           score: parseFloat(totalScore.toFixed(4)),
         });
       }
+    } else if (tier === 3) {
+      // Tier 3: on-demand skills — only suggest if strong keyword match
+      const kwScore = computeScore(keywords, tokens);
+      const descScore = descriptionScore(skill.description ?? "", tokens);
+      const nmScore = nameScore(skill.name, tokens);
+      const totalScore = kwScore + descScore + nmScore;
+      
+      if (totalScore >= 2.0) {
+        results.push({
+          name: skill.name,
+          tier: 3,
+          score: parseFloat(totalScore.toFixed(4)),
+        });
+      }
     }
   }
 
-  // Sort: tier 1 first (by name), then tier 2 by score descending
+  // Sort: tier 1 first (by name), then tier 2 & 3 by score descending
   results.sort((a, b) => {
     if (a.tier !== b.tier) {
-      return a.tier - b.tier; // tier 1 first
+      return a.tier - b.tier; // tier 1 -> tier 2 -> tier 3
     }
-    if (a.tier === 2) {
-      return b.score - a.score; // tier 2 by score descending
+    if (a.tier >= 2) {
+      return b.score - a.score; // tier 2 & 3 by score descending
     }
     return a.name.localeCompare(b.name); // tier 1 by name
   });

@@ -3,6 +3,29 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.2] — 2026-06-12
+
+### Added
+- **Skill Suggestions & Workflow Guidance**:
+  - **Dynamic Suggested Skills**: `session_start` and `task_create` now return up to 3 context-relevant tier 2/3 suggested skills.
+  - **Workflow Phase Navigation**: Introduced `workflow_guidance` response to guide agents across standard development phases (`START` → `SELECT` → `EXECUTE` → `VERIFY` → `WRAP_UP`).
+  - **Verify warning validation**: `session_handoff` now prints a warning if `verify_run` was not executed during the session.
+  - **Tier 3 on-demand matching**: Enabled strong keyword match filtering (score >= 2.0) for tier 3 on-demand skills in `skill-matcher.ts`.
+- **Database Phase Tracking**:
+  - Added SQLite migration to add `current_phase` (default 'START') and `verify_called` (default 0) columns to `sessions` table.
+
+### Changed
+- **Adapter & Template Updates**: Updated `AGENTS.md.tpl`, `AGENTS.md`, `codex/AGENTS.md`, and `copilot/copilot-instructions.md` to reflect the new dynamic suggestions, workflow phases, and tool counts (30 tools, down from 32).
+
+### Removed
+- **Passive feature_list module**: Removed `feature_list_read` and `feature_list_update` MCP tools, their code in `state.ts`, templates, unit tests, and documentation.
+- **Dead files**: Deleted obsolete `init.sh.tpl` and `feature_list.json.tpl` templates.
+
+### Tests
+- Added unit tests for workflow phase transitions and task creation skill suggestions in `src/tools/task.test.ts`.
+- Updated test suites in `src/tools/session.test.ts`, `src/tools/verify.test.ts`, `src/lib/skill-matcher.test.ts`, and `src/lib/state-migration.test.ts`.
+- Total: 210 unit tests passing (Vitest) + MCP smoke test validated for all 30 tools.
+
 ## [1.5.1] — 2026-06-10
 
 ### Added

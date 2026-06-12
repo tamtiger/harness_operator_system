@@ -54,8 +54,6 @@ async function main() {
       "instinct_evolve",
       "instinct_promote",
       "progress_log",
-      "feature_list_read",
-      "feature_list_update",
       "handoff_write",
       "handoff_read",
       "scope_get",

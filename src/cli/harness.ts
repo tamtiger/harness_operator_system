@@ -122,7 +122,6 @@ function cmdInit() {
   const files: Array<{ path: string; template: string }> = [
     { path: "AGENTS.md", template: "AGENTS.md.tpl" },
     { path: ".harness/scope.yaml", template: "scope.yaml.tpl" },
-    { path: ".harness/feature_list.json", template: "feature_list.json.tpl" },
     { path: ".harness/verify.yaml", template: "verify.yaml.tpl" },
   ];
 

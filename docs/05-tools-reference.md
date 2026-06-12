@@ -1,4 +1,4 @@
-# 32 MCP Tools Reference
+# 30 MCP Tools Reference
 
 [← Mục lục](../README.md) | [← Workflow](./04-workflow.md) | [CLI Reference →](./06-cli-reference.md)
 
@@ -10,7 +10,7 @@
 |-------|-------|----------|
 | [Session Lifecycle](#session-lifecycle) | `session_start`, `session_resume`, `session_end`, `session_handoff` | 4 |
 | [Task Management](#task-management) | `task_create`, `task_update`, `task_list` | 3 |
-| [State Files](#state-files) | `progress_log`, `feature_list_read`, `feature_list_update`, `handoff_write`, `handoff_read` | 5 |
+| [State Files](#state-files) | `progress_log`, `handoff_write`, `handoff_read` | 3 |
 | [Scope & Verification](#scope--verification) | `scope_get`, `scope_check`, `verify_run` | 3 |
 | [Codebase Search](#codebase-search) | `code_search_grep`, `code_search_symbols` | 2 |
 | [Skills](#skills) | `skill_load`, `skill_list`, `skill_create_from_session`, `skill_suggest` | 4 |
@@ -19,7 +19,7 @@
 | [Repo Intelligence](#repo-intelligence) | `repo_summary_read` | 1 |
 | [Observability](#observability) | `audit_log`, `harness_status` | 2 |
 | [Subagents](#subagents) | `subagent_invoke` | 1 |
-| **Tổng** | | **32** |
+| **Tổng** | | **30** |
 
 ---
 
@@ -147,25 +147,6 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
 | `entry.status` | string | ✅ | `done` \| `in-progress` \| `blocked` |
 | `entry.evidence_ref` | string | ❌ | Tham chiếu tới evidence file |
 | `entry.files_changed` | string[] | ❌ | Danh sách files đã sửa |
-
-### `feature_list_read`
-
-| Parameter | Type | Required | Mô tả |
-|-----------|------|----------|-------|
-| `repo_path` | string | ✅ | Đường dẫn repo |
-
-```json
-// Response
-{ "features": [{ "id": "auth", "name": "Authentication", "status": "done", "scope": "src/auth/**" }] }
-```
-
-### `feature_list_update`
-
-| Parameter | Type | Required | Mô tả |
-|-----------|------|----------|-------|
-| `repo_path` | string | ✅ | Đường dẫn repo |
-| `feature_id` | string | ✅ | Feature ID |
-| `patch` | object | ✅ | Fields cần merge/update |
 
 ### `handoff_write`
 

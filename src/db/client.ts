@@ -115,6 +115,17 @@ function runMigrations(db: Database.Database): void {
   if (!colNames.includes("review_trigger")) {
     db.exec("ALTER TABLE instincts ADD COLUMN review_trigger TEXT");
   }
+
+  // Idempotent column migrations for sessions table
+  const sessionCols = db.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
+  const sessionColNames = sessionCols.map(c => c.name);
+
+  if (!sessionColNames.includes("current_phase")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN current_phase TEXT DEFAULT 'START'");
+  }
+  if (!sessionColNames.includes("verify_called")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN verify_called INTEGER DEFAULT 0");
+  }
 }
 
 export function getDb(): Database.Database {
