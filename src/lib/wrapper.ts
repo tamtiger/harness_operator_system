@@ -98,14 +98,25 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
     try {
       const result = await handler(args);
       const duration_ms = Date.now() - startTime;
+      const verbose = process.env.HARNESS_VERBOSE_AUDIT !== '0';
 
       // Record success for circuit breaker
       recordSuccess(ctx.repo_id, name);
+
+      let resultData: unknown = undefined;
+      if (verbose && result.content && result.content.length > 0) {
+        try {
+          resultData = JSON.parse(result.content[0].text);
+        } catch {
+          resultData = result.content[0].text;
+        }
+      }
 
       // Audit success with duration
       auditLog("tool_success", { 
         tool: name, 
         args_keys: Object.keys(args), 
+        ...(verbose && { args, result: resultData }),
         duration_ms,
         repo_id: ctx.repo_id,
         session_id: ctx.session_id
@@ -119,6 +130,7 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
       return result;
     } catch (err: unknown) {
       const duration_ms = Date.now() - startTime;
+      const verbose = process.env.HARNESS_VERBOSE_AUDIT !== '0';
       const errorMsg = err instanceof Error ? err.message : String(err);
 
       // Record failure for circuit breaker
@@ -127,6 +139,7 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
       auditLog("tool_error", { 
         tool: name, 
         error: errorMsg, 
+        ...(verbose && { args }),
         duration_ms,
         repo_id: ctx.repo_id,
         session_id: ctx.session_id

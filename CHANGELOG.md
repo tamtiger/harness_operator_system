@@ -7,6 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 - **Human-readable Global Repo Folders**: Enhanced `generateRepoId` to prefix the UUID with the sanitized repository name (e.g., `my_project-a1b2c3d4`). This makes global state directories in `~/.harness/repos/` much easier to discover and manage.
+- **Detailed Tool Audit Logging**: The MCP wrapper now logs the full `args` and `result` payloads (instead of just argument keys) to the SQLite audit database and JSONL file, providing rich datasets for analyzing agent behavior and debugging. This is controlled by `HARNESS_VERBOSE_AUDIT` (enabled by default).
 
 ### Changed
 - **Preserve Repo Identity**: `harness init` now reads and preserves existing `.harness/config.yaml` files instead of indiscriminately overwriting them. This prevents the creation of orphaned global state folders when initializing an existing repository multiple times.
