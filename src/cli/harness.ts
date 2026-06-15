@@ -5,7 +5,7 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { detectRuntime } from "../lib/runtime.js";
 import { resolveGlobalHome, ensureDir, resolveHarnessDir } from "../lib/repo.js";
-import { createRepoConfig, resolveGlobalRepoPath } from "../lib/repo-identity.js";
+import { createRepoConfig, resolveGlobalRepoPath, readRepoConfig } from "../lib/repo-identity.js";
 import { registerRepo } from "../db/client.js";
 import { skillLoad, skillList } from "../tools/skill.js";
 import { verifyRun } from "../tools/verify.js";
@@ -173,22 +173,19 @@ function cmdInit() {
     created.push(file.path);
   }
 
-  // Create progress.md if not exists
-  const progressPath = join(repoPath, ".harness", "progress.md");
-  if (!existsSync(progressPath) || force) {
-    ensureDir(dirname(progressPath));
-    writeFileSync(progressPath, "# Progress Log\n", "utf-8");
-    created.push(".harness/progress.md");
-  }
-
   // v1.0: Create config.yaml and register repo globally
-  const repoConfig = createRepoConfig(repoPath);
+  let repoConfig = readRepoConfig(repoPath);
+  if (!repoConfig) {
+    repoConfig = createRepoConfig(repoPath);
+    created.push(".harness/config.yaml");
+  } else {
+    skipped.push(".harness/config.yaml");
+  }
   registerRepo(repoConfig);
   const globalRepoDir = resolveGlobalRepoPath(repoConfig.repo_id);
   ensureDir(join(globalRepoDir, "artifacts", "plans"));
   ensureDir(join(globalRepoDir, "artifacts", "research"));
   ensureDir(join(globalRepoDir, "artifacts", "reviews"));
-  created.push(".harness/config.yaml");
 
   // Auto-generate initial repo summary (code map)
   try {

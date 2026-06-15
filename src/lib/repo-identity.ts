@@ -74,7 +74,7 @@ export function readRepoConfig(repoPath: string): RepoConfig | null {
  */
 export function createRepoConfig(repoPath: string): RepoConfig {
   const repoName = basename(repoPath);
-  const repoId = generateRepoId();
+  const repoId = generateRepoId(repoName);
   const harnessHome = resolveGlobalHome();
   const registeredAt = new Date().toISOString();
   const remoteUrl = detectRemoteUrl(repoPath);
@@ -108,10 +108,16 @@ export function resolveGlobalRepoPath(repoId: string): string {
 }
 
 /**
- * Generate a new UUID for repo identification.
+ * Generate a new ID for repo identification.
+ * Prefixes with sanitized repo name if provided for easier discovery.
  */
-export function generateRepoId(): string {
-  return randomUUID();
+export function generateRepoId(repoName?: string): string {
+  const uuid = randomUUID();
+  if (repoName) {
+    const safeName = repoName.replace(/[^a-zA-Z0-9-_]/g, "_").toLowerCase();
+    return `${safeName}-${uuid.slice(0, 8)}`;
+  }
+  return uuid;
 }
 
 /**

@@ -3,7 +3,7 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.5.2-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.5.3-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-32-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-31-blue)](#)

@@ -24,10 +24,15 @@ describe("repo-identity.ts", () => {
   });
 
   describe("generateRepoId", () => {
-    it("returns a valid UUID v4 format", () => {
+    it("returns a valid UUID v4 format when no repoName is provided", () => {
       const id = generateRepoId();
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
       expect(id).toMatch(uuidRegex);
+    });
+
+    it("returns a prefixed ID when repoName is provided", () => {
+      const id = generateRepoId("My-Repo@123");
+      expect(id).toMatch(/^my-repo_123-[0-9a-f]{8}$/);
     });
 
     it("generates unique IDs on each call", () => {
