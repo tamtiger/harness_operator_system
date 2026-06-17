@@ -12,7 +12,7 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.5.3
+- **Version:** 1.5.4
 - **Tools:** 30 MCP tools across 11 modules
 - **Tests:** 207 unit tests (vitest) + smoke test
 - **Skills:** 31 built-in skills with tiered keyword matching
@@ -412,3 +412,4 @@ These are copied into user IDE settings. Changes propagate to all users on next 
 ### Templates (`templates/`)
 
 These scaffold new repos via `harness init`. Changes affect all future repo initializations. Existing repos are not affected (templates are only applied once).
+

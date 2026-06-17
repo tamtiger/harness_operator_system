@@ -4,6 +4,7 @@ import { checkCircuit, recordSuccess, recordFailure } from "./circuit-breaker.js
 import { log } from "./logger.js";
 import { checkPreToolHooks } from "./hooks.js";
 import { resolveToolContext } from "./tool-context.js";
+import { redactSecrets } from "./redact.js";
 
 interface ToolResult {
   [x: string]: unknown;
@@ -116,7 +117,7 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
       auditLog("tool_success", { 
         tool: name, 
         args_keys: Object.keys(args), 
-        ...(verbose && { args, result: resultData }),
+        ...(verbose && { args: redactSecrets(args), result: redactSecrets(resultData) }),
         duration_ms,
         repo_id: ctx.repo_id,
         session_id: ctx.session_id
@@ -132,6 +133,7 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
       const duration_ms = Date.now() - startTime;
       const verbose = process.env.HARNESS_VERBOSE_AUDIT !== '0';
       const errorMsg = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : undefined;
 
       // Record failure for circuit breaker
       recordFailure(ctx.repo_id, name);
@@ -139,7 +141,8 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
       auditLog("tool_error", { 
         tool: name, 
         error: errorMsg, 
-        ...(verbose && { args }),
+        stack,
+        ...(verbose && { args: redactSecrets(args) }),
         duration_ms,
         repo_id: ctx.repo_id,
         session_id: ctx.session_id

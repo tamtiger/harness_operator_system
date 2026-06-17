@@ -247,6 +247,16 @@ function computeFileHash(filePath: string): string {
   }
 }
 
+function getRepoStateHash(repoPath: string): string {
+  try {
+    const head = execSync("git rev-parse HEAD", { cwd: repoPath, encoding: "utf-8" }).trim();
+    const status = execSync("git status -s", { cwd: repoPath, encoding: "utf-8" }).trim();
+    return createHash("sha256").update(head + "\n" + status).digest("hex");
+  } catch {
+    return "";
+  }
+}
+
 function checkDepsDirExists(repoPath: string, runtime: string): boolean {
   if (runtime === "node") return existsSync(join(repoPath, "node_modules"));
   if (runtime === "php") return existsSync(join(repoPath, "vendor"));
@@ -263,6 +273,26 @@ export function verifyRun(
   const verifyConfig = loadVerifyConfig(absPath);
   const runtime = detectRuntime(absPath);
   const skipStepsSet = new Set(skip_steps);
+
+  // Check cache
+  const repoStateHash = getRepoStateHash(absPath);
+  const cacheFile = join(absPath, ".harness", "verify_cache.json");
+  const optionsHash = createHash("sha256").update(JSON.stringify(options)).digest("hex");
+
+  if (repoStateHash) {
+    try {
+      if (existsSync(cacheFile)) {
+        const cacheContent = readFileSync(cacheFile, "utf-8");
+        const cache = JSON.parse(cacheContent);
+        if (cache.repo_state_hash === repoStateHash && cache.options_hash === optionsHash) {
+          const cachedResult = cache.result as VerifyResult;
+          // Prepend a note that this is cached
+          cachedResult.output = `[CACHED] Verify passed in a previous run.\n` + cachedResult.output;
+          return cachedResult;
+        }
+      }
+    } catch {}
+  }
 
   const stepsToRun: { name: string; cmd: string; timeout: number }[] = [];
 
@@ -476,6 +506,18 @@ export function verifyRun(
 
   if (changed_only && changedFiles !== undefined) {
     result.changed_files = changedFiles;
+  }
+
+  // Save cache
+  if (repoStateHash) {
+    try {
+      const cacheData = {
+        repo_state_hash: repoStateHash,
+        options_hash: optionsHash,
+        result: result,
+      };
+      writeFileSync(cacheFile, JSON.stringify(cacheData, null, 2), "utf-8");
+    } catch {}
   }
 
   return result;

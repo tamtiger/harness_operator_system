@@ -143,7 +143,7 @@ Restores exported state into the current repo's `.harness/` directory.
 |------|----------|----------|
 | Per-repo state | `.harness/` | Committed to git (recommended) |
 | Global database | `~/.harness/harness.sqlite` | Periodic file copy |
-| Audit trail | `~/.harness/audit.jsonl` | Append-only. Every 10MB growth triggers compressed gzip backup (`audit.<timestamp>.jsonl.gz`) without truncating the original. |
+| Audit trail | `~/.harness/audit.jsonl` | Logs all tool events. When it exceeds 10MB, it creates a timestamped backup (`audit.<timestamp>.jsonl`) and truncates the active file to 0 bytes to prevent indefinite growth. |
 | Artifacts | `~/.harness/repos/*/artifacts/` | Periodic backup or sync |
 
 

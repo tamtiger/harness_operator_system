@@ -1,7 +1,19 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import picomatch from "picomatch";
 import { resolveHarnessDir } from "../lib/repo.js";
+
+let cachedScope: { config: ScopeYaml, mtimeMs: number } | null = null;
+const matcherCache = new Map<string, (str: string) => boolean>();
+
+function getMatcher(pattern: string) {
+  let matcher = matcherCache.get(pattern);
+  if (!matcher) {
+    matcher = picomatch(pattern);
+    matcherCache.set(pattern, matcher);
+  }
+  return matcher;
+}
 
 export interface ScopeConfig {
   forbidden_paths: string[];
@@ -97,8 +109,15 @@ function loadScopeConfig(repoPath: string): ScopeYaml | null {
   if (!existsSync(scopeFile)) return null;
 
   try {
+    const stats = statSync(scopeFile);
+    if (cachedScope && cachedScope.mtimeMs === stats.mtimeMs) {
+      return cachedScope.config;
+    }
+
     const content = readFileSync(scopeFile, "utf-8");
-    return parseScopeYaml(content);
+    const config = parseScopeYaml(content);
+    cachedScope = { config, mtimeMs: stats.mtimeMs };
+    return config;
   } catch {
     return null;
   }
@@ -162,7 +181,7 @@ export function scopeCheck(
 
   // Check forbidden paths first
   for (const pattern of config.forbidden_paths) {
-    if (picomatch.isMatch(relFile, pattern)) {
+    if (getMatcher(pattern)(relFile)) {
       return {
         in_scope: false,
         reason: `File matches forbidden pattern: ${pattern}`,
@@ -176,7 +195,7 @@ export function scopeCheck(
   }
 
   for (const pattern of config.allowed_paths) {
-    if (picomatch.isMatch(relFile, pattern)) {
+    if (getMatcher(pattern)(relFile)) {
       return { in_scope: true, reason: `File matches allowed pattern: ${pattern}` };
     }
   }

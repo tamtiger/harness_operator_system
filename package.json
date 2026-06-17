@@ -1,6 +1,6 @@
 {
   "name": "harness-os",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Local harness operator system for agentic coding. MCP-first, cross-IDE, multi-repo.",
   "type": "module",
   "main": "dist/index.js",

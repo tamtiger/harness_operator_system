@@ -35,6 +35,7 @@ function rotateAuditFile(filePath: string): void {
     }
 
     writeFileSync(backupPath, compressed);
+    writeFileSync(filePath, ""); // Clear original file
   } catch (err) {
     process.stderr.write(`[Audit Rotation Error] ${err}\n`);
   }
@@ -72,7 +73,7 @@ export function appendAuditJsonl(event: {
 
       if (currentSize - lastBackupSize > AUDIT_LIMIT) {
         rotateAuditFile(filePath);
-        writeFileSync(lastBackupPath, String(currentSize), "utf-8");
+        writeFileSync(lastBackupPath, "0", "utf-8");
       }
     }
   } catch {}

@@ -54,7 +54,7 @@ describe("audit.ts", () => {
     expect(parsed.payload.value).toBe(42);
   });
 
-  it("compresses when limit is exceeded, creating a timestamped backup file, but does NOT truncate audit.jsonl", () => {
+  it("compresses when limit is exceeded, creating a timestamped backup file, and truncates audit.jsonl", () => {
     const home = resolveGlobalHome();
     const filePath = join(home, "audit.jsonl");
 
@@ -88,13 +88,12 @@ describe("audit.ts", () => {
     expect(decompressed).toContain("small");
     expect(decompressed).toContain("another_event_to_exceed_limit_easily");
 
-    // audit.jsonl MUST NOT be truncated! It should still contain the events.
+    // audit.jsonl MUST be truncated! It should be empty.
     const currentContent = readFileSync(filePath, "utf-8");
-    expect(currentContent).toContain("small");
-    expect(currentContent).toContain("another_event_to_exceed_limit_easily");
+    expect(currentContent).toBe("");
   });
 
-  it("does not compress again on subsequent writes until size grows by another AUDIT_LIMIT, and saves all backups permanently", () => {
+  it("does not compress again on subsequent writes until size reaches AUDIT_LIMIT again, and saves all backups permanently", () => {
     const home = resolveGlobalHome();
 
     setAuditLimit(100);

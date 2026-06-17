@@ -3,6 +3,17 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.4] — 2026-06-16
+
+### Added
+- **Sensitive Data Filtering (Redaction)**: Added regex-based redaction patterns (e.g. for API keys, passwords, database URLs, authorization tokens, private keys) in `src/lib/redact.ts` and integrated it into the `auditLog` tool handler in `src/lib/wrapper.ts` to ensure credentials and secrets are filtered out of logs.
+- **Error Stack Tracing in Audits**: Modified the MCP tool wrapper in `src/lib/wrapper.ts` to capture and include the full error stack trace (`err.stack`) inside the JSON payload of `tool_error` audit logs, enabling much easier debugging of server failures.
+- **Verify Run Caching**: Added repository state hashing (using git HEAD commit hash and git status changes) to bypass verify runs (`verify_run`) when the code has not changed since the last successful verify, saving it in `.harness/verify_cache.json`.
+- **Scope Check Performance Caching**: Added `mtimeMs` checking for `scope.yaml` and a `Map`-based regex compile cache for `picomatch` in `src/tools/scope.ts` to speed up scope checks.
+
+### Changed
+- **Log Rotation Refactoring**: Refactored the audit JSONL logger in `src/db/audit.ts` to implement Standard Log Rotation: when `audit.jsonl` exceeds 10MB, it creates a timestamped backup copy and then truncates the active file to 0 bytes instead of appending indefinitely.
+
 ## [1.5.3] — 2026-06-15
 
 ### Added
