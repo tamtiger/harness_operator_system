@@ -71,22 +71,14 @@ Each file exports pure functions grouped by domain. The MCP registration happens
 
 | File | Purpose |
 |------|---------|
-| `wrapper.ts` | `wrapTool()` decorator — try/catch + audit + loop detection + pre-tool hooks |
-| `hooks.ts` | Hook system helper: pre-tool block + stop validation check |
-| `loop-guard.ts` | Detects same tool+args called >5 times in 60s |
-| `logger.ts` | Structured JSON stderr logger (only emits when `HARNESS_DEBUG=1`) |
-| `runtime.ts` | Detect project stack from files (node, dotnet, python, go, rust) |
-| `repo.ts` | Resolve `.harness/` dir, compute repo hash, ensure directories |
-| `frontmatter.ts` | Parse YAML frontmatter from SKILL.md files (no external deps) |
-| `git-diff.ts` | Get changed files from git (staged + unstaged) |
-| `evidence.ts` | Save/read verify evidence per task to `.harness/evidence/` |
-| `parsers/vitest.ts` | Parse Vitest JSON reporter output into structured result |
-| `parsers/generic.ts` | Generic test output parser (pass/fail pattern matching) |
-| `skill-matcher.ts` | Tokenizer, synonym expansion, and scoring for skill suggestion |
-| `circuit-breaker.ts` | Repo-scoped circuit breaker (3-failure threshold, 5-minute cooldown) |
-| `tool-context.ts` | Context resolution for session_id, repo_id, and repo_path |
-| `worker-registry.ts` | Manage subagent worker processes (register, update, kill, cleanup) |
-| `analytics.ts` | Reliability and performance reporting metrics |
+| `wrapper.ts` / `hooks.ts` | `wrapTool()` decorator (try/catch, audit, loop detection, pre-tool hooks) |
+| `loop-guard.ts` / `circuit-breaker.ts` | Loop guard (detect repeated calls >5 times/60s) & Repo-scoped circuit breaker |
+| `logger.ts` / `analytics.ts` | Structured JSON stderr logger & performance reporting metrics |
+| `runtime.ts` / `repo.ts` | Stack detection (node, dotnet, etc.) & `.harness/` directory resolver |
+| `git-diff.ts` / `evidence.ts` | Git changed files helper & verify evidence saving per task |
+| `parsers/` (`vitest.ts`, `generic.ts`) | Test outputs parsers (Vitest JSON, generic regex matcher) |
+| `frontmatter.ts` / `skill-matcher.ts` | YAML frontmatter parser & Skill matcher (synonym expansion, score mapping) |
+| `tool-context.ts` / `worker-registry.ts` | Context resolver (session_id, repo_path) & Subagent worker lifecycle manager |
 
 ### 3.4 Database Layer — `src/db/`
 
@@ -114,25 +106,10 @@ Database settings:
 
 ### 3.5 CLI — `src/cli/harness.ts`
 
-Standalone CLI entry point (`bin.harness` in package.json). Uses manual `process.argv` parsing with helper functions `getFlag()` and `hasFlag()`.
+Standalone CLI entry point (`bin.harness` in package.json). Uses a manual `process.argv` parser with `getFlag()` and `hasFlag()` helpers.
 
-Commands:
-- `harness init [path] [--stack auto|node|dotnet|python|go] [--force]`
-- `harness doctor`
-- `harness status [--repo path] [--format json|table]`
-- `harness verify [--repo path] [--skip-install] [--force-install]`
-- `harness quick-start [--repo path] [--title "Task Title"]`
-- `harness skills [--list] [--show <name>] [--stack <filter>]`
-- `harness tasks [--repo path] [--status <status>]`
-- `harness instincts [--list] [--export]`
-- `harness install-mcp --ide <name>`
-- `harness orchestrate <title> [--repo path] [--max-loops n] [--steps build,test]`
-- `harness workers [--list] [--kill <id>] [--cleanup] [--repo path]`
-- `harness hooks [--list] [--validate] [--dry-run --tool <tool> [--args <json>]]`
-- `harness report [--period 7d|30d|all] [--repo path] [--format json|table]`
-- `harness knowledge [--type lesson|pattern|decision|...] [--tags "tag1,tag2"] [--list] [--add]`
-
-The CLI dispatches via a `switch` statement on the first positional argument.
+Supports primary commands such as: `init`, `doctor`, `status`, `verify`, `quick-start`, `skills`, `tasks`, `instincts`, `install-mcp`, `orchestrate`, `workers`, `hooks`, `report`, `knowledge`.
+- *See detailed syntax and parameters of all 17 CLI commands in [docs/06-cli-reference.md](docs/06-cli-reference.md).*
 
 ---
 
@@ -164,110 +141,36 @@ throw new Error("File not found");
 
 ### wrapTool Decorator
 
-Every tool handler in `src/index.ts` is wrapped with `wrapTool()`. This provides:
-1. **try/catch** — catches any exception, returns `{ error }` JSON
-2. **Audit logging** — emits `tool_success` or `tool_error` event
-3. **Loop detection** — appends `_warn` field if same call repeated >5 times in 60s
+Every tool handler in `src/index.ts` is wrapped with `wrapTool(name, fn)`. This decorator handles:
+1. **try/catch**: Catches all exceptions and converts them to JSON `{ error }`.
+2. **Audit logging**: Records `tool_success` or `tool_error` events.
+3. **Loop detection**: Adds a `_warn` warning field if a tool is called repeatedly with identical parameters >5 times within 60 seconds.
 
-```typescript
-import { wrapTool } from "./lib/wrapper.js";
+### Structured Logging & SQLite Patterns
 
-// In src/index.ts:
-function makeHandler<T>(name: string, fn: (args: T) => unknown) {
-  return wrapTool(name, async (args) => {
-    const result = fn(args as T);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  });
-}
-```
-
-### Structured Logging
-
-- **NEVER** use `console.log()` — it writes to stdout and breaks MCP transport
-- Use `log()` from `src/lib/logger.ts` — writes structured JSON to stderr
-- Only emits when `HARNESS_DEBUG=1` (except errors, which always emit)
-
-```typescript
-import { log } from "./lib/logger.js";
-
-log("info", "operation completed", { tool: "session_start", duration: 42 });
-log("error", "database failure", { error: err.message });
-```
-
-### SQLite Patterns
-
-- Always use `getDb()` from `src/db/client.ts` (singleton, lazy-init)
-- WAL mode is set automatically
-- Use typed queries:
-  ```typescript
-  const db = getDb();
-  const row = db.prepare("SELECT * FROM sessions WHERE id = ?").get(id) as SessionRow | undefined;
-  ```
+- **Structured Logging**: Never use `console.log()` (it breaks the MCP stdout transport). Use `log(level, message, meta)` from `src/lib/logger.ts` to write structured JSON logs to stderr (only active when `HARNESS_DEBUG=1` except for errors).
+  *Example: `log("info", "done", { tool: "session_start" });`*
+- **SQLite Patterns**: Always use `getDb()` from `src/db/client.ts` to interact with the SQLite database (auto lazy-initialized singleton, enables WAL mode and Foreign Keys automatically).
+  *Example: `const row = getDb().prepare("SELECT * FROM sessions WHERE id = ?").get(id);`*
 
 ### Skill Format
 
-Skills use YAML frontmatter + markdown body. See Section 6 for full schema.
+Skills use YAML frontmatter combined with markdown content. See Section 6 for details on the frontmatter schema.
 
 ---
 
 ## 5. Adding a New Tool
 
-Step-by-step:
+Standard process when adding a new tool (must complete all 6 steps):
 
-### Step 1: Implement the function
+1. **Implement Logic (`src/tools/name.ts`)**: Write a pure function handling the logic, returning a JSON object (never throw errors).
+2. **Register Tool (`src/index.ts`)**: Declare it using `server.registerTool(...)` with a Zod schema (must have `.describe()` for each parameter), and use `makeHandler()` to wrap the logic.
+3. **Write Unit Tests (`src/tools/name.test.ts`)**: Required to write tests for core logic.
+4. **Update Smoke Test (`scripts/smoke-test.ts`)**: Add the tool to the smoke check list.
+5. **Update Documentation (`docs/05-tools-reference.md`)**: Add parameters and schema description.
+6. **Verify**: Run `pnpm run build; pnpm test; pnpm run smoke` to confirm.
 
-Create or edit a file in `src/tools/`. Export a pure function:
-
-```typescript
-// src/tools/example.ts
-import { getDb } from "../db/client.js";
-
-export function exampleDo(input: string): { result: string } {
-  // Implementation here
-  return { result: `processed: ${input}` };
-}
-```
-
-### Step 2: Register in `src/index.ts`
-
-Import the function and register it with the MCP server:
-
-```typescript
-import { exampleDo } from "./tools/example.js";
-
-server.registerTool(
-  "example_do",
-  {
-    description: "Description of what it does.",  // shown to the agent
-    inputSchema: {
-      input: z.string().describe("What this parameter is"),
-    },
-  },
-  makeHandler(
-    "example_do",
-    ({ input }: { input: string }) => exampleDo(input)
-  )
-);
-```
-
-### Step 3: Update smoke test
-
-Edit `scripts/smoke-test.ts` — add the new tool name to the expected tools list.
-
-### Step 4: Verify
-
-```bash
-pnpm run build
-pnpm test
-pnpm run smoke
-```
-
-Rules:
-- Tool names use `snake_case`
-- Every tool MUST go through `makeHandler()` / `wrapTool()`
-- Return a JSON-serializable object (never throw)
-- Truncate any output to 8KB max before returning
-- Add a `.describe()` to every Zod parameter
+> **Tool Regulation:** Tool names must use `snake_case`, output must be truncated to 8192 bytes, and always return a `{ result }` or `{ error }` object.
 
 ---
 
@@ -326,23 +229,7 @@ Frontmatter schema:
 
 - Config: `vitest.config.ts`
 - Run: `pnpm test` (alias for `vitest run`)
-- Test files: colocated with source as `*.test.ts`
-- Current test files:
-  - `src/lib/frontmatter.test.ts` (33 tests)
-  - `src/lib/repo.test.ts` (7 tests)
-  - `src/lib/runtime.test.ts` (7 tests)
-  - `src/lib/loop-guard.test.ts` (7 tests)
-  - `src/lib/parsers/vitest.test.ts` (6 tests)
-  - `src/lib/git-diff.test.ts` (8 tests)
-  - `src/lib/evidence.test.ts` (5 tests)
-  - `src/lib/circuit-breaker.test.ts` (8 tests)
-  - `src/lib/tool-context.test.ts` (8 tests)
-  - `src/lib/worker-registry.test.ts` (3 tests)
-  - `src/lib/analytics.test.ts` (1 test)
-  - `src/tools/session.test.ts` (2 tests)
-  - `src/tools/code_search.test.ts` (3 tests)
-  - `src/lib/hooks.test.ts` (5 tests)
-  - `src/cli/orchestrator.test.ts` (2 tests)
+- Test files: colocated with source code as `*.test.ts`. These include unit tests for all helper modules in `src/lib/` (frontmatter, repo, loop-guard, etc.), tool logics in `src/tools/`, and the CLI orchestrator.
 
 ### Smoke Test
 
@@ -376,7 +263,44 @@ describe("myFunction", () => {
 
 ---
 
-## 8. Build & Verify
+## 8. Workflow — Follow In Order, No Exceptions
+
+For development tasks, follow this workflow in order:
+
+```
+[ ] 1. session_start(".")              ← MANDATORY FIRST ACTION
+[ ] 2. Review `suggested_skills` from session_start response
+[ ] 3. Load skills: `skill_load("harness-workflow")` + any suggested skills with score >= 1.5
+[ ] 4. repo_summary_read(".")          ← understand codebase
+[ ] 5. Read last handoff context from session_start response
+[ ] 6. Follow `workflow_guidance.next_action` from session_start
+[ ] 7. Pick/create ONE task in session → check `suggested_skills` in task_create response (Create implementation plan or research doc in `.harness/artifacts/` if the task is complex)
+[ ] 8. scope_check(".", file_path)     ← before editing EACH file
+[ ] 9. Make changes incrementally
+[ ] 10. progress_log(".", { summary, status: "in-progress" })
+[ ] 11. verify_run(".")                ← ALL steps must pass (MANDATORY before handoff)
+[ ] 12. Load & follow code-review: `skill_load("code-review-workflow")` ← Perform self-review checklist, write review documents in `.harness/artifacts/` if applicable
+[ ] 13. session_handoff(...)           ← MANDATORY LAST ACTION to save progress
+```
+
+### What happens if you skip steps
+
+| Skipped step | Consequence |
+|---|---|
+| `session_start` | No task context. Session ID missing — handoff will fail. |
+| Load `suggested_skills` | You miss task-specific skills (TDD, diagnosis, etc.) — agent performs sub-optimally. |
+| Follow `workflow_guidance` | Risk skipping phases — verify_run warning will appear at handoff. |
+| `repo_summary_read` | May edit wrong files or use wrong stack patterns. |
+| Read last handoff | You repeat work the previous agent already did, or miss critical context. |
+| `scope_check` | Risk editing forbidden paths. Harness will flag violation. |
+| `progress_log` | Next session loses mid-task context. |
+| `verify_run` | Task is NOT done. verify_run warning will appear at handoff. |
+| Load `code-review-workflow` | Risk merging code with trailing debug statements, bad formatting, or incomplete tests. |
+| `session_handoff` | All progress context is lost. Next agent starts blind. |
+
+---
+
+## 9. Build, Verify
 
 Run these commands before every commit:
 
@@ -400,7 +324,7 @@ If you change tool registrations (add/remove/rename), also verify:
 
 ---
 
-## 9. File Layout
+## 10. File Layout
 
 ```
 harness-os/
@@ -410,8 +334,8 @@ harness-os/
 ├── AGENTS.md                 # This file — instructions for AI agents
 ├── README.md                 # Project overview (Vietnamese)
 ├── CHANGELOG.md              # Version history
-├── HARNESS-OS-PLAN.md       # Original implementation plan
-├── TASK_IMPLEMENT.md                  # Task breakdown
+├── HARNESS-OS-PLAN.md        # Original implementation plan
+├── TASK_IMPLEMENT.md         # Task breakdown
 │
 ├── src/
 │   ├── index.ts              # MCP stdio server entry — registers all 30 tools
@@ -421,217 +345,45 @@ harness-os/
 │   ├── db/
 │   │   ├── client.ts         # SQLite connection, migrations, getDb() singleton
 │   │   └── audit.ts          # JSONL append helper for audit trail
-│   ├── tools/
-│   │   ├── session.ts        # session_start/end/resume/handoff
-│   │   ├── task.ts           # task_create/update/list
-│   │   ├── verify.ts         # verify_run (install/build/test/lint pipeline)
-│   │   ├── skill.ts          # skill_load/list/create_from_session/suggest
-│   │   ├── instinct.ts       # instinct_add/get/prune/evolve/promote
-│   │   ├── state.ts          # progress_log, handoff read/write
-│   │   ├── scope.ts          # scope_get, scope_check (glob matching)
-│   │   ├── observe.ts        # audit_log, harness_status
-│   │   ├── repo_summary.ts   # repo_summary_read
-│   │   └── subagent.ts       # subagent_invoke
-│   └── lib/
-│       ├── wrapper.ts        # wrapTool() decorator (try/catch + audit + loop guard)
-│       ├── loop-guard.ts     # Detect repeated calls (>5 in 60s)
-│       ├── logger.ts         # Structured JSON stderr logger
-│       ├── runtime.ts        # Stack detection (node/dotnet/python/go/rust)
-│       ├── repo.ts           # .harness/ path resolver, repo hash, ensureDir
-│       ├── frontmatter.ts    # YAML frontmatter parser for SKILL.md
-│       ├── git-diff.ts       # Get changed files from git
-│       ├── evidence.ts       # Evidence persistence (save/read per task)
-│       ├── hooks.ts          # Hook system block and stop validation logic
-│       ├── skill-matcher.ts  # Tokenizer, synonym mapping, suggestion scoring
-│       ├── circuit-breaker.ts # Repo-scoped circuit breaker
-│       ├── tool-context.ts   # Tool arguments context resolver
-│       ├── worker-registry.ts # SQLite worker lifecycle registry
-│       ├── analytics.ts      # Reporting metrics aggregator
-│       └── parsers/
-│           ├── vitest.ts     # Vitest JSON output parser
-│           └── generic.ts    # Generic test output parser
+│   ├── tools/                # 12 modules for session, task, verify, skill, instinct, state, etc.
+│   └── lib/                  # 17 helper modules (wrapper, hooks, loop-guard, repo, git-diff, etc.)
 │
 ├── skills/                   # 31 built-in skills (YAML frontmatter + markdown)
 │   ├── karpathy-guidelines/SKILL.md
 │   ├── harness-workflow/SKILL.md
 │   ├── tdd-workflow/SKILL.md
-│   ├── verification-loop/SKILL.md
-│   ├── read-first/SKILL.md
-│   ├── strategic-compact/SKILL.md
-│   ├── continuous-learning/SKILL.md
-│   ├── design-grilling/SKILL.md
-│   ├── prototype-first/SKILL.md
-│   ├── architecture-review/SKILL.md
-│   ├── spec-driven-workflow/SKILL.md
-│   ├── systematic-diagnosis/SKILL.md
-│   ├── vertical-slicing/SKILL.md
-│   ├── to-prd/SKILL.md
-│   ├── triage/SKILL.md
-│   ├── write-a-skill/SKILL.md
-│   ├── security-audit/SKILL.md
-│   ├── edge-case-generation/SKILL.md
-│   ├── parallel-coordination/SKILL.md
-│   ├── autonomous-optimizer/SKILL.md
-│   ├── deep-research/SKILL.md
-│   ├── brainstorming/SKILL.md
-│   ├── subagent-driven-development/SKILL.md
-│   ├── deep-learning-review/SKILL.md
 │   ├── code-review-workflow/SKILL.md
-│   ├── finishing-a-development-branch/SKILL.md
-│   ├── csharp-baseline/SKILL.md
-│   ├── csharp-bugfix/SKILL.md
-│   ├── csharp-code-review/SKILL.md
-│   ├── csharp-feature/SKILL.md
-│   └── csharp-repair/SKILL.md
+│   └── ... (Run `harness skills --list` for the complete list of 31 skills)
 │
-├── templates/                # Used by `harness init` to scaffold repos
-│   ├── AGENTS.md.tpl
-│   ├── init.sh.tpl
-│   ├── verify.yaml.tpl
-│   ├── scope.yaml.tpl
-│   └── feature_list.json.tpl
+├── templates/                # Used by `harness init` to scaffold repos (AGENTS.md.tpl, etc.)
 │
-├── ide-adapters/             # MCP configs for 7 IDEs
-│   ├── cursor/mcp.json
-│   ├── claude-code/install.md
-│   ├── kiro/mcp.json
-│   ├── vscode/mcp.json
-│   ├── antigravity/mcp.json
-│   ├── opencode/opencode.json
-│   ├── codex/AGENTS.md           # Instruction-only (no MCP)
-│   └── copilot/copilot-instructions.md  # Instruction-only (no MCP)
+├── ide-adapters/             # MCP configs for 8 IDEs (cursor, vscode, claude-code, etc.)
 │
 ├── scripts/
 │   ├── smoke-test.ts         # End-to-end MCP server test
 │   └── seed-instincts.ts     # 10 starter instincts (idempotent)
 │
 ├── dist/                     # Build output (gitignored)
-└── .harness/                 # Local harness state for this repo
-    ├── progress.md
-    └── handoff_last.json
+└── .harness/                 # Local harness state for this repo (progress.md, etc.)
 ```
 
 ---
 
-## 10. Critical Rules
+## 11. Critical Rules
 
-### Never write to stdout
-
-The MCP transport uses stdio. Any non-JSON-RPC output to stdout will crash the connection.
-
-```typescript
-// FORBIDDEN
-console.log("debug info");
-process.stdout.write("anything");
-
-// CORRECT
-log("info", "debug info");  // writes to stderr
-process.stderr.write("debug info\n");
-```
-
-### Never throw unhandled exceptions
-
-All tool handlers are wrapped with `wrapTool()`. If you add code outside a tool handler (e.g., in `main()`), wrap it in try/catch:
-
-```typescript
-async function main() {
-  try {
-    // ...
-  } catch (err) {
-    process.stderr.write(`Fatal: ${err}\n`);
-    process.exit(1);
-  }
-}
-```
-
-### Always emit audit events
-
-The `wrapTool()` decorator handles this automatically for tool calls. If you add non-tool operations that should be tracked, call `auditLog()` explicitly:
-
-```typescript
-import { auditLog } from "../tools/observe.js";
-auditLog("custom_event", { key: "value" });
-```
-
-### Truncate outputs to 8KB max
-
-Any tool returning command output or file content must truncate to 8192 bytes:
-
-```typescript
-const MAX_OUTPUT = 8192;
-const output = rawOutput.length > MAX_OUTPUT
-  ? rawOutput.slice(0, MAX_OUTPUT) + "\n...[truncated]"
-  : rawOutput;
-```
-
-### Loop guard: same tool+args >5 times in 60s = warning
-
-The loop guard in `src/lib/loop-guard.ts` hashes `toolName + JSON.stringify(args)`. On the 6th identical call within 60 seconds, it appends a `_warn` field to the response. This is advisory — it does not block the call.
-
-### Path resolution must work from both `src/` (dev) and `dist/` (prod)
-
-When resolving paths to `skills/`, `templates/`, or `ide-adapters/`, use `import.meta.url` to find the project root:
-
-```typescript
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
-
-const thisFile = fileURLToPath(import.meta.url);
-// From src/cli/harness.ts or dist/cli/harness.ts → go up 2 levels
-const projectRoot = resolve(dirname(thisFile), "..", "..");
-```
-
-This works whether running from `src/` (via tsx) or `dist/` (compiled).
-
-### Always update documentation on code changes
-
-Whenever you implement or modify features, you **MUST** immediately update:
-1. `CHANGELOG.md` under the appropriate version section (with status/description).
-2. Relevant documentation in `README.md`, `AGENTS.md`, or the specific files under `docs/`:
-   - [docs/README.md](docs/README.md) (Mục lục tài liệu)
-   - [docs/01-getting-started.md](docs/01-getting-started.md) (Giới thiệu, cài đặt)
-   - [docs/02-ide-setup.md](docs/02-ide-setup.md) (Cấu hình cho các IDE)
-   - [docs/03-repo-init.md](docs/03-repo-init.md) (Khởi tạo repository)
-   - [docs/04-workflow.md](docs/04-workflow.md) (Daily workflow & RIPER-5 mapping)
-   - [docs/05-tools-reference.md](docs/05-tools-reference.md) (Chi tiết parameters/schemas của 30 MCP tools)
-   - [docs/06-cli-reference.md](docs/06-cli-reference.md) (Danh sách 17 lệnh CLI)
-   - [docs/07-skills.md](docs/07-skills.md) (Hệ thống skills)
-   - [docs/08-instincts.md](docs/08-instincts.md) (Học instincts, Bayesian confidence)
-   - [docs/09-file-structure.md](docs/09-file-structure.md) (Cấu trúc file trong project)
-   - [docs/10-troubleshooting.md](docs/10-troubleshooting.md) (Sửa lỗi thường gặp, FAQ & roadmap)
-   - [docs/11-agents-md-spec.md](docs/11-agents-md-spec.md) (Đặc tả AGENTS.md)
-   - [docs/12-skill-format.md](docs/12-skill-format.md) (Định dạng file SKILL.md)
-   - [docs/13-glossary.md](docs/13-glossary.md) (Thuật ngữ)
-   - [docs/14-rulebooks.md](docs/14-rulebooks.md) (Rulebooks)
-   - [docs/15-artifacts.md](docs/15-artifacts.md) (Quy chuẩn tạo artifacts)
-   - [docs/16-state-architecture.md](docs/16-state-architecture.md) (Kiến trúc SQLite & state)
-3. The codebase diagram or file layout schemas if structure changes.
-
-Failure to keep documentation in sync with code is unacceptable.
-
-### Always sync version numbers across the codebase
-
-Whenever you bump or modify the version number, you **MUST** update it in `package.json` (`version` field) and then run the synchronization script:
-```bash
-pnpm run sync-version
-```
-This script automatically distributes the updated version to all required static and test files:
-1. `src/index.ts` (Dynamic read from package.json)
-2. `AGENTS.md` (Self-synchronized)
-3. `README.md` (Version badge at the top)
-4. `docs/README.md` (Version metadata at the top and footer)
-5. `templates/AGENTS.md.tpl` (Version generator comment and metadata line)
-6. `scripts/smoke-test.ts` (Version parameter in Client constructor)
-
-Failure to maintain version alignment or run the sync-version script after bumping the version is unacceptable.
-
-### Mandatory Development Rules
-- **⛔ Commit Gate**: NEVER automatically commit or push code. List modified files, summarize changes, propose a commit message, and wait for explicit confirmation (`OK`).
-- **📝 Vietnamese & Encoding**: Use UTF-8 (no BOM) for all code files. Vietnamese log messages, XML summaries, and comments must be fully accented. Use script-safe encodings (no BOM) for new files.
+- **⛔ No writing to `stdout`**: MCP uses stdio. Any `console.log()` will break the connection. Use `log("info", ...)` from `src/lib/logger.ts` (writes to `stderr`).
+- **🛡️ No throwing exceptions**: Must wrap logic in `try/catch` or use `wrapTool()`. Errors must be returned as a JSON `{ error: "msg" }` object.
+- **📏 Truncate Outputs**: All outputs returned from tools (file content, command results) must be truncated to 8192 bytes (8KB).
+- **🔄 Path Resolution**: Use `import.meta.url` combined with `resolve(dirname(...))` to compute relative paths, ensuring it runs correctly on both `src/` (tsx) and `dist/` (compiled node).
+- **📝 Audit Logging & Loop Guard**: Tool handlers (via `wrapTool`) automatically record audits and guard against loops (>5 times/60s). If writing background logic, call `auditLog()` manually.
+- **📚 Always update Documentation**: Any logic changes must be logged in `CHANGELOG.md` and the corresponding `docs/*.md` files. Read index at [docs/README.md](docs/README.md).
+- **⚙️ Always sync Version**: When updating the version in `package.json`, you MUST run `pnpm run sync-version` to sync across doc files and source code.
+- **⛔ Commit Gate**: NEVER automatically commit or push code. List modified files, propose a commit message, and wait for explicit confirmation (`OK`) from the user.
+- **🇻🇳 Vietnamese & Encoding**: Use UTF-8 (no BOM) for all code files. Vietnamese log messages, XML summaries, and comments must be fully accented.
 
 ---
 
-## 11. Scope Boundaries
+## 12. Scope Boundaries
 
 Do NOT modify the following without explicit permission from the project owner:
 
