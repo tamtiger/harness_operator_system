@@ -6,12 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ## [1.5.3] — 2026-06-15
 
 ### Added
+- **GitLab Project ID Auto-Detection**: Integrated GitLab API client inside `harness init` / `createRepoConfig` to automatically retrieve the numeric project ID of a repository using GitLab credentials (`X-GitLab-Token` / `--token`) from global MCP configurations (`mcp_config.json`) and save it to `.harness/config.yaml`.
+- **Force Overwrite for config.yaml**: Allowed `harness init --force` command flag to cleanly re-generate and overwrite `.harness/config.yaml` to refresh repo details or project IDs.
 - **Human-readable Global Repo Folders**: Enhanced `generateRepoId` to prefix the UUID with the sanitized repository name (e.g., `my_project-a1b2c3d4`). This makes global state directories in `~/.harness/repos/` much easier to discover and manage.
 - **Detailed Tool Audit Logging**: The MCP wrapper now logs the full `args` and `result` payloads (instead of just argument keys) to the SQLite audit database and JSONL file, providing rich datasets for analyzing agent behavior and debugging. This is controlled by `HARNESS_VERBOSE_AUDIT` (enabled by default).
 
 ### Changed
+- **Unified Agent Instructions**: Consolidated duplicate rules sections in the `AGENTS.md.tpl` template and `AGENTS.md` by merging the custom development guidelines (Commit Gate, Vietnamese language accents, UTF-8 no BOM encoding) into the standard `Rules — Violation = Task Failed` and `Non-Negotiable Rules` blocks.
 - **Preserve Repo Identity**: `harness init` now reads and preserves existing `.harness/config.yaml` files instead of indiscriminately overwriting them. This prevents the creation of orphaned global state folders when initializing an existing repository multiple times.
 - **Removed Local Progress File**: `harness init` no longer creates a local `.harness/progress.md` file, fully embracing the v1.0 global state architecture.
+
+### Improved
+- **Robust Doctor Check**: Excluded optional/runtime state files (like `progress.md`, `handoff_last.json`, and `never_again.md`) under the `.harness/` directory from being evaluated as broken/missing references in `harness doctor` CLI check.
 
 ## [1.5.2] — 2026-06-12
 

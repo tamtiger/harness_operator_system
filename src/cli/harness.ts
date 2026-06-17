@@ -175,9 +175,11 @@ function cmdInit() {
 
   // v1.0: Create config.yaml and register repo globally
   let repoConfig = readRepoConfig(repoPath);
-  if (!repoConfig) {
+  if (!repoConfig || force) {
     repoConfig = createRepoConfig(repoPath);
-    created.push(".harness/config.yaml");
+    if (!created.includes(".harness/config.yaml")) {
+      created.push(".harness/config.yaml");
+    }
   } else {
     skipped.push(".harness/config.yaml");
   }
@@ -326,8 +328,9 @@ function cmdDoctor() {
         if (!existsSync(refPath) && !cleanRef.includes("{") && !cleanRef.includes("*") && !cleanRef.startsWith("~")) {
           // Only warn for paths starting with known directories, or specific root files
           const isRootFile = ["package.json", "tsconfig.json", "vitest.config.ts", "agents.md", "readme.md", "changelog.md", "task_implement.md"].includes(cleanRef.toLowerCase());
+          const isOptionalHarnessFile = [".harness/progress.md", ".harness/handoff_last.json", ".harness/never_again.md"].includes(cleanRef);
           const isKnownDir = cleanRef.startsWith("src/") || cleanRef.startsWith("scripts/") || cleanRef.startsWith("skills/") || cleanRef.startsWith("templates/") || cleanRef.startsWith("ide-adapters/") || cleanRef.startsWith(".harness/");
-          if (isRootFile || isKnownDir) {
+          if ((isRootFile || isKnownDir) && !isOptionalHarnessFile) {
             missingRefs++;
           }
         }

@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, basename } from "node:path";
 import { randomUUID } from "node:crypto";
 import { execSync } from "node:child_process";
+import { homedir } from "node:os";
 import { resolveGlobalHome, ensureDir } from "./repo.js";
 
 export interface RepoConfig {
@@ -10,6 +11,7 @@ export interface RepoConfig {
   harness_home: string;
   registered_at: string;
   remote_url: string;
+  gitlab_project_id?: string;
 }
 
 /**
@@ -33,14 +35,18 @@ function parseSimpleYaml(content: string): Record<string, string> {
  * Serialize a RepoConfig to simple YAML format.
  */
 function serializeSimpleYaml(config: RepoConfig): string {
-  return [
+  const lines = [
     `repo_name: ${config.repo_name}`,
     `repo_id: ${config.repo_id}`,
     `harness_home: ${config.harness_home}`,
     `registered_at: ${config.registered_at}`,
     `remote_url: ${config.remote_url}`,
-    "",
-  ].join("\n");
+  ];
+  if (config.gitlab_project_id) {
+    lines.push(`gitlab_project_id: ${config.gitlab_project_id}`);
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 /**
@@ -62,6 +68,7 @@ export function readRepoConfig(repoPath: string): RepoConfig | null {
       harness_home: parsed.harness_home || "",
       registered_at: parsed.registered_at || "",
       remote_url: parsed.remote_url || "",
+      gitlab_project_id: parsed.gitlab_project_id || undefined,
     };
   } catch {
     return null;
@@ -76,8 +83,9 @@ export function createRepoConfig(repoPath: string): RepoConfig {
   const repoName = basename(repoPath);
   const repoId = generateRepoId(repoName);
   const harnessHome = resolveGlobalHome();
-  const registeredAt = new Date().toISOString();
   const remoteUrl = detectRemoteUrl(repoPath);
+  const gitlabProjectId = detectGitLabProjectId(remoteUrl);
+  const registeredAt = new Date().toISOString();
 
   const config: RepoConfig = {
     repo_name: repoName,
@@ -85,6 +93,7 @@ export function createRepoConfig(repoPath: string): RepoConfig {
     harness_home: harnessHome,
     registered_at: registeredAt,
     remote_url: remoteUrl,
+    gitlab_project_id: gitlabProjectId,
   };
 
   const harnessDir = join(repoPath, ".harness");
@@ -134,4 +143,75 @@ function detectRemoteUrl(repoPath: string): string {
   } catch {
     return "";
   }
+}
+
+/**
+ * Detect GitLab Project ID using curl and gitlab token from global mcp_config.json
+ */
+function detectGitLabProjectId(remoteUrl: string): string | undefined {
+  if (!remoteUrl) return undefined;
+  
+  // Extract project path (e.g. retail-platform/paymenthub/transaction-store-service)
+  // Support ssh: git@domain:path.git or https: https://domain/path.git
+  let projectPath = "";
+  let domain = "";
+  
+  try {
+    if (remoteUrl.startsWith("git@")) {
+      const parts = remoteUrl.slice(4).split(":");
+      domain = parts[0];
+      projectPath = parts[1].replace(/\.git$/, "");
+    } else if (remoteUrl.startsWith("http")) {
+      const urlObj = new URL(remoteUrl);
+      domain = urlObj.hostname;
+      projectPath = urlObj.pathname.slice(1).replace(/\.git$/, "");
+    }
+  } catch {
+    return undefined;
+  }
+  
+  if (!projectPath || !domain) return undefined;
+  
+  // Try to find the GitLab token from ~/.gemini/config/mcp_config.json
+  let token = "";
+  try {
+    const mcpConfigPath = join(homedir(), ".gemini", "config", "mcp_config.json");
+    if (existsSync(mcpConfigPath)) {
+      const configText = readFileSync(mcpConfigPath, "utf-8");
+      const config = JSON.parse(configText);
+      const headers = config.mcpServers?.rai?.headers;
+      if (headers && headers["X-GitLab-Token"]) {
+        token = headers["X-GitLab-Token"];
+      } else if (config.mcpServers?.gitlab?.args) {
+        // Fallback to gitlab MCP config args
+        const tokenArg = config.mcpServers.gitlab.args.find((a: string) => a.startsWith("--token="));
+        if (tokenArg) {
+          token = tokenArg.split("=")[1];
+        }
+      }
+    }
+  } catch {
+    // Ignore error
+  }
+  
+  if (!token) return undefined;
+  
+  try {
+    const encodedPath = encodeURIComponent(projectPath);
+    const apiUrl = `https://${domain}/api/v4/projects/${encodedPath}`;
+    
+    // Call curl synchronously to get project details
+    const responseText = execSync(
+      `curl -s --header "PRIVATE-TOKEN: ${token}" "${apiUrl}"`,
+      { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
+    );
+    const response = JSON.parse(responseText);
+    if (response && response.id) {
+      return String(response.id);
+    }
+  } catch {
+    // Ignore error
+  }
+  
+  return undefined;
 }
