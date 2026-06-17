@@ -21,24 +21,13 @@ The server exposes tools for session lifecycle, task management, verification, s
 
 ---
 
-## 2. Development Setup
-
+## 2. Quick Setup & Commands
 ```bash
-# Clone and install (using pnpm)
-git clone <repo-url> && cd harness-os
-pnpm install
-
-# Build (TypeScript → dist/)
-pnpm run build
-
-# Run unit tests (189 tests)
-pnpm test
-
-# Run smoke test (boots MCP server, calls all 30 tools)
-pnpm run smoke
-
-# Dev mode (tsx, no build needed)
-pnpm run dev
+pnpm install          # Install dependencies
+pnpm run build        # Build (TypeScript -> dist/)
+pnpm test             # Run unit tests
+pnpm run smoke        # Run end-to-end smoke test
+pnpm run dev          # Dev mode using tsx
 ```
 
 Requirements:
@@ -635,6 +624,10 @@ This script automatically distributes the updated version to all required static
 6. `scripts/smoke-test.ts` (Version parameter in Client constructor)
 
 Failure to maintain version alignment or run the sync-version script after bumping the version is unacceptable.
+
+### Mandatory Development Rules
+- **⛔ Commit Gate**: NEVER automatically commit or push code. List modified files, summarize changes, propose a commit message, and wait for explicit confirmation (`OK`).
+- **📝 Vietnamese & Encoding**: Use UTF-8 (no BOM) for all code files. Vietnamese log messages, XML summaries, and comments must be fully accented. Use script-safe encodings (no BOM) for new files.
 
 ---
 

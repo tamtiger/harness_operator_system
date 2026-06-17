@@ -139,6 +139,8 @@ cargo clippy        # Lint check
 4. **Log progress** — Use `progress_log` after each meaningful change.
 5. **Handoff at end** — Always call `session_handoff` before ending a session.
 6. **No silent failures** — If verification fails, fix it or report it. Never pretend it passed.
+7. **⛔ Commit Gate** — NEVER automatically commit or push code. List modified files, summarize changes, propose a commit message, and wait for explicit confirmation (`OK`).
+8. **📝 Vietnamese & Encoding** — Use UTF-8 (no BOM) for all code files. Vietnamese log messages, XML summaries, and comments must be fully accented.
 
 ---
 
@@ -342,17 +344,6 @@ session_start → load skills → select task → execute → verify → handoff
 2. **Record outcomes** — `instinct_record_outcomes({ session_id, outcome })` to help harness learn
 3. **Create artifacts** (plans, research, reviews) in `.harness/artifacts/` if the work warrants documentation
 4. **Call `session_handoff`** with a clear summary, unfinished items, and next steps
-
----
-
-## Non-Negotiable Rules
-
-1. **Verify before done** — Always run `verify_run` before marking any task complete
-2. **Stay in scope** — Check `scope_check` before editing files outside your task's scope
-3. **Log progress** — Use `progress_log` after each meaningful change
-4. **Handoff at end** — Always call `session_handoff` before ending a session
-5. **Record outcomes** — Call `instinct_record_outcomes` to teach harness what worked
-6. **No silent failures** — If verification fails, fix it or report it
 
 ---
 
