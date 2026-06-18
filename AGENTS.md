@@ -19,14 +19,15 @@ Instructions for AI coding agents working on the harness-os source code.
 session_start(".", { quick: true })  →  fix + verify_run(".")  →  session_handoff(...)
 ```
 
-### Full Path (5 mandatory steps)
+### Full Path (6 mandatory steps)
 
-```
-1. session_start(".")                ← FIRST. No exceptions. No reading code before this.
-2. Load suggested skills             ← skill_load("harness-workflow") + any with score >= 1.5
-3. task_create("title")              ← ONE task. Defines scope and success criteria.
-4. Implement → verify_run(".")       ← Code, then verify. MUST PASS before step 5.
-5. session_handoff(...)              ← LAST. Saves context for next session.
+```text
+1. session_start(".")                ← FIRST. Read `suggested_skills` from response.
+2. task_create("title")              ← Create ONE task. Read `suggested_skills` from response.
+3. skill_load(...)                   ← Load `harness-workflow` + suggested skills from steps 1 & 2.
+4. Implement                         ← scope_check → edit files → progress_log.
+5. verify_run(".")                   ← MUST PASS before handoff.
+6. session_handoff(...)              ← LAST. Saves context for next session.
 ```
 
 ### Best Practices (not blocking, but expected)
@@ -286,20 +287,18 @@ describe("myFunction", () => {
 
 For development tasks, follow this workflow in order:
 
-```
-[ ] 1. session_start(".")              ← MANDATORY FIRST ACTION
-[ ] 2. Review `suggested_skills` from session_start response
-[ ] 3. Load skills: `skill_load("harness-workflow")` + any suggested skills with score >= 1.5
-[ ] 4. repo_summary_read(".")          ← understand codebase
-[ ] 5. Read last handoff context from session_start response
-[ ] 6. Follow `workflow_guidance.next_action` from session_start
-[ ] 7. Pick/create ONE task in session → check `suggested_skills` in task_create response (Create implementation plan or research doc in `.harness/artifacts/` if the task is complex)
-[ ] 8. scope_check(".", file_path)     ← before editing EACH file
-[ ] 9. Make changes incrementally (Load framework-specific feature workflows like `csharp-feature` or `php-codeigniter-3-workflow` if applicable)
-[ ] 10. progress_log(".", { summary, status: "in-progress" })
-[ ] 11. verify_run(".")                ← ALL steps must pass (MANDATORY before handoff)
-[ ] 12. Load & follow code-review: `skill_load("code-review-workflow")` ← Perform self-review checklist (and load language-specific review checklists like `csharp-code-review` if applicable), write review documents in `.harness/artifacts/` if applicable
-[ ] 13. session_handoff(...)           ← MANDATORY LAST ACTION to save progress
+```text
+[ ] 1. session_start(".")              ← MANDATORY FIRST ACTION (Review `suggested_skills` & `workflow_guidance`)
+[ ] 2. repo_summary_read(".")          ← understand codebase
+[ ] 3. Read last handoff context from session_start response
+[ ] 4. Pick/create ONE task in session → check `suggested_skills` in task_create response (Create implementation plan or research doc in `.harness/artifacts/` if the task is complex)
+[ ] 5. skill_load(...)                 ← Load `harness-workflow` + ALL suggested skills with score >= 1.5 from steps 1 & 4.
+[ ] 6. scope_check(".", file_path)     ← before editing EACH file
+[ ] 7. Make changes incrementally (Load framework-specific feature workflows like `csharp-feature` or `php-codeigniter-3-workflow` if applicable)
+[ ] 8. progress_log(".", { summary, status: "in-progress" })
+[ ] 9. verify_run(".")                 ← ALL steps must pass (MANDATORY before handoff)
+[ ] 10. Load & follow code-review: `skill_load("code-review-workflow")` ← Perform self-review checklist (and load language-specific review checklists if applicable)
+[ ] 11. session_handoff(...)           ← MANDATORY LAST ACTION to save progress
 ```
 
 ### What happens if you skip steps
