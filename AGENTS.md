@@ -4,6 +4,57 @@ Instructions for AI coding agents working on the harness-os source code.
 
 ---
 
+## ⚠️ MANDATORY WORKFLOW — Read This First, Follow Every Time
+
+### Decision: Quick or Full?
+
+| Condition | Path |
+|-----------|------|
+| Single-file fix, typo, doc-only change | **Quick** |
+| Multi-file, new feature, refactor, bug fix | **Full** |
+
+### Quick Path (3 steps)
+
+```
+session_start(".", { quick: true })  →  fix + verify_run(".")  →  session_handoff(...)
+```
+
+### Full Path (5 mandatory steps)
+
+```
+1. session_start(".")                ← FIRST. No exceptions. No reading code before this.
+2. Load suggested skills             ← skill_load("harness-workflow") + any with score >= 1.5
+3. task_create("title")              ← ONE task. Defines scope and success criteria.
+4. Implement → verify_run(".")       ← Code, then verify. MUST PASS before step 5.
+5. session_handoff(...)              ← LAST. Saves context for next session.
+```
+
+### Best Practices (not blocking, but expected)
+
+- `repo_summary_read(".")` — understand codebase before coding
+- `scope_check(".", file)` — before editing each file
+- `progress_log(...)` — after each meaningful change
+- `skill_load("code-review-workflow")` — self-review before handoff
+
+### Why This Matters
+
+| If you skip... | What breaks |
+|---|---|
+| `session_start` | No session ID → `session_handoff` fails → all progress lost |
+| `verify_run` | Unverified code → bugs ship → you will be asked to redo |
+| `session_handoff` | Next session starts blind → work gets repeated |
+
+### Non-Dev Tasks (questions, explanations, read-only)
+
+Skip all of the above. Just answer directly. Examples:
+- Trả lời câu hỏi, giải thích concept
+- Review/đọc code mà không sửa
+- Lên plan, brainstorm, thảo luận thiết kế
+- Viết docs/specs mà không cần verify
+- Tìm kiếm thông tin, research
+
+---
+
 ## 1. Project Overview
 
 harness-os is a local MCP (Model Context Protocol) server that provides structured guardrails for AI coding agents. It ensures agents verify before claiming done, stay within scope, maintain context across sessions, and learn from patterns.
@@ -12,10 +63,10 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.5.4
+- **Version:** 1.5.5
 - **Tools:** 30 MCP tools across 11 modules
 - **Tests:** 207 unit tests (vitest) + smoke test
-- **Skills:** 31 built-in skills with tiered keyword matching
+- **Skills:** 32 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, codebase search, and observability.
 
@@ -174,56 +225,24 @@ Standard process when adding a new tool (must complete all 6 steps):
 
 ---
 
-## 6. Adding a New Skill
+## 6. How to Combine Skills
 
-### Step 1: Create the skill directory and file
+Use the formula: **`[Tier-1 Core] + [Stack Baseline] + [Task-Type] + [Add-ons]`**
 
-```
-skills/<skill-name>/SKILL.md
-```
+| Loại task | Công thức |
+|-----------|-----------|
+| Tính năng mới C# | `harness-workflow` + `csharp-baseline` + `csharp-feature` + `tdd-workflow` |
+| Fix bug C# | `harness-workflow` + `csharp-baseline` + `systematic-diagnosis` + `csharp-bugfix` (+ `csharp-repair` nếu có compile/test errors) |
+| Fix bug PHP CI4 | `harness-workflow` + `php-baseline` + `systematic-diagnosis` + `php-codeigniter-4-workflow` |
+| Code review C# | `harness-workflow` + `code-review-workflow` + `csharp-code-review` |
+| Code review general | `harness-workflow` + `code-review-workflow` |
+| Thiết kế tính năng | `harness-workflow` + `brainstorming` → (sau khi chọn approach) → `design-grilling` |
 
-### Step 2: Write the YAML frontmatter
-
-Required fields:
-
-```yaml
----
-name: my-skill-name          # Must match directory name
-version: "1.0"               # Semver string
-updated: 2026-01-15          # ISO date
-applies_to: ["node", "dotnet"]  # Stack filters, or ["*"] for all
-triggers: ["session_start"]  # When to suggest this skill
-description: One-line description of what this skill teaches.
----
-```
-
-### Step 3: Write the markdown body
-
-After the frontmatter closing `---`, write the skill content in markdown. Structure with headers, lists, and code blocks.
-
-### Step 4: Verify
-
-```bash
-pnpm run build
-pnpm test
-# Confirm skill appears:
-pnpm run dev -- skills --list
-```
-
-Frontmatter schema:
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | yes | Skill identifier, matches directory name |
-| `version` | string | yes | Semver version |
-| `updated` | string | yes | ISO date (YYYY-MM-DD) |
-| `applies_to` | string[] | yes | Stack filters: `["*"]`, `["node"]`, `["dotnet", "nestjs"]` |
-| `triggers` | string[] | yes | Tool names that trigger suggestion |
-| `description` | string | yes | One-line summary |
+**Quy tắc:** Tier-1 skills (`harness-workflow`, `karpathy-guidelines`, `strategic-compact`, + stack baseline nếu dotnet/php) luôn load đầu tiên. Stack-specific skills không tự động trigger — phải load explicit khi đúng context.
 
 ---
 
-## 7. Testing
+## 7. Adding a New Skill
 
 ### Unit Tests (vitest)
 
@@ -276,10 +295,10 @@ For development tasks, follow this workflow in order:
 [ ] 6. Follow `workflow_guidance.next_action` from session_start
 [ ] 7. Pick/create ONE task in session → check `suggested_skills` in task_create response (Create implementation plan or research doc in `.harness/artifacts/` if the task is complex)
 [ ] 8. scope_check(".", file_path)     ← before editing EACH file
-[ ] 9. Make changes incrementally
+[ ] 9. Make changes incrementally (Load framework-specific feature workflows like `csharp-feature` or `php-codeigniter-3-workflow` if applicable)
 [ ] 10. progress_log(".", { summary, status: "in-progress" })
 [ ] 11. verify_run(".")                ← ALL steps must pass (MANDATORY before handoff)
-[ ] 12. Load & follow code-review: `skill_load("code-review-workflow")` ← Perform self-review checklist, write review documents in `.harness/artifacts/` if applicable
+[ ] 12. Load & follow code-review: `skill_load("code-review-workflow")` ← Perform self-review checklist (and load language-specific review checklists like `csharp-code-review` if applicable), write review documents in `.harness/artifacts/` if applicable
 [ ] 13. session_handoff(...)           ← MANDATORY LAST ACTION to save progress
 ```
 
@@ -295,7 +314,7 @@ For development tasks, follow this workflow in order:
 | `scope_check` | Risk editing forbidden paths. Harness will flag violation. |
 | `progress_log` | Next session loses mid-task context. |
 | `verify_run` | Task is NOT done. verify_run warning will appear at handoff. |
-| Load `code-review-workflow` | Risk merging code with trailing debug statements, bad formatting, or incomplete tests. |
+| Load `code-review-workflow` | Risk merging code with trailing debug statements, bad formatting, incomplete tests, or missing language-specific checks (e.g. C#, PHP). |
 | `session_handoff` | All progress context is lost. Next agent starts blind. |
 
 ---
@@ -348,12 +367,12 @@ harness-os/
 │   ├── tools/                # 12 modules for session, task, verify, skill, instinct, state, etc.
 │   └── lib/                  # 17 helper modules (wrapper, hooks, loop-guard, repo, git-diff, etc.)
 │
-├── skills/                   # 31 built-in skills (YAML frontmatter + markdown)
+├── skills/                   # 32 built-in skills (YAML frontmatter + markdown)
 │   ├── karpathy-guidelines/SKILL.md
 │   ├── harness-workflow/SKILL.md
 │   ├── tdd-workflow/SKILL.md
 │   ├── code-review-workflow/SKILL.md
-│   └── ... (Run `harness skills --list` for the complete list of 31 skills)
+│   └── ... (Run `harness skills --list` for the complete list of 32 skills)
 │
 ├── templates/                # Used by `harness init` to scaffold repos (AGENTS.md.tpl, etc.)
 │
@@ -412,4 +431,5 @@ These are copied into user IDE settings. Changes propagate to all users on next 
 ### Templates (`templates/`)
 
 These scaffold new repos via `harness init`. Changes affect all future repo initializations. Existing repos are not affected (templates are only applied once).
+
 

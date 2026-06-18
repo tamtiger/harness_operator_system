@@ -1,16 +1,25 @@
 ---
 name: csharp-repair
-description: "Guide for diagnosing and fixing compile errors, runtime errors, and test failures in C# projects."
+description: "Guide for diagnosing and fixing compile errors, runtime errors, and test failures in C# projects. Loaded during verification-loop when errors occur."
 metadata:
-  version: "1.0"
-  updated: "2026-05-29"
+  version: "1.2"
+  updated: "2026-06-18"
   applies_to: ["dotnet"]
-  triggers: ["task_create"]
+  triggers: []
   tier: 2
   keywords: ["csharp", "dotnet", "hotfix", "repair", "patch", "urgent", "c#", ".net", "sửa nóng", "sửa chữa", "vá", "khẩn cấp"]
 ---
 
 # C# Repair Guide
+
+## When to Use This Skill vs `csharp-bugfix`
+
+| Situation | Load |
+|-----------|------|
+| Compiler errors (`CS####`), runtime exceptions, test failures | **`csharp-repair`** (this skill) |
+| Wrong business logic, unexpected behavior, regression | **`csharp-bugfix`** |
+
+Typically loaded by `verification-loop` when `verify_run` fails, or alongside `csharp-bugfix` when the fix introduces new errors.
 
 Unified guide for fixing three categories of errors in C#/.NET projects. Read the error message carefully — it tells you what's wrong.
 

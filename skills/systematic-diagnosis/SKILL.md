@@ -15,6 +15,8 @@ metadata:
 A disciplined loop for hard bugs. The goal is **certainty**, not speed.
 Never guess at fixes. Every change must be justified by evidence.
 
+> **Language-specific hook**: If diagnosing a bug in a specific stack (e.g., .NET/C#), load its specific bugfix workflow (like `csharp-bugfix`) alongside this general process to ensure you follow language conventions.
+
 ## Phase 1 — Build a Feedback Loop
 
 Before anything else, create a **fast, deterministic, agent-runnable pass/fail signal**. If you have a fast, deterministic, agent-runnable pass/fail signal for the bug, you will find the cause — bisection, hypothesis-testing, and instrumentation all just consume that signal. If you don't have one, no amount of staring at code will save you.

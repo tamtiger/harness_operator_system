@@ -1,6 +1,6 @@
 {
   "name": "harness-os",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "description": "Local harness operator system for agentic coding. MCP-first, cross-IDE, multi-repo.",
   "type": "module",
   "main": "dist/index.js",
@@ -13,7 +13,9 @@
     "test": "vitest run",
     "lint": "tsc --noEmit",
     "smoke": "tsx scripts/smoke-test.ts",
-    "sync-version": "tsx scripts/sync-version.ts"
+    "sync-version": "tsx scripts/sync-version.ts",
+    "analyze": "tsx scripts/analyze-trending.ts",
+    "schedule-agy": "tsx scripts/schedule-via-agy.ts"
   },
   "keywords": [
     "harness",
@@ -41,3 +43,4 @@
     "vitest": "^3.2.4"
   }
 }
+

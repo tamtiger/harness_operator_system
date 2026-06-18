@@ -1,11 +1,11 @@
 ---
 name: csharp-feature
-description: "Step-by-step workflow for implementing features in C#/ABP projects."
+description: "Step-by-step workflow for implementing features in C#/ABP projects. Loaded alongside tdd-workflow or spec-driven-workflow."
 metadata:
-  version: "1.0"
-  updated: "2026-05-28"
+  version: "1.1"
+  updated: "2026-06-18"
   applies_to: ["dotnet"]
-  triggers: ["task_create"]
+  triggers: []
   tier: 2
   keywords: ["csharp", "dotnet", "feature", "implement", "service", "controller", "c#", ".net", "tính năng", "triển khai", "dịch vụ", "bộ điều khiển"]
 ---

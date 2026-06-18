@@ -1,11 +1,11 @@
 ---
 name: php-codeigniter-4-workflow
-description: "CodeIgniter 4 conventions — PSR-4 namespaces, Spark CLI, routing, migrations, entities, and Shield auth."
+description: "CodeIgniter 4 conventions — PSR-4 namespaces, Spark CLI, routing, migrations, entities, and Shield auth. Loaded alongside tdd-workflow or spec-driven-workflow."
 metadata:
-  version: "1.0"
-  updated: "2026-06-03"
+  version: "1.1"
+  updated: "2026-06-18"
   applies_to: ["php"]
-  triggers: ["task_create"]
+  triggers: []
   tier: 2
   keywords: ["codeigniter", "ci4", "spark", "psr-4", "php", "shield", "entities", "migrations", "codeigniter-4"]
 ---

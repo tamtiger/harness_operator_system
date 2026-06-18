@@ -3,10 +3,10 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.5.4-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.5.5-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-32-blue)](#)
-[![Skills](https://img.shields.io/badge/skills-31-blue)](#)
+[![Skills](https://img.shields.io/badge/skills-32-blue)](#)
 [![Tests](https://img.shields.io/badge/tests-202%20passing-brightgreen)](#)
 
 ## Đây là gì?
@@ -195,67 +195,82 @@ harness report [--period 7d|30d|all] [--repo path]          # Get analytics repo
 harness knowledge [--type type] [--tags tags] [--list] [--add] # Manage learned knowledge
 ```
 
-## Built-in Skills (30)
+## Built-in Skills (32)
 
 ### 📌 Tiered Skill Matching
 
 Skills được phân thành 3 tiers:
-- **Tier 1 (Core):** 3 skills luôn gợi ý ở session_start
-- **Tier 2 (Contextual):** 25 skills gợi ý dựa trên keyword match với task
-- **Tier 3 (On-demand):** 2 skills chỉ load khi explicit
+- **Tier 1 (Core):** 5 skills luôn gợi ý ở session_start (3 universal + 2 stack baselines)
+- **Tier 2 (Contextual):** 26 skills gợi ý dựa trên keyword match với task
+- **Tier 3 (On-demand):** 1 skill chỉ load khi explicit
 
 Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
 
-### Tier 1 — Core Workflow (3 skills)
+### How to Combine Skills
+
+Công thức: **`[Tier-1 Core] + [Stack Baseline] + [Task-Type] + [Add-ons]`**
+
+| Loại task | Công thức |
+|-----------|-----------|
+| Tính năng mới C# | `harness-workflow` + `csharp-baseline` + `csharp-feature` + `tdd-workflow` |
+| Fix bug C# | `harness-workflow` + `csharp-baseline` + `systematic-diagnosis` + `csharp-bugfix` (+ `csharp-repair` nếu có compile/test errors) |
+| Fix bug PHP CI4 | `harness-workflow` + `php-baseline` + `systematic-diagnosis` + `php-codeigniter-4-workflow` |
+| Code review C# | `harness-workflow` + `code-review-workflow` + `csharp-code-review` |
+| Thiết kế tính năng | `harness-workflow` + `brainstorming` → `design-grilling` |
+
+### Tier 1 — Core Workflow (5 skills)
 | Skill | Mục đích |
 |---|---|
 | `karpathy-guidelines` | 4 nguyên tắc cốt lõi: Think, Simplicity, Surgical, Goal-Driven |
-| `harness-workflow` | Quy trình vòng đời session (CTR gate, artifacts, EPCC mapping) |
+| `harness-workflow` | Quy trình vòng đời session (CTR gate, RIPER-5, artifacts) |
 | `strategic-compact` | Quản lý dung lượng context window một cách chiến lược |
+| `csharp-baseline` | C# stack baseline (architecture, naming, dependencies) — auto khi dotnet |
+| `php-baseline` | PHP baseline conventions (Composer, PSR, XAMPP) — auto khi php |
 
-### Tier 2 — Contextual Skills (25 skills)
+### Tier 2 — Contextual Skills (26 skills)
 
-**Design & Architecture (5 skills)**
+**Design & Architecture (4 skills)**
 - `design-grilling` — Phản biện thiết kế triệt để
 - `prototype-first` — Xây dựng bản thử nghiệm để giải đáp câu hỏi thiết kế
 - `architecture-review` — Đánh giá kiến trúc, phát hiện shallow modules
-- `spec-driven-workflow` — RIPER-5 phases (Research → Innovate → Plan → Execute → Review)
-- `brainstorming` — **NEW** — Khung brainstorm giải pháp đa phương án với tradeoff matrix
+- `brainstorming` — Khung brainstorm giải pháp đa phương án với tradeoff matrix
 
 **Development Workflows (8 skills)**
 - `tdd-workflow` — Test-Driven Development (red-green-refactor)
 - `read-first` — Đọc code trước khi viết (search patterns, tránh trùng lặp)
 - `systematic-diagnosis` — Chẩn đoán lỗi có hệ thống
 - `vertical-slicing` — Phân rã lát cắt dọc (tracer bullets)
-- `parallel-coordination` — Phân rã công việc thành track độc lập
 - `edge-case-generation` — Sinh test case biên (boundary conditions)
-- `subagent-driven-development` — **NEW** — Kỹ thuật chia nhỏ task, ủy thác qua `subagent_invoke`
-- `deep-learning-review` — **NEW** — Học sâu sau session/project, sinh tài liệu knowledge retention
+- `subagent-driven-development` — Chia nhỏ task, ủy thác qua `subagent_invoke` (bao gồm DAG decomposition)
+- `deep-learning-review` — Học sâu sau session/project, sinh tài liệu knowledge retention
+- `verification-loop` — Micro-loop verify sau mỗi change cho đến khi pass
 
 **Quality & Security (4 skills)**
 - `security-audit` — STRIDE threat modeling + OWASP Top 10
 - `deep-research` — Nghiên cứu có cấu trúc với xác thực nguồn
 - `autonomous-optimizer` — Tối ưu hóa code tự động
-- `code-review-workflow` — **NEW** — Khung tự đánh giá chất lượng code và viết PR template
+- `code-review-workflow` — Khung tự đánh giá chất lượng code và viết PR template
 
 **Requirements & Planning (4 skills)**
 - `to-prd` — Tổng hợp thông tin thành PRD tiêu chuẩn
 - `triage` — Triage state machine cho issues/tasks
 - `continuous-learning` — Ghi nhận và phát triển instincts
-- `finishing-a-development-branch` — **NEW** — Quy trình dọn dẹp nhánh và hoàn thành công việc trước khi bàn giao
+- `finishing-a-development-branch` — Quy trình dọn dẹp nhánh và hoàn thành công việc trước khi bàn giao
 
-**C# / .NET Stack (5 skills)**
-- `csharp-baseline` — C# stack baseline (architecture, naming, dependencies)
-- `csharp-bugfix` — Quy trình fix bug trong C#/ABP
+**C# / .NET Stack (4 skills)**
+- `csharp-bugfix` — Quy trình fix bug trong C#/ABP (behavior/logic bugs)
 - `csharp-feature` — Quy trình implement feature trong C#/ABP
 - `csharp-code-review` — Code review checklist cho C#/ABP
 - `csharp-repair` — Sửa compile errors, runtime errors, test failures
 
-### Tier 3 — On-Demand Skills (2 skills)
+**PHP / XAMPP Stack (2 skills)**
+- `php-codeigniter-3-workflow` — CodeIgniter 3 conventions (HMVC, routing, database)
+- `php-codeigniter-4-workflow` — CodeIgniter 4 conventions (Spark, routing, Shield auth)
+
+### Tier 3 — On-Demand Skills (1 skill)
 | Skill | Mục đích |
 |---|---|
 | `write-a-skill` | Meta-skill: hướng dẫn tạo skill mới |
-| `verification-loop` | Luồng xác thực liên tục (embedded trong harness-workflow) |
 
 ## Cấu trúc project
 
@@ -278,7 +293,7 @@ harness-os/
 │       ├── git-diff.ts       # Get changed files from git
 │       ├── evidence.ts       # Evidence persistence (save/read per task)
 │       └── parsers/          # Test output parsers (vitest, generic)
-├── skills/                   # 30 built-in skills
+├── skills/                   # 32 built-in skills
 ├── templates/                # init.sh, AGENTS.md, verify.yaml templates
 ├── ide-adapters/             # Configs cho 7 IDEs
 ├── scripts/
@@ -327,3 +342,4 @@ pnpm run smoke        # End-to-end MCP test (30 tools, 31 skills)
 ## License
 
 MIT
+

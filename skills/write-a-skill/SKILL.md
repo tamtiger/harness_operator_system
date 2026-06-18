@@ -44,8 +44,10 @@ Every `SKILL.md` must start with a YAML frontmatter block containing these field
 | `description` | string | One-line summary of what the skill teaches or handles. |
 | `metadata.version` | string | Semver version (e.g. "1.0"). |
 | `metadata.updated` | string | Last updated ISO date (YYYY-MM-DD). |
-| `metadata.applies_to` | string[] | Stack filters: `["*"]` for all, or stacks like `["node"]`, `["dotnet"]`. |
+| `metadata.applies_to` | string[] | Stack filters: `["*"]` for all, or stacks like `["node"]`, `["dotnet"]`, `["php"]`. |
 | `metadata.triggers` | string[] | Tool names that trigger this skill (e.g., `["session_start", "task_create"]`). |
+| `metadata.tier` | number | `1` = always suggested at session_start, `2` = keyword-matched contextual, `3` = on-demand only. |
+| `metadata.keywords` | string[] | Keywords for tier-2 matching (English + Vietnamese). Empty array `[]` for tier 1/3. |
 
 Example:
 ```yaml
@@ -57,6 +59,8 @@ metadata:
   updated: "2026-05-29"
   applies_to: ["node"]
   triggers: ["session_start"]
+  tier: 2
+  keywords: ["keyword1", "keyword2", "từ khóa"]
 ---
 ```
 

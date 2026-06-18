@@ -1,11 +1,11 @@
 ---
 name: csharp-code-review
-description: "Structured code review checklist for C#/ABP projects with severity-based output."
+description: "Structured code review checklist for C#/ABP projects. Executed as a sub-step during code-review-workflow."
 metadata:
-  version: "1.0"
-  updated: "2026-05-28"
+  version: "1.1"
+  updated: "2026-06-18"
   applies_to: ["dotnet"]
-  triggers: ["session_start"]
+  triggers: []
   tier: 2
   keywords: ["csharp", "dotnet", "review", "code-review", "pr", "merge-request", "c#", ".net", "xem xét", "đánh giá mã", "yêu cầu hợp nhất"]
 ---
@@ -65,13 +65,13 @@ Structured approach to reviewing C#/ABP code changes. Evaluate each dimension, t
 
 Structure the review as:
 
-### Must Fix (blocking)
+### Critical (blocking)
 Issues that must be resolved before merge. Includes: bugs, security issues, architectural violations, breaking changes.
 
-### Should Fix (non-blocking)
+### Important (non-blocking)
 Issues that should be addressed but don't block merge. Includes: naming inconsistencies, missing tests for edge cases, minor convention violations.
 
-### Observations (informational)
+### Minor (informational)
 Suggestions for improvement, patterns to consider, or questions for the author. Not blocking.
 
 For each finding, include:

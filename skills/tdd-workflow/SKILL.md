@@ -18,6 +18,8 @@ Tests verify **behavior through public interfaces**, not implementation details.
 A good test survives refactors — if you rename a private method and tests break, those tests were wrong.
 Test what the code *does*, not how it does it.
 
+> **Language-specific hook**: When implementing a feature in a specific stack (e.g., .NET/C# or PHP/CodeIgniter), load its framework feature workflow (like `csharp-feature`, `php-codeigniter-3-workflow`, or `php-codeigniter-4-workflow`) alongside this general process.
+
 ## Anti-Pattern: Horizontal Slices
 
 Writing all tests first then all code produces crap tests. You can't know what to test until you've felt the code resist.

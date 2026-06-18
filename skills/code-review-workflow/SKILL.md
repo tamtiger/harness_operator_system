@@ -25,6 +25,7 @@ Before asking for review, analyze your own git diff:
 - Check for trailing debug logs (like `console.log` or temporary print statements).
 - Ensure code conforms to runtime guidelines (e.g., `.js` extensions for imports in ES Modules).
 - Verify that return types are correct (e.g., MCP tools returning valid JSON structures capped at 8KB).
+- **Language-specific hook**: If you are working in a specific stack (e.g., .NET/C#), you MUST load and execute its specific checklist (like `csharp-code-review`) as part of this step to evaluate Architecture, Business Logic, and Anti-Patterns.
 
 ### 2. Format the Review Request
 Provide the reviewer with:

@@ -5,8 +5,8 @@ metadata:
   version: "1.0"
   updated: "2026-05-29"
   applies_to: ["dotnet"]
-  triggers: ["task_create"]
-  tier: 2
+  triggers: ["session_start", "task_create"]
+  tier: 1
   keywords: ["csharp", "dotnet", "abp", "entity", "repository", "appservice", "c#", ".net", "thực thể", "kho lưu trữ", "dịch vụ ứng dụng"]
 ---
 

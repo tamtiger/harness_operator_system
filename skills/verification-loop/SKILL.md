@@ -2,15 +2,22 @@
 name: verification-loop
 description: "Continuous verification loop — never claim done without proof."
 metadata:
-  version: "1.0"
-  updated: "2026-05-26"
+  version: "1.1"
+  updated: "2026-06-18"
   applies_to: ["*"]
-  triggers: ["task_update"]
-  tier: 3
-  keywords: []
+  triggers: ["verify_run"]
+  tier: 2
+  keywords: ["verify", "done", "proof", "evidence", "loop", "pass", "xác minh", "bằng chứng", "hoàn thành"]
 ---
 
 # Verification Loop
+
+## When to Use This Skill vs `finishing-a-development-branch`
+
+| Skill | Khi nào dùng |
+|-------|-------------|
+| `verification-loop` (this skill) | **Trong quá trình code** — micro-loop sau mỗi change: `verify_run` → fail → fix → lặp lại cho đến pass |
+| `finishing-a-development-branch` | **Sau khi code xong** — macro-step: verify lần cuối, chọn 1 trong 4 integration options (merge/PR/keep/discard), đóng session |
 
 Every claim of completion must be backed by evidence.
 
@@ -25,6 +32,8 @@ Code Change → Build → Test → Lint → Evidence → Claim Done
      ↑                                    |
      └──── Fix ←── Failure ←─────────────┘
 ```
+
+> **Language-specific hook**: If verification fails in a specific stack (e.g., .NET/C#), load its specific repair guide (like `csharp-repair`) to diagnose and fix compile errors, runtime exceptions, or test failures before retrying.
 
 ## Steps
 

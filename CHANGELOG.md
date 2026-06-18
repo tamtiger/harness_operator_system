@@ -3,6 +3,24 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.5] — 2026-06-18
+
+### Changed
+- **Skills Refactoring (34→32)**: Removed 2 redundant skills, fixed tier/trigger inconsistencies, added routing guidance.
+  - Deleted `spec-driven-workflow` — content fully covered by `harness-workflow` RIPER-5 phases.
+  - Deleted `parallel-coordination` — merged DAG decomposition content into `subagent-driven-development`.
+  - Promoted `csharp-baseline` to tier 1 (was tier 2) — now auto-suggested for dotnet projects like `php-baseline`.
+  - Promoted `verification-loop` to tier 2 (was tier 3) — trigger changed from `task_update` to `verify_run`.
+  - Removed `session_start` trigger from `autonomous-optimizer` (too specialized for every session).
+  - Added routing guidance tables to `csharp-bugfix` ↔ `csharp-repair` and `verification-loop` ↔ `finishing-a-development-branch`.
+  - Added `php-codeigniter-4-workflow` hook to `tdd-workflow`.
+  - Updated `write-a-skill` schema to document `tier` and `keywords` fields.
+- **Skill Combination Guide**: Added "How to Combine Skills" section to `AGENTS.md`, `README.md`, and `templates/AGENTS.md.tpl` with formula and examples per task type.
+- **Decoupled Language-Specific Skill Triggers**: Removed independent triggers (`session_start`, `task_create`) from C# and PHP workflows (`csharp-code-review`, `csharp-bugfix`, `csharp-feature`, `csharp-repair`, `php-codeigniter-3-workflow`, `php-codeigniter-4-workflow`) to prevent automatic loaded clutter.
+- **Integrated Generic Workflow Hooks**: Injected hooks into core workflows (`code-review-workflow`, `systematic-diagnosis`, `tdd-workflow`, `verification-loop`) to conditionally recommend or load corresponding language-specific skill workflows.
+- **Updated Agent Instructions**: Updated `AGENTS.md` and `templates/AGENTS.md.tpl` (specifically Step 9 and Step 12) to guide agents to load specific framework workflows and review checklists when working on those stacks.
+- **Standardized Review Severity**: Standardized severity levels in C# code review skills into standard categories (Critical, Important, Minor).
+
 ## [1.5.4] — 2026-06-16
 
 ### Added

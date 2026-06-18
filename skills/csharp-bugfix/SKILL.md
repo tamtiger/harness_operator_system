@@ -1,16 +1,25 @@
 ---
 name: csharp-bugfix
-description: "Systematic workflow for diagnosing and fixing bugs in C#/ABP projects."
+description: "Systematic workflow for diagnosing and fixing bugs in C#/ABP projects. Executed alongside systematic-diagnosis."
 metadata:
-  version: "1.0"
-  updated: "2026-05-28"
+  version: "1.2"
+  updated: "2026-06-18"
   applies_to: ["dotnet"]
-  triggers: ["task_create"]
+  triggers: []
   tier: 2
   keywords: ["csharp", "dotnet", "bug", "fix", "exception", "null", "ef-core", "c#", ".net", "lỗi", "sửa", "ngoại lệ", "entity-framework"]
 ---
 
 # C# Bugfix Workflow
+
+## When to Use This Skill vs `csharp-repair`
+
+| Situation | Load |
+|-----------|------|
+| Wrong business logic, unexpected behavior, regression | **`csharp-bugfix`** (this skill) |
+| Compiler errors (`CS####`), runtime exceptions, test failures | **`csharp-repair`** |
+
+Load `csharp-repair` alongside this skill if the fix triggers compile errors or test failures during Step 5.
 
 Systematic approach to diagnosing and fixing bugs. Never guess — trace, prove, fix, verify.
 
