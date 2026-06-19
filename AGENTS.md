@@ -180,7 +180,14 @@ Key tables: `sessions` (with `variant_id`, `current_phase`, `verify_called`), `t
 
 ### 3.5 CLI — `src/cli/harness.ts`
 
-21 commands: `init`, `doctor`, `status`, `verify`, `quick-start`, `skills`, `tasks`, `instincts`, `proposals`, `variants`, `install-mcp`, `orchestrate`, `workers`, `hooks`, `report`, `knowledge`, `tree`, `summary`, `reindex`, `export`, `import`.
+| Group | CLI Commands | Purpose |
+|-------|--------------|---------|
+| **Setup & Health** | `init`, `install-mcp`, `doctor` | Initialize a repo, install MCP integration, or diagnose issues |
+| **Session & Tasks** | `quick-start`, `status`, `tasks`, `verify` | Manage tasks, view session status, or execute verification |
+| **Skills & Learning** | `skills`, `instincts`, `proposals`, `variants` | Manage skills, examine instincts, or check proposals & benchmarks |
+| **Orchestration** | `orchestrate`, `workers`, `hooks` | Manage workflows, workers, and hooks |
+| **Utilities & Data** | `report`, `summary`, `tree`, `knowledge`, `reindex`, `export`, `import` | Report metrics, view code structure, search indexing, or export/import |
+
 See full syntax in [docs/06-cli-reference.md](docs/06-cli-reference.md).
 
 ---

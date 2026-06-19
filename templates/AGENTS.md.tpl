@@ -194,6 +194,16 @@ cargo clippy        # Lint check
 | **Aegis** | `aegis_analyze`, `aegis_propose` | Detect failure patterns; propose instinct merges/prunes |
 | **Subagents** | `subagent_invoke` | Delegate to parallel worker agents |
 
+## CLI Commands
+
+| Group | CLI Commands | Purpose |
+|-------|--------------|---------|
+| **Setup & Health** | `init`, `install-mcp`, `doctor` | Initialize a repo, install MCP integration, or diagnose issues |
+| **Session & Tasks** | `quick-start`, `status`, `tasks`, `verify` | Manage tasks, view session status, or execute verification |
+| **Skills & Learning** | `skills`, `instincts`, `proposals`, `variants` | Manage skills, examine instincts, or check proposals & benchmarks |
+| **Orchestration** | `orchestrate`, `workers`, `hooks` | Manage workflows, workers, and hooks |
+| **Utilities & Data** | `report`, `summary`, `tree`, `knowledge`, `reindex`, `export`, `import` | Report metrics, view code structure, search indexing, or export/import |
+
 ### Subagent Usage Example
 
 ```javascript
