@@ -70,7 +70,7 @@ export function codeSearchGrep(
   repoPath: string,
   query: string,
   isRegex: boolean = false
-): { matches: GrepMatch[]; truncated: boolean; scope_applied: boolean } {
+): { matches: GrepMatch[]; truncated: boolean; scope_applied: boolean; _warn?: string } {
   const resolvedRepo = resolve(repoPath);
   const matches: GrepMatch[] = [];
   let sizeAcc = 0;
@@ -82,7 +82,22 @@ export function codeSearchGrep(
     ? picomatch(forbiddenPatterns)
     : () => false;
 
-  const regex = isRegex ? new RegExp(query, "i") : null;
+  // Auto-detect regex syntax when is_regex not set
+  const REGEX_METACHAR = /[|*+?^${}()\[\]\\]/;
+  let warn: string | undefined;
+  if (!isRegex && REGEX_METACHAR.test(query)) {
+    isRegex = true;
+    warn = `Query contains regex metacharacters — auto-enabled is_regex mode. Pass is_regex: true explicitly to suppress this warning.`;
+  }
+
+  let regex: RegExp | null = null;
+  if (isRegex) {
+    try {
+      regex = new RegExp(query, "i");
+    } catch (err: any) {
+      return { matches: [], truncated: false, scope_applied: false, _warn: `Invalid regex: ${err.message}` };
+    }
+  }
 
   traverseDirectory(resolvedRepo, resolvedRepo, (filePath) => {
     if (truncated) return;
@@ -118,7 +133,7 @@ export function codeSearchGrep(
     }
   }, isExcluded);
 
-  return { matches, truncated, scope_applied: forbiddenPatterns.length > 0 };
+  return { matches, truncated, scope_applied: forbiddenPatterns.length > 0, ...(warn ? { _warn: warn } : {}) };
 }
 
 export function codeSearchSymbols(

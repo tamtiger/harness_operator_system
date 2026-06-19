@@ -97,6 +97,69 @@ function runMigrations(db: Database.Database): void {
       created_at TEXT NOT NULL,
       FOREIGN KEY (session_id) REFERENCES sessions(id)
     );
+
+    CREATE TABLE IF NOT EXISTS scorecards (
+      id TEXT PRIMARY KEY,
+      task_id TEXT,
+      session_id TEXT,
+      task_type TEXT,
+      variant_id TEXT,
+      verify_pass INTEGER DEFAULT 0,
+      tool_calls INTEGER DEFAULT 0,
+      retry_count INTEGER DEFAULT 0,
+      loop_events INTEGER DEFAULT 0,
+      files_touched INTEGER DEFAULT 0,
+      execution_time_ms INTEGER DEFAULT 0,
+      instincts_used TEXT,
+      skills_used TEXT,
+      created_at TEXT,
+      FOREIGN KEY (task_id) REFERENCES tasks(id),
+      FOREIGN KEY (session_id) REFERENCES sessions(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS instinct_outcomes (
+      instinct_id TEXT,
+      task_id TEXT,
+      task_type TEXT,
+      variant_id TEXT,
+      outcome TEXT,
+      scorecard_id TEXT,
+      timestamp TEXT,
+      PRIMARY KEY (instinct_id, task_id),
+      FOREIGN KEY (instinct_id) REFERENCES instincts(id),
+      FOREIGN KEY (task_id) REFERENCES tasks(id),
+      FOREIGN KEY (scorecard_id) REFERENCES scorecards(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS analysis_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      session_id TEXT,
+      task_id TEXT,
+      instinct_id TEXT,
+      payload TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS promotion_snapshots (
+      id TEXT PRIMARY KEY,
+      instinct_id TEXT NOT NULL,
+      task_type TEXT NOT NULL,
+      variant_id TEXT NOT NULL,
+      success_rate REAL NOT NULL,
+      captured_at TEXT NOT NULL,
+      FOREIGN KEY (instinct_id) REFERENCES instincts(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS proposals (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      instinct_ids TEXT NOT NULL,
+      rationale TEXT NOT NULL,
+      suggested_change TEXT,
+      status TEXT NOT NULL DEFAULT 'pending_review',
+      created_at TEXT NOT NULL
+    );
   `);
 
   // Idempotent column migrations for instincts table
@@ -115,6 +178,10 @@ function runMigrations(db: Database.Database): void {
   if (!colNames.includes("review_trigger")) {
     db.exec("ALTER TABLE instincts ADD COLUMN review_trigger TEXT");
   }
+  if (!colNames.includes("status")) {
+    db.exec("ALTER TABLE instincts ADD COLUMN status TEXT DEFAULT 'draft'");
+    db.exec("UPDATE instincts SET status = 'promoted' WHERE status IS NULL OR status = 'draft'");
+  }
 
   // Idempotent column migrations for sessions table
   const sessionCols = db.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
@@ -125,6 +192,17 @@ function runMigrations(db: Database.Database): void {
   }
   if (!sessionColNames.includes("verify_called")) {
     db.exec("ALTER TABLE sessions ADD COLUMN verify_called INTEGER DEFAULT 0");
+  }
+  if (!sessionColNames.includes("variant_id")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN variant_id TEXT DEFAULT 'default'");
+  }
+
+  // Idempotent column migrations for tasks table
+  const taskCols = db.prepare("PRAGMA table_info(tasks)").all() as Array<{ name: string }>;
+  const taskColNames = taskCols.map(c => c.name);
+
+  if (!taskColNames.includes("task_type")) {
+    db.exec("ALTER TABLE tasks ADD COLUMN task_type TEXT DEFAULT 'unknown'");
   }
 }
 

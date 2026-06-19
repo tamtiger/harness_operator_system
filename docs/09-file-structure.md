@@ -8,12 +8,12 @@
 
 ```
 ~/.harness/                              
-├── harness.sqlite                # Database: sessions, tasks, instincts, audit
+├── harness.sqlite                # Database: sessions, tasks, instincts, audit, scorecards, instinct_outcomes
 ├── audit.jsonl                   # Append-only event stream
 ├── skills/                       # User override skills
 │   └── my-custom-skill/
 │       └── SKILL.md
-└── evidence/                     # Verify outputs
+├── evidence/                     # Verify outputs
     └── {repo_hash}/
         └── {task_id}/
             └── verify-2026-05-26.json
@@ -51,7 +51,7 @@ your-repo/
 | `.harness/hooks.yaml` | Pre-tool blocking và rules stop validation | MCP server | Human |
 | `.harness/never_again.md` | Cấm lặp lại các lỗi nghiêm trọng | Agent | Human / Agent (auto) |
 | `.harness/handoff_last.json` | State cho session sau | Agent | Agent (qua `session_handoff`) |
-| `~/.harness/harness.sqlite` | Sessions, tasks, instincts, audit | MCP server | MCP server |
+| `~/.harness/harness.sqlite` | Sessions, tasks, instincts, audit, scorecards, instinct_outcomes | MCP server | MCP server |
 | `~/.harness/audit.jsonl` | Event stream (append-only) | Debug/trace | MCP server (auto) |
 
 ---

@@ -3,11 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.5.5-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-32-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-32-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-202%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-221%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -50,7 +50,7 @@ pnpm run dev -- install-mcp --ide cursor
 | **Continuous Learning & Reflection** | Pattern tái sử dụng & Tự kiểm điểm | `instinct_add/get/prune/evolve/promote`, `reflection_run` |
 | **Subagent Delegation** | Điều phối agent con chạy lệnh | `subagent_invoke` |
 
-## 32 MCP Tools
+## 32 MCP tools
 
 <details>
 <summary><b>Session lifecycle (4 tools)</b></summary>
@@ -309,7 +309,7 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (211 tests passing)
+- **Testing:** Vitest (221 tests passing)
 
 ## Phát triển
 
@@ -317,8 +317,8 @@ harness-os/
 pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
-pnpm test             # Unit tests (211 tests)
-pnpm run smoke        # End-to-end MCP test (30 tools, 31 skills)
+pnpm test             # Unit tests (221 tests)
+pnpm run smoke        # End-to-end MCP test (32 tools, 32 skills)
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.
@@ -329,8 +329,8 @@ pnpm run smoke        # End-to-end MCP test (30 tools, 31 skills)
   - [Bắt đầu](./docs/01-getting-started.md) — Cài đặt, yêu cầu hệ thống
   - [Cấu hình IDE](./docs/02-ide-setup.md) — Setup cho 8 IDEs
   - [Workflow](./docs/04-workflow.md) — Lifecycle hàng ngày
-  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 30 MCP tools
-  - [CLI Reference](./docs/06-cli-reference.md) — 17 CLI commands
+  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 32 MCP tools
+  - [CLI Reference](./docs/06-cli-reference.md) — 21 CLI commands
   - [Skills](./docs/07-skills.md) — Hệ thống skills
   - [Instincts](./docs/08-instincts.md) — Continuous learning
   - [Troubleshooting](./docs/10-troubleshooting.md) — Xử lý lỗi & FAQ

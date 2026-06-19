@@ -12,7 +12,7 @@ import { verifyRun } from "../tools/verify.js";
 import { sessionStart } from "../tools/session.js";
 import { harnessStatus } from "../tools/observe.js";
 import { taskList } from "../tools/task.js";
-import { instinctGet, instinctAdd } from "../tools/instinct.js";
+import { instinctGet, instinctAdd, checkRegressionGate } from "../tools/instinct.js";
 import { getDb } from "../db/client.js";
 import { generateTree } from "../lib/tree.js";
 import { generateSummary, writeSummary } from "../lib/repo-summary.js";
@@ -540,6 +540,34 @@ function cmdInstincts() {
   }
 
   if (hasFlag("export")) {
+    const format = getFlag("format");
+    if (format === "jsonl") {
+      const db = getDb();
+      const outcomes = db.prepare(`
+        SELECT instinct_id, task_type, variant_id, outcome, scorecard_id, timestamp
+        FROM instinct_outcomes
+      `).all() as Array<{
+        instinct_id: string;
+        task_type: string;
+        variant_id: string;
+        outcome: string;
+        scorecard_id: string;
+        timestamp: string;
+      }>;
+      for (const o of outcomes) {
+        console.log(JSON.stringify({
+          schema_version: "1.0",
+          instinct_id: o.instinct_id,
+          task_type: o.task_type,
+          variant_id: o.variant_id,
+          outcome: o.outcome,
+          scorecard_id: o.scorecard_id,
+          timestamp: o.timestamp
+        }));
+      }
+      return;
+    }
+
     const { instincts } = instinctGet();
     console.log(JSON.stringify(instincts, null, 2));
     return;
@@ -793,7 +821,6 @@ function cmdInstallMcp() {
               "scope_get",
               "scope_check",
               "handoff_read",
-              "feature_list_read",
               "task_list",
             ],
           },
@@ -1116,6 +1143,152 @@ function cmdKnowledge() {
   }
 }
 
+// === harness proposals ===
+
+function cmdProposals() {
+  const db = getDb();
+  const listFlag = hasFlag("list") || args.length === 1;
+  const approveId = getFlag("approve");
+
+  if (approveId) {
+    const proposal = db.prepare(`SELECT * FROM proposals WHERE id = ?`).get(approveId) as {
+      id: string;
+      type: string;
+      instinct_ids: string;
+      rationale: string;
+      suggested_change: string | null;
+      status: string;
+    } | undefined;
+
+    if (!proposal) {
+      console.error(`  ✗ Proposal not found: ${approveId}`);
+      process.exit(1);
+    }
+
+    if (proposal.status !== "pending_review") {
+      console.error(`  ✗ Proposal is already ${proposal.status}`);
+      process.exit(1);
+    }
+
+    const instinctIds = JSON.parse(proposal.instinct_ids) as string[];
+    const failedChecks: string[] = [];
+
+    for (const instId of instinctIds) {
+      if (proposal.type === "merge" || proposal.type === "evolve") {
+        const gate = checkRegressionGate(instId);
+        if (!gate.passed) {
+          failedChecks.push(...gate.failed_checks.map((c: string) => `${instId}: ${c}`));
+        }
+      }
+    }
+
+    if (failedChecks.length > 0) {
+      db.prepare(`UPDATE proposals SET status = 'rejected' WHERE id = ?`).run(approveId);
+      console.error(`  ✗ Approval rejected due to failed regression gates:`);
+      for (const fc of failedChecks) {
+        console.error(`    - ${fc}`);
+      }
+      process.exit(1);
+    }
+
+    db.prepare(`UPDATE proposals SET status = 'approved' WHERE id = ?`).run(approveId);
+
+    for (const instId of instinctIds) {
+      if (proposal.type === "merge" || proposal.type === "evolve") {
+        db.prepare(`UPDATE instincts SET status = 'shadow' WHERE id = ?`).run(instId);
+        console.log(`  ✓ Instinct ${instId.slice(0, 8)} transitioned to shadow mode.`);
+      } else if (proposal.type === "prune") {
+        db.prepare(`UPDATE instincts SET status = 'pruned' WHERE id = ?`).run(instId);
+        console.log(`  ✓ Instinct ${instId.slice(0, 8)} pruned.`);
+      } else if (proposal.type === "penalize") {
+        db.prepare(`UPDATE instincts SET confidence = MAX(0.1, confidence - 0.2) WHERE id = ?`).run(instId);
+        console.log(`  ✓ Instinct ${instId.slice(0, 8)} penalized.`);
+      }
+    }
+
+    console.log(`\n✓ Proposal ${approveId.slice(0, 8)} successfully approved!\n`);
+    return;
+  }
+
+  if (listFlag) {
+    const proposals = db.prepare(`SELECT * FROM proposals ORDER BY created_at DESC`).all() as Array<{
+      id: string;
+      type: string;
+      instinct_ids: string;
+      rationale: string;
+      status: string;
+      created_at: string;
+    }>;
+
+    console.log("\n=== AEGIS-lite Proposals ===\n");
+    if (proposals.length === 0) {
+      console.log("  (no proposals found)");
+      return;
+    }
+
+    for (const p of proposals) {
+      console.log(`  [${p.status}] ID: ${p.id.slice(0, 8)} | Type: ${p.type}`);
+      console.log(`    Instincts: ${JSON.parse(p.instinct_ids).map((id: string) => id.slice(0, 8)).join(", ")}`);
+      console.log(`    Rationale: ${p.rationale}`);
+      console.log(`    Created:   ${p.created_at}`);
+      console.log("");
+    }
+  }
+}
+
+// === harness variants ===
+
+function cmdVariants() {
+  const benchmarkFlag = hasFlag("benchmark") || args.length === 1;
+
+  if (benchmarkFlag) {
+    const db = getDb();
+    
+    const stats = db.prepare(`
+      SELECT 
+        variant_id,
+        COUNT(*) as total_runs,
+        SUM(CASE WHEN verify_pass = 1 THEN 1 ELSE 0 END) as passed_runs,
+        AVG(tool_calls) as avg_tool_calls,
+        AVG(retry_count) as avg_retry_count,
+        AVG(execution_time_ms) as avg_time_ms
+      FROM scorecards
+      GROUP BY variant_id
+    `).all() as Array<{
+      variant_id: string;
+      total_runs: number;
+      passed_runs: number;
+      avg_tool_calls: number;
+      avg_retry_count: number;
+      avg_time_ms: number;
+    }>;
+
+    console.log("\n=== Variant Benchmarks ===\n");
+    if (stats.length === 0) {
+      console.log("  (no scorecard data to benchmark)");
+      return;
+    }
+
+    console.log("----------------------------------------------------------------------------------");
+    console.log("Variant         Runs    Pass Rate    Avg Tools    Avg Retries    Avg Duration");
+    console.log("----------------------------------------------------------------------------------");
+    for (const s of stats) {
+      const passRate = s.total_runs > 0 ? (s.passed_runs / s.total_runs) * 100 : 0;
+      const durationS = (s.avg_time_ms / 1000).toFixed(1);
+      
+      console.log(
+        `${s.variant_id.padEnd(14)}  ` +
+        `${s.total_runs.toString().padStart(4)}    ` +
+        `${passRate.toFixed(1).padStart(8)}%    ` +
+        `${s.avg_tool_calls.toFixed(1).padStart(9)}    ` +
+        `${s.avg_retry_count.toFixed(1).padStart(11)}    ` +
+        `${durationS.padStart(11)}s`
+      );
+    }
+    console.log("----------------------------------------------------------------------------------\n");
+  }
+}
+
 // === Main dispatch ===
 
 switch (command) {
@@ -1176,6 +1349,12 @@ switch (command) {
   case "knowledge":
     cmdKnowledge();
     break;
+  case "proposals":
+    cmdProposals();
+    break;
+  case "variants":
+    cmdVariants();
+    break;
   default:
     console.log(`
 harness-os — Local harness operator system for agentic coding
@@ -1188,7 +1367,9 @@ Usage:
   harness quick-start [--repo path] [--title "Task Title"]
   harness skills [--list] [--show <name>] [--stack <filter>]
   harness tasks [--repo path] [--status pending|in-progress|done]
-  harness instincts [--list] [--export]
+  harness instincts [--list] [--export] [--format jsonl]
+  harness proposals [--list] [--approve <id>]
+  harness variants [--benchmark]
   harness install-mcp --ide <cursor|claude-code|kiro|vscode|antigravity|opencode>
   harness orchestrate <title> [--repo path] [--max-loops n] [--steps build,test] [--timeout-per-loop 300] [--fail-fast-on "ENOSPC,EACCES,Cannot find module"]
   harness tree [--path .] [--depth 4] [--exclude PATTERN] [--output FILE]

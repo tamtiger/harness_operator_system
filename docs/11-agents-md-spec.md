@@ -18,6 +18,8 @@ Every `AGENTS.md` MUST contain these sections:
 
 | Section | Purpose |
 |---------|---------|
+| **Mandatory Compliance Warning** | A warning box emphasizing strict compliance with daily workflows. |
+| **Self-Compliance Checklist** | A checklist that the agent must fill out at the end of every turn to verify steps. |
 | **Project Overview** | What the project is, stack, version |
 | **Build Commands** | How to install, build, test, lint |
 | **Test Commands** | How to run verification pipeline |

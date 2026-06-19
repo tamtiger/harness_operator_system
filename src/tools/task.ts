@@ -16,20 +16,37 @@ export interface TaskRecord {
   scope: string | null;
   status: string;
   created_at: string;
+  task_type: string;
+}
+
+function inferTaskType(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("bug") || t.includes("fix") || t.includes("lỗi") || t.includes("sửa")) return "bugfix";
+  if (t.includes("feature") || t.includes("tính năng") || t.includes("thêm")) return "feature";
+  if (t.includes("refactor") || t.includes("cấu trúc lại")) return "refactor";
+  if (t.includes("test") || t.includes("kiểm thử")) return "test";
+  if (t.includes("doc") || t.includes("tài liệu") || t.includes("readme")) return "docs";
+  if (t.includes("config") || t.includes("cấu hình")) return "config";
+  if (t.includes("research") || t.includes("tìm hiểu") || t.includes("nghiên cứu")) return "research";
+  if (t.includes("debug") || t.includes("chẩn đoán")) return "debug";
+  if (t.includes("hotfix")) return "hotfix";
+  return "unknown";
 }
 
 export function taskCreate(
   title: string,
   scope?: string,
-  sessionId?: string
+  sessionId?: string,
+  taskType?: string
 ): TaskCreateResult {
   const db = getDb();
   const id = randomUUID();
   const now = new Date().toISOString();
+  const resolvedTaskType = taskType || inferTaskType(title);
 
   db.prepare(
-    `INSERT INTO tasks (id, session_id, title, scope, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)`
-  ).run(id, sessionId ?? null, title, scope ?? null, now);
+    `INSERT INTO tasks (id, session_id, title, scope, status, created_at, task_type) VALUES (?, ?, ?, ?, 'pending', ?, ?)`
+  ).run(id, sessionId ?? null, title, scope ?? null, now, resolvedTaskType);
 
   let repoPath: string | undefined;
   if (sessionId) {

@@ -22,9 +22,9 @@ Skill cùng tên ở level cao hơn sẽ override level thấp hơn.
 
 ---
 
-## 32 Built-in Skills
+## Built-in Skills
 
-### Tier 1 — Core Workflow (5 skills, luôn gợi ý)
+### Tier 1 — Core Workflow (luôn gợi ý)
 
 Những skill cốt lõi được gợi ý ở mỗi session_start, không phụ thuộc vào task.
 
@@ -38,11 +38,11 @@ Những skill cốt lõi được gợi ý ở mỗi session_start, không phụ
 
 ---
 
-### Tier 2 — Contextual Skills (26 skills, gợi ý theo keyword)
+### Tier 2 — Contextual Skills (gợi ý theo keyword)
 
 Những skill được gợi ý dựa trên từ khóa trong task title/scope. Mỗi skill có keywords tiếng Anh + tiếng Việt.
 
-#### **Thiết kế & Kiến trúc (4 skills)**
+#### **Thiết kế & Kiến trúc**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
@@ -51,7 +51,7 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `architecture-review` | Đánh giá Kiến trúc | Đánh giá kiến trúc, phát hiện shallow modules, coupling | architecture, module, refactor, deep, shallow, coupling, seam, kiến trúc, mô-đun, tái cấu trúc, liên kết |
 | `brainstorming` | Động não giải pháp | Khung brainstorm giải pháp đa phương án với tradeoff matrix | brainstorm, ideate, explore, approach, tradeoff, ý tưởng, phương án |
 
-#### **Quy trình Phát triển (8 skills)**
+#### **Quy trình Phát triển**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
@@ -64,7 +64,7 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `deep-learning-review` | Học Sâu sau Session | Sinh tài liệu learning có cấu trúc (elii style), Scope Guard, Mode Auto-Detection | learn, review, session, project, explain, understand, recap, knowledge, học, hiểu, giải thích, tổng kết |
 | `verification-loop` | Vòng Xác thực | Micro-loop verify sau mỗi change cho đến khi pass | verify, done, proof, evidence, loop, pass, xác minh, bằng chứng, hoàn thành |
 
-#### **Chất lượng & Bảo mật (4 skills)**
+#### **Chất lượng & Bảo mật**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
@@ -73,7 +73,7 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `autonomous-optimizer` | Tối ưu Tự động | Tối ưu hóa code tự động với measurement loops | optimize, performance, benchmark, measure, improve, profile, tối ưu, hiệu năng, đo lường, cải thiện |
 | `code-review-workflow` | Quy trình Code Review | Khung tự đánh giá chất lượng code và viết PR template | code-review, review, pr, pull-request, merge-request, đánh giá code |
 
-#### **Yêu cầu & Lập kế hoạch (4 skills)**
+#### **Yêu cầu & Lập kế hoạch**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
@@ -82,7 +82,7 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `continuous-learning` | Học tập Liên tục | Ghi nhận và phát triển instincts thành skills lâu dài | learn, pattern, instinct, capture, evolve, học, mẫu, bắt giữ, phát triển |
 | `finishing-a-development-branch` | Hoàn thành Nhánh | Checklist dọn dẹp branch, cập nhật changelog trước khi bàn giao | finish, branch, cleanup, git, worktree, dọn dẹp |
 
-#### **C# / .NET Stack (4 skills)**
+#### **C# / .NET Stack**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
@@ -91,7 +91,7 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 | `csharp-code-review` | Code Review C# | Code review checklist cho C# / ABP | csharp, dotnet, review, code-review, pr, merge-request, c#, .net, đánh giá, yêu cầu hợp nhất |
 | `csharp-repair` | Sửa chữa C# | Sửa compile errors, runtime errors, test failures | csharp, dotnet, hotfix, repair, patch, urgent, c#, .net, vá, khẩn cấp |
 
-#### **PHP / XAMPP Stack (2 skills)**
+#### **PHP / XAMPP Stack**
 
 | Skill | Tiếng Việt | Mục đích | Keywords |
 |-------|-----------|----------|----------|
@@ -100,7 +100,7 @@ Những skill được gợi ý dựa trên từ khóa trong task title/scope. M
 
 ---
 
-### Tier 3 — On-Demand Skills (1 skill, không bao giờ tự động gợi ý)
+### Tier 3 — On-Demand Skills (không bao giờ tự động gợi ý)
 
 Những skill chỉ load khi agent explicit request, không được gợi ý tự động.
 
@@ -143,7 +143,7 @@ skill_suggest(
   task_scope?: string,
   stack?: string,
   max_results?: number
-) → { suggested_skills: [...], total_available: 30 }
+) → { suggested_skills: [...], total_available: number }
 ```
 
 ---

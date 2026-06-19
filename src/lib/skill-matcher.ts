@@ -6,6 +6,7 @@
 export interface SkillMetadata {
   tier?: number;
   keywords?: string[];
+  dimensions?: string[];
 }
 
 export interface SkillWithMetadata {
@@ -24,6 +25,33 @@ export interface MatchContext {
   taskTitle?: string;
   taskScope?: string;
   stack?: string;
+  taskType?: string;
+}
+
+const TASK_TYPE_DIMENSIONS: Record<string, string[]> = {
+  "feature": ["verification", "tool-usage"],
+  "bugfix": ["verification"],
+  "refactor": ["safety", "tool-usage"],
+  "test": ["verification"],
+  "docs": ["memory"],
+  "config": ["safety"],
+  "research": ["memory"],
+  "debug": ["memory", "tool-usage"],
+  "hotfix": ["safety", "verification"]
+};
+
+function inferTaskType(title?: string): string {
+  if (!title) return "feature";
+  const t = title.toLowerCase();
+  if (t.includes("fix") || t.includes("bug") || t.includes("issue") || t.includes("error")) return "bugfix";
+  if (t.includes("refactor") || t.includes("clean") || t.includes("restructure")) return "refactor";
+  if (t.includes("test")) return "test";
+  if (t.includes("doc") || t.includes("readme")) return "docs";
+  if (t.includes("config") || t.includes("setting")) return "config";
+  if (t.includes("research") || t.includes("explore")) return "research";
+  if (t.includes("debug")) return "debug";
+  if (t.includes("hotfix")) return "hotfix";
+  return "feature";
 }
 
 export const SYNONYMS: Record<string, string[]> = {
@@ -48,7 +76,7 @@ export const SYNONYMS: Record<string, string[]> = {
   "code": ["mã nguồn", "source-code", "coding"],
   "phân tích": ["analyze", "analysis", "phan-tich"],
   "kế hoạch": ["plan", "planning", "ke-hoach"],
-  "chạy": ["run", "running", "chay", "execute"],
+  "chãy": ["run", "running", "chay", "execute"],
   "báo cáo": ["report", "reporting", "bao-cao"],
 };
 
@@ -182,10 +210,16 @@ export function matchSkills(
   
   const tokens = expandTokens(rawTokens);
 
+  const taskType = context.taskType || inferTaskType(context.taskTitle);
+  const taskDimensions = TASK_TYPE_DIMENSIONS[taskType] || [];
+
   // Process each skill
   for (const skill of skills) {
     const tier = skill.metadata?.tier ?? 2;
     const keywords = skill.metadata?.keywords ?? [];
+    const skillDimensions = skill.metadata?.dimensions || [];
+    const hasOverlap = skillDimensions.some(d => taskDimensions.includes(d));
+    const dimensionScore = hasOverlap ? 1.0 : 0.0;
 
     if (tier === 1) {
       // Tier 1: always include with score 0
@@ -199,7 +233,8 @@ export function matchSkills(
       const kwScore = computeScore(keywords, tokens);
       const descScore = descriptionScore(skill.description ?? "", tokens);
       const nmScore = nameScore(skill.name, tokens);
-      const totalScore = kwScore + descScore + nmScore;
+      const keywordTotal = kwScore + descScore + nmScore;
+      const totalScore = (keywordTotal * 0.6) + (dimensionScore * 0.4);
       
       if (totalScore > 0) {
         results.push({
@@ -213,9 +248,10 @@ export function matchSkills(
       const kwScore = computeScore(keywords, tokens);
       const descScore = descriptionScore(skill.description ?? "", tokens);
       const nmScore = nameScore(skill.name, tokens);
-      const totalScore = kwScore + descScore + nmScore;
+      const keywordTotal = kwScore + descScore + nmScore;
       
-      if (totalScore >= 2.0) {
+      if (keywordTotal >= 2.0) {
+        const totalScore = (keywordTotal * 0.6) + (dimensionScore * 0.4);
         results.push({
           name: skill.name,
           tier: 3,

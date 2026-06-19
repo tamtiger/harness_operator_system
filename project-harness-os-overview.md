@@ -15,7 +15,7 @@
 
 - AI coding agents (thông qua MCP protocol)
 - Developers (thông qua CLI tool `harness`)
-- 11 modules, 31 MCP tools, 30 built-in skills
+- 11 modules, 32 MCP tools, 32 built-in skills
 
 ### Tech stack
 
@@ -43,7 +43,7 @@
 │              StdioServerTransport (stdin/stdout)      │
 ├──────────────────────────────────────────────────────┤
 │                 Tool Registration                     │
-│              src/index.ts (31 tools)                  │
+│              src/index.ts (32 tools)                  │
 ├──────────────────────────────────────────────────────┤
 │         ┌──────────────────┐ ┌──────────────────┐     │
 │         │   Tool Modules   │ │     Lib Helpers   │     │
@@ -55,7 +55,7 @@
 │              src/db/client.ts (SQLite)                │
 ├──────────────────────────────────────────────────────┤
 │              CLI (Optional Overlay)                   │
-│           src/cli/harness.ts (17 commands)            │
+│           src/cli/harness.ts (21 commands)            │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -63,7 +63,7 @@
 
 | Layer | File | Vai trò |
 |-------|------|---------|
-| **Entry** | `src/index.ts` | Tạo MCP server, register 31 tools with Zod schemas, kết nối stdio transport |
+| **Entry** | `src/index.ts` | Tạo MCP server, register 32 tools with Zod schemas, kết nối stdio transport |
 | **Wrapper** | `src/lib/wrapper.ts` | Decorator pattern: try/catch + audit + loop guard + circuit breaker + hooks |
 | **Session** | `src/tools/session.ts` | Lifecycle: start, end, resume, handoff. Orphan recovery, state migration |
 | **Task** | `src/tools/task.ts` | CRUD task với scope tracking |
@@ -77,7 +77,7 @@
 | **Subagent** | `src/tools/subagent.ts` | Spawn worker processes cho task execution |
 | **Repo Summary** | `src/tools/repo_summary.ts` | Auto-generate repo tree + stack info |
 | **DB** | `src/db/client.ts` | SQLite singleton, WAL mode, 7 tables |
-| **CLI** | `src/cli/harness.ts` | 17 commands, manual argv parsing, template rendering |
+| **CLI** | `src/cli/harness.ts` | 21 commands, manual argv parsing, template rendering |
 
 ### 2.3 Các thành phần giao tiếp
 
@@ -300,7 +300,7 @@ Cargo.toml → rust
 getSearchDirs(repoPath?): dirs[]
   1. <repoPath>/.harness/skills/
   2. ~/.harness/skills/
-  3. <projectRoot>/skills/  (built-in, 30 skills)
+  3. <projectRoot>/skills/  (built-in, 32 skills)
 ```
 
 **Edge cases:**
@@ -381,7 +381,7 @@ Thay đổi frontmatter fields
     ├─ skillLoad() → parseFrontmatter() → return meta
     ├─ skillSuggest() → matchSkills() → keywords matching
     ├─ validateFrontmatter() → validation rules
-    └─ 30 built-in skills → phải update tất cả
+    └─ 32 built-in skills → phải update tất cả
 ```
 
 ### 6.4 Điểm dễ gây bug
@@ -495,11 +495,11 @@ Layer 6 (worker):     src/subagent-worker.ts
 
 **Kiến trúc:** MCP server chạy local qua stdin/stdout. Mọi tool call đều qua `wrapTool()` — một decorator tự động kiểm tra hook, circuit breaker, loop guard trước khi chạy thật, và audit sau khi chạy.
 
-**31 tools** chia làm 11 modules:
+**32 tools** chia làm 11 modules:
 - **Session (4 tools)**: start/end/resume/handoff — lifecycle, orphan recovery, handoff persistence
 - **Task (3 tools)**: create/update/list — simple CRUD với scope binding
 - **Verify (1 tool)**: run — pipeline install→build→test→lint, auto-detect runtime, changed-only lint
-- **Skill (4 tools)**: load/list/suggest/create — YAML frontmatter, tiered keyword matching, 30 built-in skills
+- **Skill (4 tools)**: load/list/suggest/create — YAML frontmatter, tiered keyword matching, 32 built-in skills
 - **Instinct (6 tools)**: add/get/prune/evolve/promote/record_outcomes — Bayesian learning system
 - **State (5 tools)**: progress_log, feature_list read/update, handoff read/write — file-based + SQLite
 - **Scope (2 tools)**: get/check — glob-based path enforcement
@@ -510,7 +510,7 @@ Layer 6 (worker):     src/subagent-worker.ts
 
 **Database:** SQLite WAL mode, 7 tables (sessions, tasks, instincts, session_instinct_refs, audit_events, repos, workers).
 
-**CLI:** 17 commands — init, doctor, status, verify, skills, tasks, instincts, install-mcp, orchestrate, workers, hooks, report.
+**CLI:** 21 commands — init, doctor, status, verify, skills, tasks, instincts, install-mcp, orchestrate, workers, hooks, report.
 
 **Resilience layer:**
 - Circuit breaker: 3 failures → 5 phút cooldown (repo-scoped)

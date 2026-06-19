@@ -66,6 +66,8 @@ async function main() {
       "code_search_grep",
       "code_search_symbols",
       "reflection_run",
+      "aegis_analyze",
+      "aegis_propose",
     ];
 
     if (toolNames.length !== expected.length) {
@@ -121,7 +123,7 @@ async function main() {
     }
     console.log(`✓ skill_load — loaded karpathy-guidelines (${skillData.content.length} chars)`);
 
-    // Call instinct_add + instinct_get
+    // Call instinct_add + instinct_promote + instinct_get
     const addResult = await client.callTool({
       name: "instinct_add",
       arguments: { description: "Always run tests before commit", tags: ["testing", "git"] },
@@ -133,6 +135,18 @@ async function main() {
       throw new Error("instinct_add missing id");
     }
     console.log(`✓ instinct_add — id: ${addData.id}`);
+
+    // Promote to candidate -> shadow
+    const promoteResult = await client.callTool({
+      name: "instinct_promote",
+      arguments: { instinct_id: addData.id },
+    });
+    const promoteContent = promoteResult.content as Array<{ type: string; text: string }>;
+    const promoteData = JSON.parse(promoteContent[0].text);
+    if (!promoteData.ok) {
+      throw new Error(`instinct_promote failed: ${promoteData.error || "unknown"}`);
+    }
+    console.log(`✓ instinct_promote — promoted to ${promoteData.status}`);
 
     const getResult = await client.callTool({
       name: "instinct_get",

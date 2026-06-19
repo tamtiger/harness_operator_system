@@ -112,6 +112,9 @@ Agent gọi: scope_get({ repo_path: ".", task_id: "t-abc123" })
 }
 ```
 
+> [!IMPORTANT]
+> **Tải Skill bắt buộc trước khi thực thi:** Sau khi chọn task, agent phải rà soát các skill được đề xuất từ phản hồi của `task_create` (hoặc `session_start`). Tất cả các skill có score gợi ý ≥ 1.5 bắt buộc phải được tải thông qua `skill_load` trước khi chuyển sang Phase 3: EXECUTE. Việc bỏ qua bước này sẽ làm giảm đáng kể hiệu suất lập luận của agent và bị hệ thống ghi nhận là thiếu sót.
+
 ---
 
 ## Phase 3: EXECUTE
@@ -173,6 +176,9 @@ Agent gọi: verify_run({ repo_path: "." })
 ```
 
 Nếu `passed: false` → agent fix lỗi rồi chạy lại. KHÔNG được claim done khi verify fail.
+
+> [!CAUTION]
+> **Hậu quả vi phạm quy trình:** Nếu phát hiện agent sửa đổi file nhưng hoàn toàn bỏ qua việc gọi `verify_run` thành công trước khi kết thúc phiên, hệ thống sẽ tự động ghi nhận sự kiện vi phạm quy trình nghiêm trọng (Critical Workflow Violation) vào nhật ký hệ thống. Điều này có thể dẫn đến việc từ chối phê duyệt đề xuất của agent hoặc khóa cơ chế tự động thăng cấp đối với các bản năng (instincts) được tạo ra từ phiên đó.
 
 ---
 

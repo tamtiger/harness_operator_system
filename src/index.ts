@@ -11,6 +11,7 @@ import { verifyRun } from "./tools/verify.js";
 import { skillLoad, skillList, skillCreateFromSession, skillSuggest } from "./tools/skill.js";
 import { instinctAdd, instinctGet, instinctPrune, instinctEvolve, instinctPromote, recordInstinctOutcomes } from "./tools/instinct.js";
 import { reflectionRun } from "./tools/reflection.js";
+import { aegisAnalyze, aegisPropose } from "./tools/aegis-lite.js";
 import { getDb } from "./db/client.js";
 import { detectRuntime } from "./lib/runtime.js";
 import {
@@ -101,12 +102,13 @@ server.registerTool(
       repo_path: z.string().describe("Absolute or relative path to the repo"),
       quick: z.boolean().optional().describe("If true, auto-creates a quick active task and sets scope to *"),
       quick_task_title: z.string().optional().describe("Custom title for the quick task"),
+      variant_id: z.string().optional().describe("Named configuration profile variant ID (e.g. 'coding-strict', 'coding-fast', etc.)"),
     },
   },
   makeHandler(
     "session_start",
-    ({ repo_path, quick, quick_task_title }: { repo_path: string; quick?: boolean; quick_task_title?: string }) =>
-      sessionStart(repo_path, { quick, quick_task_title })
+    ({ repo_path, quick, quick_task_title, variant_id }: { repo_path: string; quick?: boolean; quick_task_title?: string; variant_id?: string }) =>
+      sessionStart(repo_path, { quick, quick_task_title, variant_id })
   )
 );
 
@@ -118,12 +120,13 @@ server.registerTool(
       repo_path: z.string().describe("Absolute or relative path to the repo"),
       quick: z.boolean().optional().describe("If true, auto-creates a quick active task and sets scope to *"),
       quick_task_title: z.string().optional().describe("Custom title for the quick task"),
+      variant_id: z.string().optional().describe("Named configuration profile variant ID (e.g. 'coding-strict', 'coding-fast', etc.)"),
     },
   },
   makeHandler(
     "session_resume",
-    ({ repo_path, quick, quick_task_title }: { repo_path: string; quick?: boolean; quick_task_title?: string }) =>
-      sessionResume(repo_path, { quick, quick_task_title })
+    ({ repo_path, quick, quick_task_title, variant_id }: { repo_path: string; quick?: boolean; quick_task_title?: string; variant_id?: string }) =>
+      sessionResume(repo_path, { quick, quick_task_title, variant_id })
   )
 );
 
@@ -187,15 +190,16 @@ server.registerTool(
   {
     description: "Create a new task with title and optional scope.",
     inputSchema: {
-    title: z.string().describe("Task title"),
-    scope: z.string().optional().describe("Scope description or allowed paths"),
-    session_id: z.string().optional().describe("Link task to a session"),
-  },
+      title: z.string().describe("Task title"),
+      scope: z.string().optional().describe("Scope description or allowed paths"),
+      session_id: z.string().optional().describe("Link task to a session"),
+      task_type: z.string().optional().describe("Task type taxonomy (e.g. 'feature', 'bugfix', 'refactor', 'test', 'docs', 'config', 'research', 'debug', 'hotfix')"),
+    },
   },
   makeHandler(
     "task_create",
-    ({ title, scope, session_id }: { title: string; scope?: string; session_id?: string }) =>
-      taskCreate(title, scope, session_id)
+    ({ title, scope, session_id, task_type }: { title: string; scope?: string; session_id?: string; task_type?: string }) =>
+      taskCreate(title, scope, session_id, task_type)
   )
 );
 
@@ -736,6 +740,52 @@ server.registerTool(
     "code_search_symbols",
     ({ repo_path, query }: { repo_path: string; query: string }) =>
       codeSearchSymbols(repo_path, query)
+  )
+);
+
+// === Aegis tools ===
+
+server.registerTool(
+  "aegis_analyze",
+  {
+    description: "Analyze traces and return structured signals about failures, loop patterns, workflow non-compliance, and forgetting.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+    },
+  },
+  makeHandler(
+    "aegis_analyze",
+    ({ repo_path }: { repo_path: string }) => aegisAnalyze(repo_path)
+  )
+);
+
+server.registerTool(
+  "aegis_propose",
+  {
+    description: "Submit a proposal (merge, prune, evolve, penalize) based on trace signals.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+      type: z.enum(["merge", "prune", "evolve", "penalize"]).describe("Proposal type"),
+      instinct_ids: z.array(z.string()).describe("IDs of the target instincts"),
+      rationale: z.string().describe("Explanation for why this change is suggested"),
+      suggested_change: z.string().optional().describe("Description or code content of the change"),
+    },
+  },
+  makeHandler(
+    "aegis_propose",
+    ({
+      repo_path,
+      type,
+      instinct_ids,
+      rationale,
+      suggested_change,
+    }: {
+      repo_path: string;
+      type: "merge" | "prune" | "evolve" | "penalize";
+      instinct_ids: string[];
+      rationale: string;
+      suggested_change?: string;
+    }) => aegisPropose(repo_path, type, instinct_ids, rationale, suggested_change)
   )
 );
 

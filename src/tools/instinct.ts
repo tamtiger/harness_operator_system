@@ -18,6 +18,8 @@ export interface InstinctRecord {
   context: string | null;
   resolution: string | null;
   review_trigger: string | null;
+  status?: string;
+  shadow?: boolean;
 }
 
 export interface InstinctAddResult {
@@ -58,8 +60,8 @@ export function instinctAdd(
     `INSERT INTO instincts (
       id, description, tags, confidence, ttl_days, created_at, 
       success_count, failure_count, reference_count, 
-      type, context, resolution, review_trigger
-    ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?)`
+      type, context, resolution, review_trigger, status
+    ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?, 'draft')`
   ).run(
     id,
     description,
@@ -86,7 +88,7 @@ export function instinctGet(
   const db = getDb();
 
   let rows = db
-    .prepare(`SELECT * FROM instincts ORDER BY confidence DESC, created_at DESC`)
+    .prepare(`SELECT * FROM instincts WHERE status = 'promoted' OR status = 'shadow' OR status IS NULL ORDER BY confidence DESC, created_at DESC`)
     .all() as Array<{
     id: string;
     description: string;
@@ -103,6 +105,7 @@ export function instinctGet(
     context: string | null;
     resolution: string | null;
     review_trigger: string | null;
+    status: string;
   }>;
 
   // Filter by type
@@ -204,6 +207,8 @@ export function instinctGet(
     context: row.context,
     resolution: row.resolution,
     review_trigger: row.review_trigger,
+    status: row.status,
+    shadow: row.status === "shadow",
   }));
 
   return { instincts, available_tags: Array.from(tagSet).sort() };
@@ -398,20 +403,123 @@ with average confidence ${(rows.reduce((sum, r) => sum + r.confidence, 0) / rows
   };
 }
 
+export function checkRegressionGate(
+  instinctId: string,
+  threshold?: number
+): { passed: boolean; failed_checks: string[]; reason?: string } {
+  const db = getDb();
+  const instinct = db.prepare(`SELECT * FROM instincts WHERE id = ?`).get(instinctId) as {
+    id: string;
+    tags: string;
+    confidence: number;
+    status: string;
+  } | undefined;
+
+  if (!instinct) {
+    return { passed: false, failed_checks: ["Not found"], reason: "Instinct not found" };
+  }
+
+  const failed_checks: string[] = [];
+
+  // 1. Manifest check: tags
+  let tags: string[] = [];
+  try {
+    tags = JSON.parse(instinct.tags || "[]");
+  } catch {}
+
+  if (tags.length === 0) {
+    failed_checks.push("Missing tags");
+  }
+
+  // 2. Manifest check: confidence
+  const confThreshold = threshold ?? 0.7;
+  if (instinct.confidence < confThreshold) {
+    failed_checks.push(`Confidence below threshold (${instinct.confidence} < ${confThreshold})`);
+  }
+
+  // 3. Manifest check: outcomes evidence (only if checking for shadow -> promoted)
+  const outcomes = db.prepare(`SELECT outcome FROM instinct_outcomes WHERE instinct_id = ?`).all(instinctId) as Array<{ outcome: string }>;
+  if (instinct.status === "shadow" && outcomes.length === 0) {
+    failed_checks.push("Missing outcomes evidence");
+  }
+
+  // 4. Regression check
+  if (tags.length > 0 && outcomes.length > 0) {
+    const primaryTag = tags[0];
+
+    // Find all promoted instincts with same primary tag
+    const promotedInstincts = db.prepare(`SELECT id FROM instincts WHERE status = 'promoted'`).all() as Array<{ id: string }>;
+    const matchingInstinctIds = promotedInstincts.filter(pi => {
+      const piTagsRow = db.prepare(`SELECT tags FROM instincts WHERE id = ?`).get(pi.id) as { tags: string };
+      try {
+        const piTags = JSON.parse(piTagsRow.tags);
+        return piTags[0] === primaryTag;
+      } catch {
+        return false;
+      }
+    }).map(pi => pi.id);
+
+    if (matchingInstinctIds.length > 0) {
+      // Find last 20 scorecards using any of these matching promoted instincts
+      const allScorecards = db.prepare(`
+        SELECT id, verify_pass, instincts_used
+        FROM scorecards
+        ORDER BY created_at DESC
+      `).all() as Array<{ id: string; verify_pass: number; instincts_used: string }>;
+
+      const relevantScorecards = allScorecards.filter(sc => {
+        try {
+          const scInstincts = JSON.parse(sc.instincts_used || "[]") as string[];
+          return scInstincts.some(id => matchingInstinctIds.includes(id));
+        } catch {
+          return false;
+        }
+      }).slice(0, 20);
+
+      if (relevantScorecards.length > 0) {
+        const existingSuccessCount = relevantScorecards.filter(sc => sc.verify_pass === 1).length;
+        const existingSuccessRate = existingSuccessCount / relevantScorecards.length;
+
+        const newSuccessCount = outcomes.filter(o => o.outcome === "success").length;
+        const newSuccessRate = newSuccessCount / outcomes.length;
+
+        if (newSuccessRate < existingSuccessRate - 0.10) {
+          failed_checks.push(`Regression check failed: success rate of this instinct (${(newSuccessRate * 100).toFixed(0)}%) is more than 10% lower than matching promoted instincts (${(existingSuccessRate * 100).toFixed(0)}%)`);
+        }
+      }
+    }
+  }
+
+  return {
+    passed: failed_checks.length === 0,
+    failed_checks,
+    reason: failed_checks.length > 0 ? failed_checks.join(", ") : undefined
+  };
+}
+
 export function instinctPromote(
   instinctId: string,
   toRepo?: string
-): { ok: true; id: string } {
+): { ok: boolean; id: string; status: string; error?: string; gate_check?: any } {
   const db = getDb();
 
-  // Remove TTL (make permanent) and boost confidence
-  const result = db
-    .prepare(`UPDATE instincts SET ttl_days = NULL, confidence = MAX(confidence, 0.7) WHERE id = ?`)
-    .run(instinctId);
-
-  if (result.changes === 0) {
+  const instinct = db.prepare(`SELECT status, confidence FROM instincts WHERE id = ?`).get(instinctId) as { status: string; confidence: number } | undefined;
+  if (!instinct) {
     throw new Error(`Instinct not found: ${instinctId}`);
   }
 
-  return { ok: true, id: instinctId };
+  // 1. Transition to candidate
+  db.prepare(`UPDATE instincts SET status = 'candidate' WHERE id = ?`).run(instinctId);
+
+  // 2. Check Regression Gate for candidate (using threshold 0.5 since confidence starts at 0.5)
+  const gateCheck = checkRegressionGate(instinctId, 0.5);
+
+  if (gateCheck.passed) {
+    // 3. Move to shadow
+    db.prepare(`UPDATE instincts SET status = 'shadow' WHERE id = ?`).run(instinctId);
+    return { ok: true, id: instinctId, status: "shadow", gate_check: gateCheck };
+  } else {
+    // Remain candidate
+    return { ok: false, id: instinctId, status: "candidate", error: gateCheck.reason, gate_check: gateCheck };
+  }
 }

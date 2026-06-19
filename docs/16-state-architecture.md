@@ -36,10 +36,10 @@ Cross-repo state lives in the user's home directory:
 
 ```
 ~/.harness/
-├── harness.sqlite        # Sessions, tasks, instincts, audit events
+├── harness.sqlite        # Sessions, tasks, instincts, audit events, scorecards, instinct_outcomes
 ├── audit.jsonl           # Append-only audit trail
 ├── skills/               # User global skills (override built-in)
-└── repos/
+├── repos/
     └── {repo_id}/
         ├── repo-summary.md    # Auto-generated repo overview
         └── artifacts/
@@ -80,13 +80,15 @@ Location: `~/.harness/harness.sqlite` (override with `HARNESS_HOME` env var)
 ### Tables
 
 ```sql
-sessions              (id, repo_path, status, started_at, ended_at, current_phase, verify_called)
-tasks                 (id, session_id, title, scope, status, created_at)
-instincts             (id, description, tags, confidence, ttl_days, created_at, success_count, failure_count, reference_count, last_outcome, last_referenced_at, type, context, resolution, review_trigger)
+sessions              (id, repo_path, status, started_at, ended_at, current_phase, verify_called, variant_id)
+tasks                 (id, session_id, title, scope, status, created_at, task_type)
+instincts             (id, description, tags, confidence, ttl_days, created_at, success_count, failure_count, reference_count, last_outcome, last_referenced_at, type, context, resolution, review_trigger, status)
 session_instinct_refs (session_id, instinct_id, outcome, referenced_at)
 workers               (worker_id, pid, status, started_at, timeout_at, ended_at, command, repo_path, session_id)
 reflections           (id, session_id, task_id, trigger, findings, actions_taken, created_at)
 audit_events          (id, event_type, payload, created_at)
+scorecards            (id, task_id, session_id, task_type, variant_id, verify_pass, tool_calls, retry_count, loop_events, files_touched, execution_time_ms, instincts_used, skills_used, created_at)
+instinct_outcomes     (instinct_id, task_id, task_type, variant_id, outcome, scorecard_id, timestamp)
 ```
 
 ### Settings

@@ -19,9 +19,33 @@ Từ v1.5.0, Instincts đóng vai trò là lớp lưu trữ tri thức tổng qu
 
 ## Lifecycle
 
+Vòng đời của một Instinct bao gồm 4 giai đoạn chuyển đổi chặt chẽ nhằm đảm bảo tính an toàn và chất lượng tri thức:
+
 ```
-Experience → Capture (instinct_add) → Validate (confidence grows) → Evolve (instinct_evolve → skill)
+Experience ➔ Capture (instinct_add: draft) ➔ Promote (instinct_promote: candidate) ➔ Regression Gate ➔ Shadow ➔ Auto-Promote ➔ Promoted
 ```
+
+| Giai đoạn | Trạng thái | Ý nghĩa | Hành động kích hoạt |
+|---|---|---|---|
+| `draft` | Nháp | Bản năng mới được tạo, chưa được xác thực | Gọi `instinct_add` |
+| `candidate` | Ứng viên | Gắn cờ để chuẩn bị đánh giá thăng cấp | Gọi `instinct_promote` |
+| `shadow` | Chạy bóng | Hoạt động ở chế độ quan sát, đính kèm `shadow: true` | Tự động sau khi vượt qua Regression Gate |
+| `promoted` | Thăng cấp | Đã được kiểm chứng đầy đủ, có hiệu lực vĩnh viễn | Tự động khi đáp ứng các điều kiện thoát khỏi chế độ shadow |
+
+### Cổng kiểm soát Regression Gate (Regression Gate)
+Khi một Instinct chuyển từ `candidate ➔ shadow` (hoặc kiểm tra định kỳ trước khi thăng cấp hoàn toàn), hệ thống sẽ chạy cổng kiểm soát xác định để đảm bảo:
+1. **Tính đầy đủ của Manifest**: Phải có đầy đủ `tags`, `confidence`. Bản năng shadow phải có ít nhất một kết quả trong `instinct_outcomes`.
+2. **Ngưỡng độ tin cậy**: Độ tin cậy `confidence >= 0.7` (hoặc $\ge 0.5$ đối với ứng viên ban đầu).
+3. **Kiểm tra thụt lùi (Regression Check)**: Bản năng mới không được làm giảm tỷ lệ thành công của các bản năng đã thăng cấp hiện tại có cùng tag chính quá 10% (so sánh trên 20 dòng thẻ điểm gần nhất có chứa các bản năng đó).
+
+### Điều kiện thoát khỏi chế độ Shadow (Shadow Exit Criteria)
+Một instinct ở trạng thái `shadow` sẽ tự động chuyển sang `promoted` khi:
+- Đã thu thập tối thiểu **10 kết quả** trong bảng `instinct_outcomes`.
+- Tỷ lệ thành công trung bình đạt **$\ge 70\%$**.
+- Không phát hiện sự thụt lùi của hệ thống (pass Regression Gate).
+- Thời gian chạy shadow trải rộng trên ít nhất **5 phiên (sessions) phân biệt**.
+
+*Lưu ý*: Nếu tỷ lệ thành công bị tụt giảm xuống dưới 60% (khi đã thu thập $\ge 5$ kết quả), instinct sẽ tự động bị hạ cấp trở lại `candidate` để chờ xử lý thủ công.
 
 ---
 

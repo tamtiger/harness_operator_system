@@ -19,7 +19,7 @@ Before writing code, scaffolding, or locking into a single design, explore the p
 ## Non-Negotiable Rules
 - **NO Implementation:** Do not write code, edit source files, or take implementation actions until a design is presented and approved by the user.
 - **Clarification First:** Ask clarifying questions one at a time to understand requirements, constraints, and success criteria.
-- **Save Design Doc:** The approved design must be saved to `.harness/artifacts/plans/YYYYMMDD_HHMM_design.md` before coding starts.
+- **Save Design Doc:** The approved design must be saved to `~/.harness/repos/{repo_id}/artifacts/plans/YYYYMMDD_HHMM_design.md` before coding starts.
 
 ## Workflow
 
@@ -43,7 +43,7 @@ Construct a tradeoff matrix comparing the approaches against criteria like:
 ### 4. Present and Decide
 - Propose the tradeoff matrix to the user.
 - Select the best approach.
-- Save the final spec to `.harness/artifacts/plans/YYYYMMDD_HHMM_design.md`.
+- Save the final spec to `~/.harness/repos/{repo_id}/artifacts/plans/YYYYMMDD_HHMM_design.md`.
 - Create tasks matching the chosen steps via `task_create`.
 - Document the decision in progress log using `progress_log`.
 
@@ -51,5 +51,5 @@ Construct a tradeoff matrix comparing the approaches against criteria like:
 - [ ] Stated the core problem and asked clarifying questions
 - [ ] Explored at least 2 distinct technical approaches
 - [ ] Created a tradeoff matrix comparing the options
-- [ ] Saved the design spec to `.harness/artifacts/plans/`
+- [ ] Saved the design spec to `~/.harness/repos/{repo_id}/artifacts/plans/`
 - [ ] Created granular implementation tasks via `task_create`

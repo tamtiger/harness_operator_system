@@ -13,6 +13,7 @@ import { getTier1Skills, type SkillWithMetadata } from "../lib/skill-matcher.js"
 import { checkStopValidation } from "../lib/hooks.js";
 import { cleanupExpiredWorkers } from "../lib/worker-registry.js";
 import { instinctGet, type InstinctRecord } from "./instinct.js";
+import { recordScorecard } from "../lib/scorecard.js";
 
 export interface SuggestedSkill {
   name: string;
@@ -59,6 +60,7 @@ export interface SessionHandoffResult {
 export interface SessionStartOptions {
   quick?: boolean;
   quick_task_title?: string;
+  variant_id?: string;
 }
 
 export function sessionStart(repoPath: string, options: SessionStartOptions = {}): SessionStartResult {
@@ -104,10 +106,11 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
 
   const id = randomUUID();
   const now = new Date().toISOString();
+  const variantId = options.variant_id || "default";
 
   db.prepare(
-    `INSERT INTO sessions (id, repo_path, status, started_at) VALUES (?, ?, 'active', ?)`
-  ).run(id, repoPath, now);
+    `INSERT INTO sessions (id, repo_path, status, started_at, variant_id) VALUES (?, ?, 'active', ?, ?)`
+  ).run(id, repoPath, now, variantId);
 
   // If quick start is selected, auto-create an active task
   let quickTaskId: string | undefined;
@@ -269,6 +272,12 @@ export function sessionEnd(sessionId: string): SessionEndResult {
     sessionId
   );
 
+  try {
+    recordScorecard(sessionId);
+  } catch (err) {
+    // ignore scorecard errors to ensure session closing is infallible
+  }
+
   const durationSeconds = Math.round(
     (Date.now() - new Date(session.started_at).getTime()) / 1000
   );
@@ -340,6 +349,12 @@ export function sessionHandoff(
     now,
     sessionId
   );
+
+  try {
+    recordScorecard(sessionId);
+  } catch (err) {
+    // ignore scorecard errors to ensure session handoff is infallible
+  }
 
   return {
     session_id: sessionId,

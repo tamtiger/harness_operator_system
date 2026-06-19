@@ -3,6 +3,34 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.0] — 2026-06-19
+
+### Added
+- **Harness Scorecard & Variant Tracking**:
+  - **`scorecards` Table**: Added SQLite database table to track task execution metrics including verify pass/fail, tool calls count, retry count, loop events, files touched, and execution duration.
+  - **`instinct_outcomes` Table**: Added SQLite database table to track success/failure/partial outcomes of specific instincts per task.
+  - **Variant Identity**: Added `variant_id` to session options and DB to support profile configurations (`coding-strict`, `coding-fast`, `debug`, `refactor`, `research`).
+  - **Task Type Taxonomy**: Added `task_type` parameter to `task_create` tool and DB (feature, bugfix, refactor, test, docs, config, research, debug, hotfix).
+  - **Scorecard Recording Hook**: Automatically records scorecards and instinct outcomes upon closing/handing off a session.
+- **Deterministic Regression Gating**:
+  - Added `checkRegressionGate` to evaluate instinct safety by checking manifest fields, minimum confidence ($\ge 0.7$), and regression checks (success rate of matching promoted instincts within last 20 scorecards cannot drop by more than 10%).
+- **4-Stage Promotion Pipeline**:
+  - Replaced binary instinct promotion with a four-stage lifecycle: `draft` $\to$ `candidate` $\to$ `shadow` $\to$ `promoted`.
+  - Added auto-demotion to `candidate` if success rate drops below 60% after 5+ outcomes, and auto-promotion to `promoted` from `shadow` when satisfying criteria ($\ge 10$ outcomes, $\ge 70\%$ success rate, passing regression checks, and $\ge 5$ distinct sessions).
+- **Trace Analyzer & Integrity Checks (Phase 2)**:
+  - Added `src/lib/trace-analyzer.ts` with rules to detect repeated failures, loops, low-value instincts, under-exploration, workflow non-compliance (missing verify, suspicious pass, stuck without verify, ignored suggested skills), and forgetting detection using `promotion_snapshots`.
+- **AEGIS-lite MCP Tools (Phase 3)**:
+  - Registered `aegis_analyze` and `aegis_propose` tools to provide structured advisory signals and optimal adaptation proposals (merge, prune, evolve, penalize) with early validation checks.
+- **CLI Commands (Phase 3, 4, 5)**:
+  - Extended `harness` CLI with `proposals` command (list, approve) routing approved proposals through regression gates, `variants --benchmark` command presenting variant performance aggregates, and added `--format jsonl` option to `harness instincts --export` to dump execution trajectories.
+- **Dimension Matching (Phase 5)**:
+  - Updated `skill-matcher.ts` and task context to support dimension matching (safety, verification, memory, tool-usage) and weighted matching formula: `final_score = (keyword_score * 0.6) + (dimension_score * 0.4)`.
+
+### Changed
+- **MCP Server Registration**: Updated `session_start`, `session_resume`, and `task_create` schemas to support the new metadata options. Registered `aegis_analyze` and `aegis_propose` as new tools.
+- **Smoke & Unit Tests**: Added `src/lib/scorecard.test.ts` to test scorecard and shadow promotion logic, and unit tests for `trace-analyzer.ts` and `aegis-lite.ts`. Updated `scripts/smoke-test.ts` to integrate and assert instinct promotion transitions to shadow and include new tools.
+- **Agent Instructions**: Updated `AGENTS.md` and `templates/AGENTS.md.tpl` to guide future coding agents on utilizing `variant_id` and `task_type` parameters and obeying the shadow promotion lifecycle.
+
 ## [1.5.5] — 2026-06-18
 
 ### Changed

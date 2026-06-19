@@ -208,8 +208,8 @@ chunk flush logic.
 
 Save generated documents to:
 ```
-.harness/artifacts/learning/YYYYMMDD_HHMM_<mode>_<topic>.md
-.harness/artifacts/learning/YYYYMMDD_HHMM_<mode>_<topic>.answer.md
+~/.harness/repos/{repo_id}/artifacts/learning/YYYYMMDD_HHMM_<mode>_<topic>.md
+~/.harness/repos/{repo_id}/artifacts/learning/YYYYMMDD_HHMM_<mode>_<topic>.answer.md
 ```
 
 ## Example Answer Document
@@ -283,7 +283,7 @@ Follow the appropriate mode's template (Mode A or Mode B). Enforce all constrain
 
 ### Phase 5: Save & Present
 
-1. Create `.harness/artifacts/learning/` directory if missing
+1. Create `~/.harness/repos/{repo_id}/artifacts/learning/` directory if missing
 2. Save main doc: `YYYYMMDD_HHMM_<mode>_<topic>.md`
 3. Save answer doc: `YYYYMMDD_HHMM_<mode>_<topic>.answer.md`
 4. Record learning event: `audit_log("learning_document_generated", { mode, topic, file_count: 2 })`
