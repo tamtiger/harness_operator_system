@@ -8,6 +8,7 @@ export interface AnalysisSignal {
   task_id?: string;
   instinct_id?: string;
   payload: any;
+  severity?: string;
 }
 
 /**
@@ -19,12 +20,19 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
   const now = new Date().toISOString();
   let signalsCount = 0;
 
+  // Clean up analysis events older than 30 days
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    db.prepare(`DELETE FROM analysis_events WHERE created_at < ?`).run(thirtyDaysAgo);
+  } catch {}
+
   const saveSignal = (signal: AnalysisSignal, customId?: string) => {
     const id = customId || randomUUID();
+    const severity = signal.severity || "info";
     db.prepare(`
       INSERT OR REPLACE INTO analysis_events (
-        id, event_type, session_id, task_id, instinct_id, payload, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        id, event_type, session_id, task_id, instinct_id, payload, created_at, severity
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       signal.type,
@@ -32,13 +40,13 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
       signal.task_id || null,
       signal.instinct_id || null,
       JSON.stringify(signal.payload),
-      now
+      now,
+      severity
     );
     signalsCount++;
   };
 
   // 1. Repeated Failures: Same task_type + same instinct_id fails >= 3 times consecutively
-  // Query all distinct instinct + task_type pairs
   const pairs = db.prepare(`
     SELECT DISTINCT instinct_id, task_type FROM instinct_outcomes
   `).all() as Array<{ instinct_id: string; task_type: string }>;
@@ -66,6 +74,7 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
         instinct_id: pair.instinct_id,
         session_id: sessionRow?.session_id,
         task_id: latest.task_id,
+        severity: "critical",
         payload: {
           consecutive_failures: outcomes.length,
           task_type: pair.task_type,
@@ -94,6 +103,7 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
       type: "loop_patterns",
       session_id: sc.session_id,
       task_id: sc.task_id,
+      severity: sc.verify_pass === 0 ? "critical" : "warning",
       payload: {
         loop_events: sc.loop_events,
         retry_count: sc.retry_count,
@@ -116,6 +126,7 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
       saveSignal({
         type: "low_value_instinct",
         instinct_id: stat.instinct_id,
+        severity: "warning",
         payload: {
           usage_count: stat.usage_count,
           success_rate: successRate
@@ -132,7 +143,6 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
     LIMIT 30
   `).all() as Array<{ id: string; task_type: string; instincts_used: string }>;
 
-  // Group by task_type
   const typeGroups: Record<string, Array<string[]>> = {};
   for (const sc of last30Scorecards) {
     const type = sc.task_type || "unknown";
@@ -145,7 +155,7 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
 
   for (const [taskType, groups] of Object.entries(typeGroups)) {
     const totalTasks = groups.length;
-    if (totalTasks >= 5) { // Need at least 5 scorecards of this type for meaningful exploration stats
+    if (totalTasks >= 5) {
       const counts: Record<string, number> = {};
       for (const instincts of groups) {
         for (const instId of instincts) {
@@ -159,6 +169,7 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
           saveSignal({
             type: "under_exploration",
             instinct_id: instId,
+            severity: "info",
             payload: {
               task_type: taskType,
               usage_percentage: usageRate,
@@ -171,7 +182,6 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
   }
 
   // 5. Workflow Non-Compliance (Integrity Check)
-  // Let's analyze the specified session, or all active/recent sessions
   const sessionsToAnalyze = (sessionId 
     ? [db.prepare(`SELECT id, repo_path FROM sessions WHERE id = ?`).get(sessionId)]
     : db.prepare(`SELECT id, repo_path FROM sessions`).all()) as any[];
@@ -181,7 +191,6 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
     const sId = sess.id;
     const repoPath = sess.repo_path;
 
-    // Get scorecards in this session
     const scs = db.prepare(`
       SELECT id, task_id, verify_pass, tool_calls, retry_count, loop_events, files_touched
       FROM scorecards
@@ -197,12 +206,12 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
     }>;
 
     for (const sc of scs) {
-      // a. verify_run not called once in a session with modified files
       if (sc.files_touched > 0 && sc.retry_count === 0) {
         saveSignal({
           type: "workflow_non_compliance",
           session_id: sId,
           task_id: sc.task_id,
+          severity: "critical",
           payload: {
             reason: "Critical Workflow Violation: verify_run was not called once despite files being modified.",
             files_touched: sc.files_touched,
@@ -211,12 +220,12 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
         }, `workflow_non_compliance:missing_verify:${sId}:${sc.task_id}`);
       }
 
-      // b. verify_pass = 1 but tool_calls < 3 for a task with files_touched > 0
       if (sc.verify_pass === 1 && sc.files_touched > 0 && sc.tool_calls < 3) {
         saveSignal({
           type: "workflow_non_compliance",
           session_id: sId,
           task_id: sc.task_id,
+          severity: "critical",
           payload: {
             reason: "Critical Workflow Violation: verify_pass is success (1) but MCP tool calls count is abnormally low.",
             tool_calls: sc.tool_calls,
@@ -226,12 +235,12 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
         }, `workflow_non_compliance:suspicious_pass:${sId}:${sc.task_id}`);
       }
 
-      // c. retry_count = 0 and loop_events > 2 (agent stuck but verification not run)
       if (sc.retry_count === 0 && sc.loop_events > 2) {
         saveSignal({
           type: "workflow_non_compliance",
           session_id: sId,
           task_id: sc.task_id,
+          severity: "critical",
           payload: {
             reason: "Critical Workflow Violation: Agent got stuck in loop but did not run verify_run.",
             loop_events: sc.loop_events,
@@ -241,15 +250,12 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
       }
     }
 
-    // d. Ignored suggested skill: Suggestion score >= 1.5 but no skill_load call.
-    // Let's query tasks to find what was suggested or inspect skillSuggestions.
     const tasks = db.prepare(`SELECT id, title, scope FROM tasks WHERE session_id = ?`).all(sess.id) as Array<{
       id: string;
       title: string;
       scope: string | null;
     }>;
 
-    // Get loaded skills in session
     const skillLoadEvents = db.prepare(`
       SELECT json_extract(payload, '$.args.name') as skill_name
       FROM audit_events
@@ -264,13 +270,13 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
         const suggestions = skillSuggest(task.title, task.scope || undefined, undefined, 10, repoPath);
         for (const sug of suggestions.suggested_skills) {
           if (sug.score >= 1.5 && !loadedSkills.has(sug.name)) {
-            // Check if there was any file modifications in this task (we only warning if code changes occur without loaded skill)
             const touched = scs.find(s => s.task_id === task.id)?.files_touched ?? 0;
             if (touched > 0) {
               saveSignal({
                 type: "skipped_skill_loading",
                 session_id: sId,
                 task_id: task.id,
+                severity: "warning",
                 payload: {
                   reason: "Skipped Skill Warning: Suggested skill with high score (>= 1.5) was not loaded before modifying files.",
                   suggested_skill: sug.name,
@@ -285,7 +291,6 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
   }
 
   // 6. Forgetting Detection
-  // Check precondition: at least one variant_id has >= 10 scorecards covering >= 2 different task_types
   const variantStats = db.prepare(`
     SELECT variant_id, COUNT(*) as count, COUNT(DISTINCT task_type) as types_count
     FROM scorecards
@@ -307,18 +312,16 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
     }>;
 
     for (const snap of snapshots) {
-      // Check 7 days limit: only compare if at least 7 days passed since captured_at (or for testing/dev, if process env HARNESS_DEBUG is set, skip limit)
       const capturedTime = new Date(snap.captured_at).getTime();
       const elapsedMs = Date.now() - capturedTime;
       const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
       if (elapsedMs >= sevenDaysMs || process.env.HARNESS_DEBUG === "1" || process.env.NODE_ENV === "test") {
-        // Query live success rate for this pair from scorecards created AFTER captured_at
         const liveScorecards = db.prepare(`
           SELECT verify_pass FROM scorecards
           WHERE task_type = ? AND variant_id = ? AND created_at > ?
         `).all(snap.task_type, snap.variant_id, snap.captured_at) as Array<{ verify_pass: number }>;
 
-        if (liveScorecards.length >= 5) { // Need at least 5 live runs to establish a rate
+        if (liveScorecards.length >= 5) {
           const liveSuccess = liveScorecards.filter(sc => sc.verify_pass === 1).length;
           const liveRate = liveSuccess / liveScorecards.length;
 
@@ -326,6 +329,7 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
             saveSignal({
               type: "forgetting",
               instinct_id: snap.instinct_id,
+              severity: "warning",
               payload: {
                 task_type: snap.task_type,
                 variant_id: snap.variant_id,
@@ -339,6 +343,96 @@ export function runTraceAnalysis(sessionId?: string): { signals_found: number } 
       }
     }
   }
+
+  // 7. Stale Instinct Detection: instinct not referenced in last 90 days (or created > 90 days ago and never referenced)
+  try {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const staleInstincts = db.prepare(`
+      SELECT id, description, last_referenced_at, created_at
+      FROM instincts
+      WHERE (status = 'promoted' OR status = 'shadow' OR status IS NULL)
+        AND (
+          (last_referenced_at IS NOT NULL AND last_referenced_at < ?)
+          OR (last_referenced_at IS NULL AND created_at < ?)
+        )
+    `).all(ninetyDaysAgo, ninetyDaysAgo) as Array<{
+      id: string;
+      description: string;
+      last_referenced_at: string | null;
+      created_at: string;
+    }>;
+
+    for (const inst of staleInstincts) {
+      saveSignal({
+        type: "stale_instinct",
+        instinct_id: inst.id,
+        severity: "info",
+        payload: {
+          reason: `Instinct "${inst.description.slice(0, 40)}..." has not been used/referenced in the last 90 days.`,
+          last_referenced_at: inst.last_referenced_at,
+          created_at: inst.created_at
+        }
+      }, `stale_instinct:${inst.id}`);
+    }
+  } catch {}
+
+  // 8. Over-reliance Detection: a skill loaded in > 90% of the last 20 sessions
+  try {
+    const recentSessions = db.prepare(`
+      SELECT id FROM sessions
+      ORDER BY started_at DESC
+      LIMIT 20
+    `).all() as Array<{ id: string }>;
+
+    if (recentSessions.length >= 5) {
+      const sessionIds = recentSessions.map(s => s.id);
+      const placeholders = sessionIds.map(() => "?").join(",");
+
+      const skillLoads = db.prepare(`
+        SELECT json_extract(payload, '$.args.name') as skill_name,
+               json_extract(payload, '$.session_id') as session_id
+        FROM audit_events
+        WHERE json_extract(payload, '$.session_id') IN (${placeholders})
+          AND event_type = 'tool_success'
+          AND json_extract(payload, '$.tool') = 'skill_load'
+      `).all(...sessionIds) as Array<{ skill_name: string | null; session_id: string | null }>;
+
+      const sessionSkills = new Map<string, Set<string>>();
+      for (const load of skillLoads) {
+        if (load.skill_name && load.session_id) {
+          if (!sessionSkills.has(load.session_id)) {
+            sessionSkills.set(load.session_id, new Set());
+          }
+          sessionSkills.get(load.session_id)!.add(load.skill_name);
+        }
+      }
+
+      const skillCounts = new Map<string, number>();
+      for (const [_, skills] of sessionSkills.entries()) {
+        for (const skill of skills) {
+          skillCounts.set(skill, (skillCounts.get(skill) || 0) + 1);
+        }
+      }
+
+      for (const [skillName, count] of skillCounts.entries()) {
+        if (skillName === "harness-workflow" || skillName === "code-review-workflow") continue;
+
+        const rate = count / recentSessions.length;
+        if (rate > 0.9) {
+          saveSignal({
+            type: "over_reliance",
+            severity: "info",
+            payload: {
+              reason: `Over-reliance: Skill "${skillName}" was loaded in ${(rate * 100).toFixed(0)}% of the last ${recentSessions.length} sessions. Consider merging its patterns into core.`,
+              skill_name: skillName,
+              session_count: count,
+              total_sessions: recentSessions.length
+            }
+          }, `over_reliance:${skillName}`);
+        }
+      }
+    }
+  } catch {}
 
   return { signals_found: signalsCount };
 }

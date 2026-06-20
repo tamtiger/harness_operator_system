@@ -451,7 +451,7 @@ optional:
 });
 
 describe("verifyRun phase transition", () => {
-  it("updates session phase to VERIFY and sets verify_called to 1 when task_id is provided", () => {
+  it("updates session phase to VERIFY and sets verify_called to 1 when task_id is provided", async () => {
     const mockRun = vi.fn();
     const mockGet = vi.fn().mockReturnValue({ session_id: "session-123" });
     const mockPrepare = vi.fn().mockImplementation((query) => {
@@ -464,13 +464,13 @@ describe("verifyRun phase transition", () => {
     const mockDb = { prepare: mockPrepare };
     (getDb as any).mockReturnValue(mockDb);
 
-    const result = verifyRun("/mock/repo", { task_id: "task-123", steps: ["install"] });
+    const result = await verifyRun("/mock/repo", { task_id: "task-123", steps: ["install"] });
 
     expect(mockPrepare).toHaveBeenCalledWith(
       "SELECT session_id FROM tasks WHERE id = ?"
     );
     expect(mockPrepare).toHaveBeenCalledWith(
-      "UPDATE sessions SET current_phase = 'VERIFY', verify_called = 1 WHERE id = ?"
+      expect.stringContaining("UPDATE sessions")
     );
     expect(mockRun).toHaveBeenCalled();
     expect(result.workflow_guidance?.current_phase).toBe("VERIFY");

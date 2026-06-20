@@ -208,3 +208,27 @@ export function codeSearchSymbols(
 
   return { matches, truncated, scope_applied: forbiddenPatterns.length > 0 };
 }
+
+import { z } from "zod";
+
+export const mcpTools = [
+  {
+    name: "code_search_grep",
+    description: "Search for text or regex patterns in codebase source files. Limits result size to 8KB.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+      query: z.string().describe("Text or regex to search for"),
+      is_regex: z.boolean().optional().describe("If true, treats query as regex (default: false)"),
+    },
+    handler: async (args: any) => codeSearchGrep(args.repo_path, args.query, args.is_regex),
+  },
+  {
+    name: "code_search_symbols",
+    description: "Find definitions of classes, methods, or functions matching a name pattern. Limits result size to 8KB.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+      query: z.string().describe("Symbol name to search for"),
+    },
+    handler: async (args: any) => codeSearchSymbols(args.repo_path, args.query),
+  },
+];

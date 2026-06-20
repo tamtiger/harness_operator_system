@@ -38,7 +38,6 @@ async function main() {
     const expected = [
       "session_start",
       "session_end",
-      "session_resume",
       "session_handoff",
       "task_create",
       "task_update",
@@ -49,16 +48,15 @@ async function main() {
       "skill_create_from_session",
       "instinct_add",
       "instinct_get",
+      "instinct_reference",
       "instinct_record_outcomes",
       "instinct_prune",
       "instinct_evolve",
       "instinct_promote",
       "progress_log",
-      "handoff_write",
       "handoff_read",
       "scope_get",
       "scope_check",
-      "audit_log",
       "harness_status",
       "repo_summary_read",
       "subagent_invoke",
@@ -206,6 +204,8 @@ async function main() {
         summary: "Smoke test completed",
         unfinished: ["nothing"],
         next_steps: ["run more tests"],
+        bypass_verify: true,
+        bypass_rationale: "Smoke test bypass verification check",
       },
     });
     const handoffContent = handoffResult.content as Array<{ type: string; text: string }>;
@@ -233,6 +233,14 @@ async function main() {
       arguments: { session_id: session3Data.session_id },
     });
 
+    // Test session_handoff with verify_status: start new session first
+    const session4 = await client.callTool({
+      name: "session_start",
+      arguments: { repo_path: "." },
+    });
+    const session4Content = session4.content as Array<{ type: string; text: string }>;
+    const session4Data = JSON.parse(session4Content[0].text);
+
     // Test scope_check
     const scopeResult = await client.callTool({
       name: "scope_check",
@@ -253,17 +261,9 @@ async function main() {
     const verifyContent = verifyResult.content as Array<{ type: string; text: string }>;
     const verifyData = JSON.parse(verifyContent[0].text);
     if (!Array.isArray(verifyData.step_results)) {
-      throw new Error("verify_run missing step_results array");
+      throw new Error(`verify_run missing step_results array. Data: ${JSON.stringify(verifyData)}`);
     }
     console.log(`✓ verify_run (enhanced) — step_results: ${verifyData.step_results.length} steps, passed: ${verifyData.passed}`);
-
-    // Test session_handoff with verify_status
-    const session4 = await client.callTool({
-      name: "session_start",
-      arguments: { repo_path: "." },
-    });
-    const session4Content = session4.content as Array<{ type: string; text: string }>;
-    const session4Data = JSON.parse(session4Content[0].text);
 
     const handoff2Result = await client.callTool({
       name: "session_handoff",

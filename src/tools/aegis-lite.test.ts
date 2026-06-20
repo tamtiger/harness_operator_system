@@ -26,7 +26,7 @@ describe("AEGIS-lite Tools tests", () => {
       if (query.includes("analysis_events")) {
         return {
           all: () => [
-            { type: "repeated_failures", session_id: "s-1", task_id: "t-1", instinct_id: "i-1", payload: '{"consecutive_failures":3}' }
+            { type: "repeated_failures", session_id: "s-1", task_id: "t-1", instinct_id: "i-1", payload: '{"consecutive_failures":3}', severity: "critical" }
           ]
         };
       }
@@ -44,7 +44,7 @@ describe("AEGIS-lite Tools tests", () => {
     const mockDb = { prepare: mockPrepare };
     (getDb as any).mockReturnValue(mockDb);
 
-    const result = aegisAnalyze(".");
+    const result = aegisAnalyze(".", false, 20);
     expect(runTraceAnalysis).toHaveBeenCalled();
     expect(result.summary.total_scorecards).toBe(15);
     expect(result.signals.length).toBe(1);
@@ -53,9 +53,19 @@ describe("AEGIS-lite Tools tests", () => {
 
   it("aegisPropose inserts a proposal and returns early validation regression check results", () => {
     const mockRun = vi.fn();
-    const mockPrepare = vi.fn().mockImplementation(() => ({
-      run: mockRun
-    }));
+    const mockPrepare = vi.fn().mockImplementation((query) => {
+      if (query.includes("SELECT id, description, confidence, success_count, failure_count")) {
+        return {
+          all: () => [
+            { id: "inst-1", description: "d1", confidence: 0.8, success_count: 5, failure_count: 1 },
+            { id: "inst-2", description: "d2", confidence: 0.7, success_count: 4, failure_count: 2 }
+          ]
+        };
+      }
+      return {
+        run: mockRun
+      };
+    });
 
     const mockDb = { prepare: mockPrepare };
     (getDb as any).mockReturnValue(mockDb);
@@ -65,7 +75,7 @@ describe("AEGIS-lite Tools tests", () => {
     expect(checkRegressionGate).toHaveBeenCalledWith("inst-1");
     expect(checkRegressionGate).toHaveBeenCalledWith("inst-2");
     expect(result.status).toBe("pending_review");
-    expect(result.gate_pre_check.passed).toBe(true);
+    expect(result.gate_pre_check?.passed).toBe(true);
     expect(mockRun).toHaveBeenCalled();
   });
 });

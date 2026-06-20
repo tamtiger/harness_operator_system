@@ -1,3 +1,5 @@
+import { getDb } from "../db/client.js";
+
 interface CircuitState {
   failures: number;
   last_failed_at: number;
@@ -6,9 +8,6 @@ interface CircuitState {
 
 const FAILURE_THRESHOLD = 3;
 const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
-
-// Key: `${repo_id}:${tool_name}`
-const circuitMap = new Map<string, CircuitState>();
 
 export interface CircuitCheckResult {
   open: boolean;
@@ -22,21 +21,32 @@ export interface CircuitCheckResult {
  */
 export function checkCircuit(repoId: string, toolName: string): CircuitCheckResult {
   const key = `${repoId}:${toolName}`;
-  const state = circuitMap.get(key);
+  const db = getDb();
+  let record: { count: number; last_triggered_at: number } | undefined;
+  
+  try {
+    record = db.prepare("SELECT count, last_triggered_at FROM guard_state WHERE key = ? AND type = 'circuit_breaker'").get(key) as any;
+  } catch {}
 
-  if (!state || !state.is_open) return { open: false };
+  // If no failures recorded yet, circuit is closed
+  if (!record) return { open: false };
 
-  const elapsed = Date.now() - state.last_failed_at;
+  const failures = record.count;
+  const is_open = failures >= FAILURE_THRESHOLD;
+  if (!is_open) return { open: false };
+
+  const elapsed = Date.now() - record.last_triggered_at;
   if (elapsed >= COOLDOWN_MS) {
     // Half-open: allow one attempt, reset state
-    state.is_open = false;
-    state.failures = 0;
+    try {
+      db.prepare("DELETE FROM guard_state WHERE key = ? AND type = 'circuit_breaker'").run(key);
+    } catch {}
     return { open: false };
   }
 
   return {
     open: true,
-    failures: state.failures,
+    failures: failures,
     cooldown_remaining_ms: COOLDOWN_MS - elapsed,
   };
 }
@@ -46,11 +56,9 @@ export function checkCircuit(repoId: string, toolName: string): CircuitCheckResu
  */
 export function recordSuccess(repoId: string, toolName: string): void {
   const key = `${repoId}:${toolName}`;
-  const state = circuitMap.get(key);
-  if (state) {
-    state.failures = 0;
-    state.is_open = false;
-  }
+  try {
+    getDb().prepare("DELETE FROM guard_state WHERE key = ? AND type = 'circuit_breaker'").run(key);
+  } catch {}
 }
 
 /**
@@ -58,31 +66,43 @@ export function recordSuccess(repoId: string, toolName: string): void {
  */
 export function recordFailure(repoId: string, toolName: string): void {
   const key = `${repoId}:${toolName}`;
-  let state = circuitMap.get(key);
+  const db = getDb();
+  const now = Date.now();
+  
+  let record: { count: number } | undefined;
+  try {
+    record = db.prepare("SELECT count FROM guard_state WHERE key = ? AND type = 'circuit_breaker'").get(key) as any;
+  } catch {}
 
-  if (!state) {
-    state = { failures: 0, last_failed_at: 0, is_open: false };
-    circuitMap.set(key, state);
-  }
-
-  state.failures++;
-  state.last_failed_at = Date.now();
-
-  if (state.failures >= FAILURE_THRESHOLD) {
-    state.is_open = true;
-  }
+  const newFailures = record ? record.count + 1 : 1;
+  try {
+    db.prepare("INSERT OR REPLACE INTO guard_state (key, count, last_triggered_at, type) VALUES (?, ?, ?, 'circuit_breaker')").run(key, newFailures, now);
+  } catch {}
 }
 
 /**
  * Reset all circuit breaker state (for testing).
  */
 export function resetCircuitBreaker(): void {
-  circuitMap.clear();
+  try {
+    getDb().prepare("DELETE FROM guard_state WHERE type = 'circuit_breaker'").run();
+  } catch {}
 }
 
 /**
  * Get circuit state for debugging.
  */
 export function getCircuitState(repoId: string, toolName: string): CircuitState | undefined {
-  return circuitMap.get(`${repoId}:${toolName}`);
+  const key = `${repoId}:${toolName}`;
+  try {
+    const record = getDb().prepare("SELECT count, last_triggered_at FROM guard_state WHERE key = ? AND type = 'circuit_breaker'").get(key) as any;
+    if (!record) return undefined;
+    return {
+      failures: record.count,
+      last_failed_at: record.last_triggered_at,
+      is_open: record.count >= FAILURE_THRESHOLD,
+    };
+  } catch {
+    return undefined;
+  }
 }

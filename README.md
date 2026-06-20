@@ -3,11 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.6.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.6.1-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-32-blue)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-30-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-32-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-221%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-222%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -43,22 +43,21 @@ pnpm run dev -- install-mcp --ide cursor
 | Subsystem | Mục đích | Tools chính |
 |---|---|---|
 | **Instructions** | Agent biết phải làm gì | `skill_load`, `skill_list`, `skill_suggest` |
-| **State** | Bộ nhớ xuyên session | `progress_log`, `handoff_write/read` |
+| **State** | Bộ nhớ xuyên session | `progress_log`, `handoff_read` |
 | **Verification** | Bằng chứng công việc đúng | `verify_run` |
 | **Scope** | Ranh giới ngăn drift | `scope_check`, `scope_get` |
-| **Lifecycle** | Luồng session từ đầu→cuối | `session_start/resume/end/handoff` |
+| **Lifecycle** | Luồng session từ đầu→cuối | `session_start/end/handoff` |
 | **Continuous Learning & Reflection** | Pattern tái sử dụng & Tự kiểm điểm | `instinct_add/get/prune/evolve/promote`, `reflection_run` |
 | **Subagent Delegation** | Điều phối agent con chạy lệnh | `subagent_invoke` |
 
-## 32 MCP tools
+## 30 MCP tools
 
 <details>
-<summary><b>Session lifecycle (4 tools)</b></summary>
+<summary><b>Session lifecycle (3 tools)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
 | `session_start` | Bắt đầu session, trả về context + handoff + applicable skills (tier 1 only) |
-| `session_resume` | Tiếp tục session trước (alias session_start) |
 | `session_end` | Đóng session |
 | `session_handoff` | Kết thúc với handoff atomic (handoff + progress + đóng session) |
 
@@ -76,14 +75,11 @@ pnpm run dev -- install-mcp --ide cursor
 </details>
 
 <details>
-<summary><b>State files (5 tools)</b></summary>
+<summary><b>State files (2 tools)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
 | `progress_log` | Append entry vào `.harness/progress.md` |
-| `feature_list_read` | Đọc `.harness/feature_list.json` |
-| `feature_list_update` | Upsert feature entry |
-| `handoff_write` | Ghi `.harness/handoff_last.json` |
 | `handoff_read` | Đọc handoff gần nhất |
 
 </details>
@@ -122,12 +118,14 @@ pnpm run dev -- install-mcp --ide cursor
 </details>
 
 <details>
-<summary><b>Instincts (5 tools)</b></summary>
+<summary><b>Instincts (7 tools)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
 | `instinct_add` | Thêm pattern đã học (kèm confidence, TTL, type, context, resolution, review_trigger) |
 | `instinct_get` | Truy vấn theo tags, min_confidence, type, fuzzy query |
+| `instinct_reference` | Ghi nhận reference instincts được sử dụng trong session |
+| `instinct_record_outcomes` | Ghi nhận kết quả (success/failure) cho instincts |
 | `instinct_prune` | Xóa instincts low-confidence/expired (có dry_run) |
 | `instinct_evolve` | Group 5+ instincts cùng tag → suggest skill draft |
 | `instinct_promote` | Pending → permanent (xóa TTL, boost confidence) |
@@ -162,16 +160,15 @@ pnpm run dev -- install-mcp --ide cursor
 </details>
 
 <details>
-<summary><b>Observability (2 tools)</b></summary>
+<summary><b>Observability (1 tool)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
-| `audit_log` | Ghi event vào SQLite + `~/.harness/audit.jsonl` |
 | `harness_status` | Snapshot: active session, pending tasks, last verify, recent instincts |
 
 </details>
 
-## CLI Commands (19)
+## CLI Commands (21)
 
 ```bash
 harness init [path] [--stack auto|node|dotnet|python|go]   # Setup repo
@@ -193,6 +190,8 @@ harness workers [--list] [--kill <id>] [--cleanup] [--repo path] # Manage worker
 harness hooks [--list] [--validate] [--dry-run --tool <name>] # Manage hooks
 harness report [--period 7d|30d|all] [--repo path]          # Get analytics report
 harness knowledge [--type type] [--tags tags] [--list] [--add] # Manage learned knowledge
+harness proposals [--list] [--approve <id>] [--reject <id>] [--details <id>] [--apply <id>]
+harness variants [--benchmark]
 ```
 
 ## Built-in Skills (32)
@@ -277,7 +276,7 @@ Công thức: **`[Tier-1 Core] + [Stack Baseline] + [Task-Type] + [Add-ons]`**
 ```
 harness-os/
 ├── src/
-│   ├── index.ts              # MCP stdio server (32 tools, all wrapped)
+│   ├── index.ts              # MCP stdio server (30 tools, all wrapped)
 │   ├── cli/harness.ts        # CLI entry point
 │   ├── db/
 │   │   ├── client.ts         # SQLite + migrations
@@ -309,7 +308,7 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (221 tests passing)
+- **Testing:** Vitest (222 tests passing)
 
 ## Phát triển
 
@@ -317,8 +316,8 @@ harness-os/
 pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
-pnpm test             # Unit tests (221 tests)
-pnpm run smoke        # End-to-end MCP test (32 tools, 32 skills)
+pnpm test             # Unit tests (222 tests)
+pnpm run smoke        # End-to-end MCP test (30 tools, 32 skills)
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.
@@ -329,7 +328,7 @@ pnpm run smoke        # End-to-end MCP test (32 tools, 32 skills)
   - [Bắt đầu](./docs/01-getting-started.md) — Cài đặt, yêu cầu hệ thống
   - [Cấu hình IDE](./docs/02-ide-setup.md) — Setup cho 8 IDEs
   - [Workflow](./docs/04-workflow.md) — Lifecycle hàng ngày
-  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 32 MCP tools
+  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 30 MCP tools
   - [CLI Reference](./docs/06-cli-reference.md) — 21 CLI commands
   - [Skills](./docs/07-skills.md) — Hệ thống skills
   - [Instincts](./docs/08-instincts.md) — Continuous learning

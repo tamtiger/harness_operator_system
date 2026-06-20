@@ -63,3 +63,16 @@ function truncate(s: string): string {
   if (s.length <= MAX_OUTPUT) return s;
   return s.slice(0, MAX_OUTPUT) + "\n...[truncated]";
 }
+
+import { z } from "zod";
+
+export const mcpTools = [
+  {
+    name: "repo_summary_read",
+    description: "Read or auto-generate a repo summary with tree structure and stack info. Auto-reindexes if code changes detected.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+    },
+    handler: async (args: any) => repoSummaryRead({ repo_path: args.repo_path }),
+  },
+];

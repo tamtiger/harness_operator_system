@@ -1,12 +1,14 @@
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn, execSync } from "node:child_process";
+import { spawn, execSync, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { log } from "../lib/logger.js";
 import { scopeCheck } from "./scope.js";
 import { resolveToolContext } from "../lib/tool-context.js";
 import { registerWorker, updateWorkerPid, finishWorker } from "../lib/worker-registry.js";
+import { ErrorCode } from "../lib/errors.js";
+import { z } from "zod";
 
 export interface SubagentInvokeResult {
   status: "success" | "failure" | "spawned";
@@ -16,6 +18,35 @@ export interface SubagentInvokeResult {
   pid?: number;
   error?: string;
   result?: any;
+}
+
+function validateCommand(cmd: string): { valid: boolean; reason?: string } {
+  const forbiddenChars = /[;&|`$()><\n\r]/;
+  if (forbiddenChars.test(cmd)) {
+    return {
+      valid: false,
+      reason: `Command contains forbidden shell metacharacters (;&|\\\`$()>< or newlines): "${cmd}"`,
+    };
+  }
+
+  const trimmed = cmd.trim();
+  const firstWord = trimmed.split(/\s+/)[0].toLowerCase();
+  const blocklist = ["dd", "mkfs", "rmdir", "format", "wget", "curl", "rm"];
+  if (blocklist.includes(firstWord)) {
+    return {
+      valid: false,
+      reason: `Command "${firstWord}" is blocked for security reasons`,
+    };
+  }
+
+  if (trimmed.includes("curl") || trimmed.includes("wget")) {
+    return {
+      valid: false,
+      reason: `Commands containing curl/wget are blocked for security reasons`,
+    };
+  }
+
+  return { valid: true };
 }
 
 /**
@@ -34,6 +65,16 @@ export function subagentInvoke(
 ): SubagentInvokeResult {
   try {
     const resolvedRepoPath = resolve(repoPath);
+
+    // Validate commands
+    for (const cmd of commands) {
+      const valResult = validateCommand(cmd);
+      if (!valResult.valid) {
+        const err = new Error(`Command validation error: ${valResult.reason}`);
+        (err as any).code = ErrorCode.ERR_COMMAND_INJECTION;
+        throw err;
+      }
+    }
 
     // 1. Verify all context files are within scope using scopeCheck helper
     const outOfScopeFiles: string[] = [];
@@ -91,17 +132,22 @@ export function subagentInvoke(
     const thisFile = fileURLToPath(import.meta.url);
     const isTs = thisFile.endsWith(".ts");
     const workerPath = resolve(dirname(thisFile), "..", isTs ? "subagent-worker.ts" : "subagent-worker.js");
-    const runner = isTs ? "npx tsx" : "node";
+
+    const projectRoot = resolve(dirname(thisFile), "..", "..");
+    const tsxCliPath = resolve(projectRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+    const spawnCmd = process.execPath;
+    const spawnArgs = isTs ? [tsxCliPath, workerPath, runFilePath] : [workerPath, runFilePath];
 
     if (wait) {
       // Synchronous/blocking execution
       try {
-        execSync(`${runner} "${workerPath}" "${runFilePath}"`, {
+        spawnSync(spawnCmd, spawnArgs, {
           cwd: resolvedRepoPath,
           stdio: "inherit",
         });
       } catch (err) {
-        // execSync throws if the process exits with a non-zero code. We can still read the result file.
+        // spawnSync error
       }
 
       try {
@@ -124,13 +170,11 @@ export function subagentInvoke(
       }
     } else {
       // Asynchronous/detached execution
-      const spawnArgs = isTs ? ["tsx", workerPath, runFilePath] : [workerPath, runFilePath];
-      const spawnCmd = isTs ? "npx" : "node";
       const child = spawn(spawnCmd, spawnArgs, {
         cwd: resolvedRepoPath,
         detached: true,
         stdio: "ignore",
-        shell: true,
+        shell: false,
       });
 
       if (child.pid) {
@@ -154,3 +198,28 @@ export function subagentInvoke(
     };
   }
 }
+
+export const mcpTools = [
+  {
+    name: "subagent_invoke",
+    description: "Invoke a specialized subagent to execute a specific plan task. Performs scope verification on all context files.",
+    inputSchema: {
+      role: z.string().describe("The specialized role for the subagent (e.g., Coder, Tester, Reviewer)"),
+      prompt: z.string().describe("Instructions, goals, and rules for the subagent to execute"),
+      context_files: z.array(z.string()).describe("A list of files containing necessary context that the subagent needs to access"),
+      commands: z.array(z.string()).describe("Shell commands for the worker to execute sequentially"),
+      repo_path: z.string().optional().describe("Root path of the repository"),
+      timeout_seconds: z.number().optional().describe("Timeout per command in seconds (default 300)"),
+      wait: z.boolean().optional().describe("If true, block until worker completes (default false)"),
+    },
+    handler: async (args: any) => subagentInvoke(
+      args.role,
+      args.prompt,
+      args.context_files,
+      args.commands,
+      args.repo_path || ".",
+      args.timeout_seconds || 300,
+      args.wait || false
+    ),
+  },
+];

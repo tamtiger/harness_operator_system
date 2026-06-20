@@ -6,7 +6,6 @@
       "disabled": false,
       "autoApprove": [
         "session_start",
-        "session_resume",
         "skill_load",
         "skill_list",
         "instinct_get",

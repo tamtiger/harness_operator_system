@@ -152,3 +152,37 @@ export function taskList(
   const tasks = db.prepare(query).all(...params) as TaskRecord[];
   return { tasks };
 }
+
+import { z } from "zod";
+
+export const mcpTools = [
+  {
+    name: "task_create",
+    description: "Create a new task with title and optional scope.",
+    inputSchema: {
+      title: z.string().describe("Task title"),
+      scope: z.string().optional().describe("Scope description or allowed paths"),
+      session_id: z.string().optional().describe("Link task to a session"),
+      task_type: z.string().optional().describe("Task type taxonomy (e.g. 'feature', 'bugfix', 'refactor', 'test', 'docs', 'config', 'research', 'debug', 'hotfix')"),
+    },
+    handler: async (args: any) => taskCreate(args.title, args.scope, args.session_id, args.task_type),
+  },
+  {
+    name: "task_update",
+    description: "Update task status.",
+    inputSchema: {
+      task_id: z.string().describe("Task ID"),
+      status: z.enum(["pending", "in-progress", "done", "blocked"]).describe("New status"),
+    },
+    handler: async (args: any) => taskUpdate(args.task_id, args.status),
+  },
+  {
+    name: "task_list",
+    description: "List tasks, optionally filtered by repo or status.",
+    inputSchema: {
+      repo_path: z.string().optional().describe("Filter by repo path"),
+      status: z.enum(["pending", "in-progress", "done", "blocked"]).optional().describe("Filter by status"),
+    },
+    handler: async (args: any) => taskList(args.repo_path, args.status),
+  },
+];

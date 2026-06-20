@@ -31,6 +31,8 @@ harness <command> [options]
 | `hooks` | Kiểm tra và dry-run hook rules |
 | `report` | Sinh báo cáo reliability của hệ thống |
 | `knowledge` | Quản lý tri thức đã học (lessons, decisions, v.v.) |
+| `proposals` | Quản lý và duyệt proposals tối ưu hóa của AEGIS |
+| `variants` | Xem so sánh hiệu năng benchmark giữa các cấu hình variants |
 
 ---
 
@@ -76,7 +78,7 @@ harness doctor
   ✓ Node.js v20.11.0
   ✓ better-sqlite3 loadable
   ✓ /home/user/.harness writable
-  ✓ 8 skills parseable
+  ✓ all skills parseable
 
   ✅ All checks passed
 ```
@@ -496,4 +498,50 @@ harness knowledge [--type type] [--tags tags] [--list] [--add] <description>
 harness knowledge --list --type decision
 harness knowledge --list --tags "windows,podman"
 harness knowledge --add --type decision "Sử dụng pnpm thay vì npm cho dự án monorepo" --tags "npm,pnpm,monorepo"
+
+---
+
+## `harness proposals`
+
+Quản lý và duyệt các đề xuất tối ưu hóa tri thức (instincts) tự động từ AEGIS-lite.
+
+```bash
+harness proposals [--list] [--approve <id>] [--reject <id>] [--details <id>] [--apply <id>]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--list` | Liệt kê tất cả các proposals đang chờ hoặc đã duyệt (default) |
+| `--approve` | Phê duyệt và thực thi proposal (tương đương với `--apply`) |
+| `--apply` | Phê duyệt và thực thi proposal |
+| `--reject` | Từ chối proposal |
+| `--details` | Xem chi tiết lập luận (rationale), thay đổi và kết quả Regression Gate của proposal |
+
+**Ví dụ:**
+
+```bash
+harness proposals --list
+harness proposals --apply prop-1a2b3c4d
+harness proposals --details prop-1a2b3c4d
+```
+
+---
+
+## `harness variants`
+
+Xem so sánh hiệu năng hoạt động (Pass Rate, Avg Tools, Avg Retries, Avg Duration) giữa các biến thể cấu hình (variants) khác nhau dựa trên scorecards.
+
+```bash
+harness variants [--benchmark]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--benchmark` | Chạy báo cáo benchmark so sánh (default) |
+
+**Ví dụ:**
+
+```bash
+harness variants --benchmark
+```
 ```

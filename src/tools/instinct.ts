@@ -153,35 +153,8 @@ export function instinctGet(
     }
   }
 
-  // Track references and update Bayesian confidence
-  const now = new Date().toISOString();
-  if (sessionId && rows.length > 0) {
-    for (const row of rows) {
-      // Record reference in session_instinct_refs
-      db.prepare(`
-        INSERT OR REPLACE INTO session_instinct_refs (session_id, instinct_id, referenced_at)
-        VALUES (?, ?, ?)
-      `).run(sessionId, row.id, now);
-
-      // Update reference count and last_referenced_at
-      const newRefCount = row.reference_count + 1;
-      db.prepare(`
-        UPDATE instincts 
-        SET reference_count = ?, last_referenced_at = ?
-        WHERE id = ?
-      `).run(newRefCount, now, row.id);
-
-      // Calculate Bayesian confidence: (success_count + 1) / (success_count + failure_count + 2)
-      const totalOutcomes = row.success_count + row.failure_count;
-      if (totalOutcomes > 0) {
-        const bayesianConfidence = (row.success_count + 1) / (totalOutcomes + 2);
-        // Blend with existing confidence: 70% Bayesian, 30% existing
-        const blendedConfidence = 0.7 * bayesianConfidence + 0.3 * row.confidence;
-        db.prepare(`UPDATE instincts SET confidence = ? WHERE id = ?`).run(blendedConfidence, row.id);
-        row.confidence = blendedConfidence;
-      }
-    }
-  }
+  // Caching references side-effects has been moved to instinct_reference.
+  // instinct_get is now read-only.
 
   // Collect all available tags
   const allRows = db.prepare(`SELECT tags FROM instincts`).all() as Array<{ tags: string }>;
@@ -212,6 +185,59 @@ export function instinctGet(
   }));
 
   return { instincts, available_tags: Array.from(tagSet).sort() };
+}
+
+export interface InstinctReferenceResult {
+  referenced_count: number;
+}
+
+export function instinctReference(
+  sessionId: string,
+  instinctIds: string[]
+): InstinctReferenceResult {
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  if (instinctIds.length === 0) {
+    return { referenced_count: 0 };
+  }
+
+  const placeholders = instinctIds.map(() => "?").join(",");
+  const rows = db
+    .prepare(`SELECT * FROM instincts WHERE id IN (${placeholders})`)
+    .all(...instinctIds) as Array<{
+      id: string;
+      confidence: number;
+      reference_count: number;
+      success_count: number;
+      failure_count: number;
+    }>;
+
+  for (const row of rows) {
+    // Record reference in session_instinct_refs
+    db.prepare(`
+      INSERT OR REPLACE INTO session_instinct_refs (session_id, instinct_id, referenced_at)
+      VALUES (?, ?, ?)
+    `).run(sessionId, row.id, now);
+
+    // Update reference count and last_referenced_at
+    const newRefCount = row.reference_count + 1;
+    db.prepare(`
+      UPDATE instincts 
+      SET reference_count = ?, last_referenced_at = ?
+      WHERE id = ?
+    `).run(newRefCount, now, row.id);
+
+    // Calculate Bayesian confidence
+    const totalOutcomes = row.success_count + row.failure_count;
+    if (totalOutcomes > 0) {
+      const bayesianConfidence = (row.success_count + 1) / (totalOutcomes + 2);
+      const blendedConfidence = 0.7 * bayesianConfidence + 0.3 * row.confidence;
+      db.prepare(`UPDATE instincts SET confidence = ? WHERE id = ?`).run(blendedConfidence, row.id);
+    }
+  }
+
+  return { referenced_count: rows.length };
 }
 
 /**
@@ -523,3 +549,98 @@ export function instinctPromote(
     return { ok: false, id: instinctId, status: "candidate", error: gateCheck.reason, gate_check: gateCheck };
   }
 }
+
+import { z } from "zod";
+
+export const mcpTools = [
+  {
+    name: "instinct_add",
+    description: "Add a new instinct (reusable pattern learned from experience, lesson, pattern, decision, etc).",
+    inputSchema: {
+      description: z.string().describe("What the instinct captures"),
+      tags: z.array(z.string()).describe("Tags for filtering (e.g. ['node', 'testing'])"),
+      confidence: z.number().optional().describe("Initial confidence (0-1, default 0.5)"),
+      ttl_days: z.number().optional().describe("Time-to-live in days (null = permanent)"),
+      type: z.enum(["instinct", "lesson", "pattern", "anti_pattern", "decision", "experiment"]).optional().describe("Type of knowledge"),
+      context: z.string().optional().describe("JSON string context details"),
+      resolution: z.string().optional().describe("Resolution strategy or workaround"),
+      review_trigger: z.string().optional().describe("Trigger condition to re-evaluate this knowledge"),
+    },
+    handler: async (args: any) => instinctAdd(
+      args.description,
+      args.tags,
+      args.confidence,
+      args.ttl_days,
+      args.type,
+      args.context,
+      args.resolution,
+      args.review_trigger
+    ),
+  },
+  {
+    name: "instinct_get",
+    description: "Get instincts, optionally filtered by tags, type, or query. Also returns available_tags.",
+    inputSchema: {
+      tags: z.array(z.string()).optional().describe("Filter by tags (any match)"),
+      min_confidence: z.number().optional().describe("Minimum confidence threshold"),
+      session_id: z.string().optional().describe("Session ID for tracking references"),
+      type: z.array(z.enum(["instinct", "lesson", "pattern", "anti_pattern", "decision", "experiment"])).optional().describe("Filter by types"),
+      query: z.string().optional().describe("Fuzzy query string using skill-matcher tokenizer to match description + tags"),
+    },
+    handler: async (args: any) => instinctGet(
+      args.tags,
+      args.min_confidence,
+      args.session_id,
+      args.type,
+      args.query
+    ),
+  },
+  {
+    name: "instinct_reference",
+    description: "Record references for instincts used in a session (updates reference counts and Bayesian confidence).",
+    inputSchema: {
+      session_id: z.string().describe("Session ID"),
+      instinct_ids: z.array(z.string()).describe("List of instinct IDs referenced"),
+    },
+    handler: async (args: any) => instinctReference(args.session_id, args.instinct_ids),
+  },
+  {
+    name: "instinct_record_outcomes",
+    description: "Record outcomes for instincts referenced in a session (success/failure).",
+    inputSchema: {
+      session_id: z.string().describe("Session ID"),
+      outcome: z.enum(["success", "failure"]).describe("Outcome of the session"),
+      instinct_ids: z.array(z.string()).optional().describe("Specific instinct IDs to update (all session refs if omitted)"),
+    },
+    handler: async (args: any) => {
+      recordInstinctOutcomes(args.session_id, args.outcome, args.instinct_ids);
+      return { recorded: true };
+    },
+  },
+  {
+    name: "instinct_prune",
+    description: "Remove low-confidence or expired instincts. Use dry_run to preview.",
+    inputSchema: {
+      confidence_below: z.number().optional().describe("Remove instincts below this confidence (default 0.2)"),
+      expired_only: z.boolean().optional().describe("Only remove expired instincts (past TTL)"),
+      dry_run: z.boolean().optional().describe("Preview what would be removed without deleting"),
+    },
+    handler: async (args: any) => instinctPrune(args.confidence_below, args.expired_only, args.dry_run),
+  },
+  {
+    name: "instinct_evolve",
+    description: "Group instincts by tag cluster and suggest a SKILL.md draft. Needs 5+ instincts.",
+    inputSchema: {
+      tag_cluster: z.string().optional().describe("Tag to cluster instincts by"),
+    },
+    handler: async (args: any) => instinctEvolve(args.tag_cluster),
+  },
+  {
+    name: "instinct_promote",
+    description: "Promote an instinct from pending to permanent (removes TTL, boosts confidence).",
+    inputSchema: {
+      instinct_id: z.string().describe("Instinct ID to promote"),
+    },
+    handler: async (args: any) => instinctPromote(args.instinct_id),
+  },
+];

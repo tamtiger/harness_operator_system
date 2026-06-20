@@ -3,6 +3,38 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.1] — 2026-06-20
+
+### Thêm (Added)
+- **Bất đồng bộ `verify_run` (G2)**: Chuyển đổi công cụ kiểm tra `verify_run` từ chạy đồng bộ (`execSync`) sang chạy bất đồng bộ phi chặn (`exec` với wrapper Promise) giúp Event Loop của Node.js không bị treo trong khi build hoặc chạy test.
+- **Hợp nhất bộ phân tích YAML bằng Zod Schemas (G4)**: Thay thế 3 bộ phân tích cũ tự viết bằng thư viện chuẩn `js-yaml`, tích hợp kiểm tra định dạng nghiêm ngặt bằng `zod` (`verifyConfigSchema`, `scopeYamlSchema`, `hooksConfigSchema`) và tự động escape dấu backslash cho đường dẫn Windows.
+- **Lưu trữ trạng thái Loop Guard & Circuit Breaker vào SQLite (G10)**: Chuyển đổi lưu trữ tạm thời trong bộ nhớ sang bảng `guard_state` của SQLite để không bị mất dữ liệu khi khởi động lại server, có cơ chế tự động dọn dẹp TTL (1 giờ).
+- **Phân tách CQRS cho Instincts (G7)**: Tách các side-effect ghi của `instinct_get` sang công cụ chuyên biệt mới `instinct_reference`, đảm bảo `instinct_get` hoạt động thuần túy như một truy vấn chỉ đọc.
+- **Cảnh báo AEGIS & CLI Proposals (G11)**: Tích hợp tín hiệu phân tích (`stale_instinct`, `over_reliance`), đưa cảnh báo critical vào thông báo của `session_handoff`. Mở rộng CLI `harness proposals` hỗ trợ xem chi tiết (`--details <id>`) và từ chối duyệt (`--reject <id>`).
+- **Sao lưu An toàn Cơ sở dữ liệu SQLite (G5)**: Tự động sao lưu database sang `harness.sqlite.bak` mỗi giờ một lần khi gọi `session_start` và tích hợp kiểm tra toàn vẹn DB (`PRAGMA integrity_check`) vào lệnh `harness doctor`.
+- **Hỗ trợ duyệt proposals qua tương tác CLI & --apply**: Thêm tùy chọn `--apply <id>` cho CLI proposals, đồng thời bổ sung prompt tương tác (`Do you want to apply proposal? (y/n)`) khi liệt kê các đề xuất đang chờ phê duyệt.
+- **Ranh giới Cổng Kiểm thử Verify (A1/A8)**: Bắt buộc chạy `verify_run` thành công trước khi có thể thực hiện `session_handoff`. Thêm cơ chế thoát hiểm bằng tham số `bypass_verify: true` kèm lý do giải trình `bypass_rationale`.
+- **Chuẩn hóa Tham số Đầu vào (A3)**: Chuẩn hóa toàn bộ arguments thành chuỗi JSON trước khi đưa vào Loop Guard, chống bypass cơ chế chặn lặp khi agent chỉ thay đổi nhẹ khoảng cách hoặc định dạng.
+- **Tối ưu hóa Dung lượng Context (A4)**: Rút ngắn dữ liệu trả về của handoff và instincts (chỉ chứa ID và mô tả) trong `session_start` để tối ưu hóa không gian ngữ cảnh (context window).
+- **Phát hiện Xung đột Phiên làm việc Song song (A10)**: Lưu trữ và theo dõi Process ID (`pid`) cùng `machine_id` trong bảng `sessions` để phát hiện và chặn đứng xung đột khi có nhiều session chạy song song trên cùng repo.
+- **Bỏ qua Cache Kiểm tra (A11)**: Thêm flag `no_cache` flag vào `verify_run` để buộc bỏ qua cache và chạy lại toàn bộ pipeline.
+
+### Thay đổi (Changed)
+- **Modular hóa Cấu trúc CLI**: Tách tệp `src/cli/harness.ts` cồng kềnh (hơn 1.4k dòng) thành một dispatcher mỏng và phân chia logic lệnh vào các tệp nhỏ độc lập trong thư mục `src/cli/commands/`.
+- **Đăng ký Tool MCP Động**: Triển khai `src/lib/dynamic-registry.ts` tự động quét và đăng ký các tool MCP từ `src/tools/`, giảm boilerplate cấu hình thủ công trong `src/index.ts`.
+- **Bộ So khớp Kỹ năng Ngữ nghĩa (Skill Matcher)**: Tích hợp thư viện `natural` và cập nhật `src/lib/skill-matcher.ts` hỗ trợ so khớp dựa trên độ tương đồng ngữ nghĩa TF-IDF và Cosine Similarity thay vì chỉ tìm kiếm từ khóa thô sơ.
+- **Bắt buộc có Active Session (A2)**: Enforce kiểm tra trạng thái session hoạt động trong DB tại `wrapTool` trước khi cho phép chạy các tool mutation (như `task_create`, `verify_run`, `session_handoff`, v.v.).
+- **Chặn ghi file ngoài Scope qua Git Diff (A5)**: Tích hợp phân tích `git diff` trong `verify_run` và `session_handoff` để phát hiện và chặn đứng mọi sửa đổi tệp tin nằm ngoài allowed scope.
+- **Lọc và Kiểm soát Lệnh Subagent (A6)**: Thêm bộ lọc ký tự shell injection nguy hiểm và kiểm soát danh sách lệnh thực thi trong `subagent_invoke`.
+- **Kiểm tra ID Ảo (A7)**: Xác thực sự tồn tại thực tế của session ID và task ID trong SQLite trước khi thực hiện xử lý tool.
+- **Bảo mật Tiến trình Subagent (G1)**: Loại bỏ tùy chọn `shell: true` khi chạy lệnh shell trong `subagent.ts` và `subagent-worker.ts`, lọc kỹ các ký tự đặc biệt nguy hiểm.
+- **Tối ưu hóa Hiệu năng (G6)**: Cache thời gian sửa đổi (`mtimeMs`) của `hooks.yaml` trong `hooks.ts` để tránh đọc ổ đĩa liên tục khi chạy pre-tool hook.
+- **Giới hạn Lưu trữ Audit (G9)**: Đặt giới hạn tối đa `MAX_BACKUP_FILES = 10` cho các tệp nén log audit trong `audit.ts` để tránh phình to dung lượng đĩa.
+
+### Loại bỏ (Removed)
+- **Loại bỏ công cụ `session_resume`**: Xóa bỏ hoàn toàn công cụ trùng lặp `session_resume` (alias của `session_start`) khỏi toàn bộ codebase, cấu hình IDE, tài liệu hướng dẫn và smoke tests.
+- **Gỡ bỏ tool `handoff_write` & `audit_log` khỏi MCP**: Loại bỏ `handoff_write` và `audit_log` khỏi danh sách đăng ký MCP tools (giảm từ 32 xuống còn 30 tools thực tế), đồng bộ hóa toàn bộ tài liệu hướng dẫn và smoke test.
+
 ## [1.6.0] — 2026-06-19
 
 ### Added

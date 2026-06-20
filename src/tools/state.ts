@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveStateDir } from "../lib/repo.js";
+import { z } from "zod";
 
 // === progress_log ===
 
@@ -57,6 +58,7 @@ export interface HandoffData {
     passed: boolean;
     steps_run: string[];
     failed_step?: string;
+    output?: string;
   };
   duration_seconds?: number;
   suggested_skills?: string[];
@@ -109,3 +111,29 @@ export function handoffRead(
     return { handoff: null };
   }
 }
+
+export const mcpTools = [
+  {
+    name: "progress_log",
+    description: "Append a progress entry to .harness/progress.md.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+      entry: z.object({
+        task_id: z.string().optional(),
+        summary: z.string(),
+        status: z.string(),
+        evidence_ref: z.string().optional(),
+        files_changed: z.array(z.string()).optional().describe("List of files modified"),
+      }),
+    },
+    handler: async (args: any) => progressLog(args.repo_path, args.entry),
+  },
+  {
+    name: "handoff_read",
+    description: "Read the last handoff file from .harness/handoff_last.json.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+    },
+    handler: async (args: any) => handoffRead(args.repo_path),
+  },
+];

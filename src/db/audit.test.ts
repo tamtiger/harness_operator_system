@@ -130,4 +130,26 @@ describe("audit.ts", () => {
     const files3 = readdirSync(home).filter(f => f.match(/^audit\.\d{8}-\d{6}(-\d+)?\.jsonl\.gz$/));
     expect(files3.length).toBe(2);
   });
+
+  it("cleans up oldest backups if backup count exceeds MAX_BACKUP_FILES", () => {
+    const home = resolveGlobalHome();
+
+    setAuditLimit(10); // set very low to trigger backup on every write
+
+    // Write 12 times to trigger 12 backups
+    for (let i = 0; i < 12; i++) {
+      const start = Date.now();
+      while (Date.now() - start < 5) {}
+
+      appendAuditJsonl({
+        event_type: `event_${i}`,
+        payload: { text: "large text to trigger backup immediately on every single write" },
+        timestamp: "2026",
+      });
+    }
+
+    const files = readdirSync(home).filter(f => f.match(/^audit\.\d{8}-\d{6}(-\d+)?\.jsonl\.gz$/));
+    // It should have capped at MAX_BACKUP_FILES (10)
+    expect(files.length).toBe(10);
+  });
 });

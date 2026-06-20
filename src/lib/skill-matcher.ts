@@ -1,3 +1,6 @@
+import natural from "natural";
+const { TfIdf } = natural;
+
 /**
  * Skill matching engine for tiered keyword-based skill suggestions.
  * Supports tier-based filtering and keyword matching for contextual skill recommendations.
@@ -191,7 +194,7 @@ function nameScore(skillName: string, tokens: string[]): number {
 }
 
 /**
- * Match skills against task context.
+ * Match skills against task context using TF-IDF Cosine Similarity.
  * Returns ranked list of relevant skills.
  */
 export function matchSkills(
@@ -201,22 +204,44 @@ export function matchSkills(
 ): SkillMatchResult[] {
   const results: SkillMatchResult[] = [];
 
-  // Tokenize context
-  const rawTokens = [
+  const taskType = context.taskType || inferTaskType(context.taskTitle);
+  const taskDimensions = TASK_TYPE_DIMENSIONS[taskType] || [];
+
+  // Build TF-IDF model
+  const tfidf = new TfIdf();
+  
+  // Format each skill text for TF-IDF corpus
+  const skillTexts = skills.map((skill) => {
+    const rawTokens = [
+      skill.name,
+      skill.description ?? "",
+      ...(skill.metadata?.keywords ?? []),
+    ];
+    // Expand tokens with synonyms to align with vocabulary
+    const tokens = expandTokens(rawTokens.flatMap(tokenize));
+    return tokens.join(" ");
+  });
+
+  for (const doc of skillTexts) {
+    tfidf.addDocument(doc);
+  }
+
+  // Add the query text as the last document
+  const rawQueryTokens = [
     ...(context.taskTitle ? tokenize(context.taskTitle) : []),
     ...(context.taskScope ? tokenize(context.taskScope) : []),
     ...(context.stack ? tokenize(context.stack) : []),
   ];
-  
-  const tokens = expandTokens(rawTokens);
+  const queryTokens = expandTokens(rawQueryTokens);
+  const queryText = queryTokens.join(" ");
+  tfidf.addDocument(queryText);
 
-  const taskType = context.taskType || inferTaskType(context.taskTitle);
-  const taskDimensions = TASK_TYPE_DIMENSIONS[taskType] || [];
+  const queryIndex = skills.length;
 
   // Process each skill
-  for (const skill of skills) {
+  for (let i = 0; i < skills.length; i++) {
+    const skill = skills[i];
     const tier = skill.metadata?.tier ?? 2;
-    const keywords = skill.metadata?.keywords ?? [];
     const skillDimensions = skill.metadata?.dimensions || [];
     const hasOverlap = skillDimensions.some(d => taskDimensions.includes(d));
     const dimensionScore = hasOverlap ? 1.0 : 0.0;
@@ -228,35 +253,52 @@ export function matchSkills(
         tier: 1,
         score: 0,
       });
-    } else if (tier === 2) {
-      // Tier 2: include if totalScore > 0
-      const kwScore = computeScore(keywords, tokens);
-      const descScore = descriptionScore(skill.description ?? "", tokens);
-      const nmScore = nameScore(skill.name, tokens);
-      const keywordTotal = kwScore + descScore + nmScore;
-      const totalScore = (keywordTotal * 0.6) + (dimensionScore * 0.4);
-      
-      if (totalScore > 0) {
-        results.push({
-          name: skill.name,
-          tier: 2,
-          score: parseFloat(totalScore.toFixed(4)),
-        });
+    } else {
+      // Compute Cosine Similarity between skill i and query
+      const terms = new Set<string>();
+      tfidf.listTerms(i).forEach((item) => terms.add(item.term));
+      tfidf.listTerms(queryIndex).forEach((item) => terms.add(item.term));
+
+      let dotProduct = 0;
+      let normSkill = 0;
+      let normQuery = 0;
+
+      for (const term of terms) {
+        const valSkill = tfidf.tfidf(term, i);
+        const valQuery = tfidf.tfidf(term, queryIndex);
+        dotProduct += valSkill * valQuery;
+        normSkill += valSkill * valSkill;
+        normQuery += valQuery * valQuery;
       }
-    } else if (tier === 3) {
-      // Tier 3: on-demand skills — only suggest if strong keyword match
-      const kwScore = computeScore(keywords, tokens);
+
+      const semSim = (normSkill === 0 || normQuery === 0) ? 0 : dotProduct / (Math.sqrt(normSkill) * Math.sqrt(normQuery));
+      
+      // Calculate keyword total using a combination of exact keyword match and semantic similarity
+      const tokens = expandTokens(rawQueryTokens);
+      const kwScore = computeScore(skill.metadata?.keywords ?? [], tokens);
       const descScore = descriptionScore(skill.description ?? "", tokens);
       const nmScore = nameScore(skill.name, tokens);
-      const keywordTotal = kwScore + descScore + nmScore;
-      
-      if (keywordTotal >= 2.0) {
+      const keywordTotal = kwScore + descScore + nmScore + semSim * 1.5;
+
+      if (tier === 2) {
         const totalScore = (keywordTotal * 0.6) + (dimensionScore * 0.4);
-        results.push({
-          name: skill.name,
-          tier: 3,
-          score: parseFloat(totalScore.toFixed(4)),
-        });
+        if (totalScore > 0) {
+          results.push({
+            name: skill.name,
+            tier: 2,
+            score: parseFloat(totalScore.toFixed(4)),
+          });
+        }
+      } else if (tier === 3) {
+        // Tier 3: on-demand skills — only suggest if strong keyword match
+        if (keywordTotal >= 2.0) {
+          const totalScore = (keywordTotal * 0.6) + (dimensionScore * 0.4);
+          results.push({
+            name: skill.name,
+            tier: 3,
+            score: parseFloat(totalScore.toFixed(4)),
+          });
+        }
       }
     }
   }

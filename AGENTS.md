@@ -1,105 +1,8 @@
-# AGENTS.md — harness-os Development Guide
-
-Instructions for AI coding agents working on the harness-os source code.
+# harness-os — Agent Instructions
 
 ---
 
-## ⚠️ MANDATORY COMPLIANCE WORKFLOW — READ THIS FIRST OR YOUR WORK WILL BE REJECTED
-
-> [!IMPORTANT]
-> **AI AGENTS OFTEN SKIP THESE STEPS. THIS IS UNACCEPTABLE.**
-> Every development task (new features, bugs, refactoring) MUST follow this workflow.
-> The harness-os system tracks all tool executions. If you mark a task as done but skipped `verify_run` or `session_handoff`, the session is flagged as non-compliant and your code changes will be rejected or reverted.
-
-### Decision: Quick, Full, or Doc-only?
-
-| Condition | Path |
-|-----------|------|
-| Doc-only change | **Doc-only** — no `verify_run` needed |
-| Single-file code fix | **Quick** |
-| Multi-file, new feature, refactor, bug fix | **Full** |
-
-> **Rule:** If any step in the session edits code, use Full Path for the entire session.
-
-### Doc-only Path
-```
-session_start(".", { quick: true })  →  edit docs  →  session_handoff(...)
-```
-
-### Quick Path
-```
-session_start(".", { quick: true })  →  fix + verify_run(".")  →  session_handoff(...)
-```
-
-### Full Path (11 steps — follow in order)
-
-```text
-[ ] 1.  session_start(".", { variant_id: "coding-strict" })
-        ← MANDATORY FIRST. Read `suggested_skills` & `workflow_guidance` from response.
-        ← Optional variant_id: coding-strict | coding-fast | debug | refactor | research
-[ ] 2.  repo_summary_read(".")          ← understand codebase before coding
-[ ] 3.  Read last handoff from session_start response ← avoid repeating previous work
-[ ] 4.  task_create("title", { task_type: "feature|bugfix|refactor|..." })
-        ← ONE task per session. Read `suggested_skills` from response.
-        ← Create plan in ~/.harness/repos/{repo_id}/artifacts/ if task is complex.
-[ ] 5.  skill_load(...)
-        ← Load `harness-workflow` + ALL suggested skills with score >= 1.5 from steps 1 & 4.
-[ ] 6.  scope_check(".", file_path)     ← before editing EACH file
-[ ] 7.  Make changes incrementally
-        ← Load stack-specific skills if applicable (e.g., `csharp-feature`, `php-codeigniter-4-workflow`)
-[ ] 8.  progress_log(".", { summary, status: "in-progress" })
-[ ] 9.  verify_run(".")                 ← ALL steps must pass. MANDATORY before handoff.
-[ ] 10. skill_load("code-review-workflow") → self-review checklist
-[ ] 11. session_handoff(...)            ← MANDATORY LAST ACTION
-        ← Also call instinct_record_outcomes(...) to close the learning loop.
-        ← If failure patterns detected (repeated failures, low-value instincts, workflow violations):
-           call aegis_analyze(repo_path) → review signals → aegis_propose(...) if warranted.
-```
-
-### Consequences of skipping steps
-
-| Skipped | Consequence |
-|---------|-------------|
-| `session_start` | No session ID → `session_handoff` fails → **all progress lost** |
-| Suggested skills | Miss TDD/diagnosis skills → **sub-optimal execution, violations flagged** |
-| `repo_summary_read` | May edit wrong files or use wrong patterns |
-| Last handoff | Repeat work already done by previous agent |
-| `scope_check` | Risk editing forbidden paths → **harness flags violation** |
-| `progress_log` | Next session loses mid-task context |
-| `verify_run` | Task is NOT done → **handoff warning triggered, task rejected** |
-| `code-review-workflow` | Risk shipping debug code, bad formatting, missing tests |
-| `session_handoff` | All context lost → **next agent starts blind** |
-
-### Non-Dev Tasks (questions, read-only, planning)
-
-Skip all of the above. Just answer directly. Examples:
-- Trả lời câu hỏi, giải thích concept
-- Review/đọc code mà không sửa
-- Lên plan, brainstorm, thảo luận thiết kế
-- Viết docs/specs mà không cần verify
-- Tìm kiếm thông tin, research
-
----
-
-## 📋 MANDATORY SELF-COMPLIANCE CHECKLIST
-
-Append this in your final response before claiming the task is complete:
-
-```markdown
-### Agent Compliance Checklist:
-- [ ] Ran `session_start` first with correct options?
-- [ ] Created task using `task_create` with task_type (Full Path)?
-- [ ] Loaded suggested skills (score >= 1.5)?
-- [ ] Used `scope_check` before modifying any files?
-- [ ] Documented progress with `progress_log`?
-- [ ] Verification pipeline (`verify_run`) passed successfully?
-- [ ] Self-reviewed using `code-review-workflow`?
-- [ ] Ended session with `session_handoff` + `instinct_record_outcomes`?
-```
-
----
-
-## 1. Project Overview
+## Project Overview
 
 harness-os is a local MCP (Model Context Protocol) server that provides structured guardrails for AI coding agents. It ensures agents verify before claiming done, stay within scope, maintain context across sessions, and learn from patterns.
 
@@ -107,88 +10,236 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.6.0
-- **Tools:** 32 MCP tools across 11 modules
+- **Version:** 1.6.1
+- **Tools:** 30 MCP tools across 11 modules
 - **CLI:** 21 commands
-- **Tests:** 221 unit tests (vitest) + smoke test
+- **Tests:** 222 unit tests (vitest) + smoke test
 - **Skills:** 32 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, codebase search, and observability.
 
 ---
 
-## 2. Quick Setup & Commands
+# AGENT ENTRYPOINT (READ FIRST)
 
-```bash
-pnpm install          # Install dependencies
-pnpm run build        # Build (TypeScript -> dist/)
-pnpm test             # Run unit tests
-pnpm run smoke        # Run end-to-end smoke test
-pnpm run dev          # Dev mode using tsx
+> This repository is managed by harness-os.
+
+For any coding task, bug fix, refactor, feature implementation, test creation, or code modification:
+
+## Required First Action
+
+Call:
+
+```text
+session_start(".")
 ```
 
-Requirements: Node.js ≥ 20.0.0, pnpm.
+before inspecting source code, editing files, or creating plans.
+
+> [!TIP]
+> If you already have the `harness-workflow` skill content in your conversation history, you can pass `skip_workflow_content: true` to prevent context bloating:
+> `session_start(".", { skip_workflow_content: true })`
+
+Why?
+
+`session_start` provides:
+* active repository context
+* task-specific dynamic checklist
+* previous session handoff
+* task recommendations
+* suggested skills
+* repository constraints
+
+Without this information, agents frequently:
+* modify the wrong files
+* duplicate previous work
+* miss required skills
+* violate project workflows
 
 ---
 
-## 3. Architecture
+## Authoritative Sources
 
-### 3.1 Entry Point — `src/index.ts`
+When information conflicts, use this priority order:
 
-Creates `McpServer`, registers all tools with Zod schemas, connects via `StdioServerTransport`. All handlers wrapped with `makeHandler()` → `wrapTool()` (error handling + audit + loop detection). **Never writes to stdout except JSON-RPC messages.**
+1. Current user request
+2. `session_start()` response
+3. Active task metadata
+4. AGENTS.md
+5. General coding preferences
 
-### 3.2 Tool Modules — `src/tools/*.ts`
+The response from `session_start()` is considered the source of truth for workflow execution.
 
-| File | Tools | Domain |
-|------|-------|--------|
-| `session.ts` | `sessionStart`, `sessionEnd`, `sessionResume`, `sessionHandoff` | Session lifecycle |
-| `task.ts` | `taskCreate`, `taskUpdate`, `taskList` | Task CRUD |
-| `verify.ts` | `verifyRun` | Verification pipeline |
-| `skill.ts` | `skillLoad`, `skillList`, `skillCreateFromSession`, `skillSuggest` | Skill management |
-| `instinct.ts` | `instinctAdd`, `instinctGet`, `instinctPrune`, `instinctEvolve`, `instinctPromote` | Learning |
-| `state.ts` | `progressLog`, `handoffWrite`, `handoffRead` | State files |
-| `scope.ts` | `scopeGet`, `scopeCheck` | Scope enforcement |
-| `observe.ts` | `auditLog`, `harnessStatus` | Observability |
-| `repo_summary.ts` | `repoSummaryRead` | Repository summary |
-| `subagent.ts` | `subagentInvoke` | Subagent execution |
-| `code_search.ts` | `codeSearchGrep`, `codeSearchSymbols` | Codebase searching |
-| `reflection.ts` | `reflectionRun` | Session/task reflection |
-| `aegis-lite.ts` | `aegisAnalyze`, `aegisPropose` | Advisory signals & proposals |
+---
 
-### 3.3 Lib Helpers — `src/lib/`
+# Workflow Selection
 
-| File | Purpose |
-|------|---------|
-| `wrapper.ts` / `hooks.ts` | `wrapTool()` decorator: try/catch, audit, loop detection, pre-tool hooks |
-| `loop-guard.ts` / `circuit-breaker.ts` | Detect repeated calls >5×/60s; repo-scoped circuit breaker |
-| `logger.ts` / `analytics.ts` | Structured JSON stderr logger; performance metrics |
-| `runtime.ts` / `repo.ts` | Stack detection; `.harness/` directory resolver |
-| `git-diff.ts` / `evidence.ts` | Git changed files; verify evidence per task |
-| `scorecard.ts` | Record task execution metrics (verify pass, tool calls, files touched, etc.) |
-| `trace-analyzer.ts` | Detect failure patterns, loops, workflow non-compliance for AEGIS |
-| `parsers/` | Vitest JSON + generic regex test output parsers |
-| `frontmatter.ts` / `skill-matcher.ts` | YAML frontmatter parser; skill matcher with synonym + dimension scoring |
-| `tool-context.ts` / `worker-registry.ts` | Session/repo context resolver; subagent worker lifecycle |
+After `session_start()` determine which workflow applies.
 
-### 3.4 Database — `src/db/`
+| Situation                                    | Workflow  |
+| -------------------------------------------- | --------- |
+| Questions, research, reviews, planning       | Read-only |
+| Documentation only                           | Doc-only  |
+| Small code change                            | Quick     |
+| Feature, bugfix, refactor, multi-file change | Full      |
 
-- `client.ts` — Opens `~/.harness/harness.sqlite`, runs migrations, exports `getDb()` singleton (WAL + FK enabled)
-- `audit.ts` — JSONL append helper for `~/.harness/audit.jsonl`
-- Override location with `HARNESS_HOME` env var
+---
 
-Key tables: `sessions` (with `variant_id`, `current_phase`, `verify_called`), `tasks` (with `task_type`), `instincts` (4-stage lifecycle: draft→candidate→shadow→promoted), `scorecards`, `instinct_outcomes`, `proposals`, `analysis_events`.
+# Read-Only Tasks
 
-### 3.5 CLI — `src/cli/harness.ts`
+Examples: answering questions, code review, architecture review, planning, research.
 
-| Group | CLI Commands | Purpose |
-|-------|--------------|---------|
-| **Setup & Health** | `init`, `install-mcp`, `doctor` | Initialize a repo, install MCP integration, or diagnose issues |
-| **Session & Tasks** | `quick-start`, `status`, `tasks`, `verify` | Manage tasks, view session status, or execute verification |
-| **Skills & Learning** | `skills`, `instincts`, `proposals`, `variants` | Manage skills, examine instincts, or check proposals & benchmarks |
-| **Orchestration** | `orchestrate`, `workers`, `hooks` | Manage workflows, workers, and hooks |
-| **Utilities & Data** | `report`, `summary`, `tree`, `knowledge`, `reindex`, `export`, `import` | Report metrics, view code structure, search indexing, or export/import |
+No workflow required. Respond normally.
 
-See full syntax in [docs/06-cli-reference.md](docs/06-cli-reference.md).
+---
+
+# Doc-Only Workflow
+
+```text
+session_start
+→ edit documentation
+→ session_handoff
+```
+
+No verification required.
+
+---
+
+# Quick Workflow
+
+```text
+session_start
+→ make change
+→ verify_run
+→ session_handoff
+```
+
+Use for small isolated code fixes.
+
+---
+
+# Full Development Workflow
+
+```text
+1. session_start
+2. repo_summary_read
+3. review previous handoff
+4. task_create
+5. load required skills
+6. scope_check before file modifications
+7. implement changes
+8. progress_log
+9. verify_run
+10. code-review-workflow
+11. session_handoff
+12. instinct_record_outcomes
+```
+
+---
+
+# Skill Loading
+
+After `session_start()` read `suggested_skills` and `workflow_guidance` and load `harness-workflow` plus recommended skills.
+
+Examples:
+
+### Bug Fix
+* `harness-workflow`
+* `systematic-diagnosis`
+* `verification-loop`
+
+### New Feature
+* `harness-workflow`
+* `tdd-workflow`
+* (stack-specific feature skill)
+
+### Code Review
+* `harness-workflow`
+* `code-review-workflow`
+
+---
+
+# Scope Enforcement
+
+Before modifying files:
+```text
+scope_check(repo_path, file_path)
+```
+
+Purpose:
+* prevent accidental edits
+* respect repository boundaries
+* avoid touching unrelated code
+
+If scope validation fails: stop, explain why, and request clarification. Do not bypass scope restrictions.
+
+---
+
+# Verification Policy
+
+Any task that changes code must execute:
+```text
+verify_run(".")
+```
+before claiming completion.
+
+Verification is considered incomplete if build, tests, or lint fail. Never report success if verification has not been executed.
+
+> [!IMPORTANT]
+> **Verification Gate Enforcement (v1.6.1)**:
+> `session_handoff` will block if `verify_run` has not passed in the current session.
+> If verification fails due to unresolvable environment issues, you must set `bypass_verify: true` and provide a valid justification in `bypass_rationale`.
+
+### Build Commands (Node - pnpm)
+```bash
+pnpm install          # Install dependencies
+pnpm run build        # Build project
+pnpm test             # Run tests
+pnpm run smoke        # Run E2E smoke tests
+```
+
+---
+
+# Commit Policy
+
+Agents must never automatically commit, push, or merge. Instead:
+1. summarize changes
+2. list modified files
+3. propose commit message
+4. wait for approval
+
+---
+
+# Session Continuity
+
+Before ending work, execute:
+```text
+session_handoff(...)
+```
+Record completed work, remaining tasks, blockers, and recommendations so the next agent can continue efficiently.
+
+---
+
+# Practical Rule
+
+For development work remember:
+```text
+session_start
+↓
+workflow_guidance
+↓
+suggested_skills
+↓
+skill_load
+↓
+implementation
+↓
+verify_run
+↓
+session_handoff
+```
+
+This sequence is the expected harness-os execution model. Skipping steps increases the probability of incorrect repository modifications, incomplete verification, and loss of session context.
 
 ---
 
@@ -212,14 +263,13 @@ throw new Error("File not found");   // ❌ WRONG
 
 ---
 
-## 5. Adding a New Tool (6 steps)
+## 5. Adding a New Tool (5 steps)
 
-1. **Logic** — `src/tools/name.ts`: pure function, return JSON, never throw.
-2. **Register** — `src/index.ts`: `server.registerTool(...)` with Zod schema (`.describe()` on each param), wrapped in `makeHandler()`.
-3. **Unit tests** — `src/tools/name.test.ts`: at least one test for core logic.
-4. **Smoke test** — `scripts/smoke-test.ts`: add to tool check list + update expected count.
-5. **Docs** — `docs/05-tools-reference.md`: add parameters and schema.
-6. **Verify** — `pnpm run build && pnpm test && pnpm run smoke`.
+1. **Logic & Definition** — `src/tools/name.ts`: Implement the logic as a pure function (always return JSON, never throw) and export it within the `mcpTools` array of `McpToolDefinition`s, using Zod schemas with `.describe()` on each parameter. The dynamic registry automatically scans and loads them.
+2. **Unit tests** — `src/tools/name.test.ts`: Write at least one test for the tool's core logic.
+3. **Smoke test** — `scripts/smoke-test.ts`: Add the new tool name to the expected array and update the expected tool count check.
+4. **Docs** — `docs/05-tools-reference.md`: Document parameters, description, and schema.
+5. **Verify** — `pnpm run build && pnpm test && pnpm run smoke`.
 
 > Tool names: `snake_case`. Output: truncated to 8192 bytes. Always return `{ result }` or `{ error }`.
 
@@ -242,12 +292,25 @@ Formula: **`[Tier-1 Core] + [Stack Baseline] + [Task-Type] + [Add-ons]`**
 
 **Rule:** Tier-1 skills (`harness-workflow`, `karpathy-guidelines`, `strategic-compact` + stack baseline) load first. Stack-specific skills must be loaded explicitly.
 
+### Skill Matcher Engine (v1.6.1)
+
+Skills are recommended based on a hybrid scoring system using **TF-IDF Cosine Similarity**, exact/partial keyword matching, and **Dimension mapping**:
+- **Dimensions**: Safety, verification, memory, tool-usage (`safety`, `verification`, `memory`, `tool-usage`). These align with the inferred task type and contribute 40% to the total score of Tier 2/3 skills.
+- **Synonyms**: Multi-lingual (English and Vietnamese) synonyms expand task tokens to enhance matching (e.g. `test` matches `testing`, `lỗi` matches `bug`).
+
 ### Adding a New Skill
 
 - Test: `pnpm test` (vitest, colocated `*.test.ts`)
 - Smoke: `pnpm run smoke` (verifies tool + skill count matches registered)
 - Update expected skill count in `scripts/smoke-test.ts`
-- Frontmatter schema: `name`, `version`, `updated`, `applies_to`, `triggers`, `description`, `metadata.tier`, `metadata.keywords` — **do not change** (parsed by `src/lib/frontmatter.ts`)
+- **Frontmatter Schema (agentskills.io compliant)**:
+  - **Required**: `name` (alphanumeric with hyphens, matches directory name), `description` (brief summary, max 1024 chars).
+  - **Optional**: `license`, `compatibility` (max 500 chars), `allowed-tools` (string), `metadata` (YAML object).
+  - **Supported metadata fields**:
+    - `metadata.tier` (number: 1, 2, or 3)
+    - `metadata.keywords` (array of strings for matching)
+    - `metadata.dimensions` (array of strings: `safety`, `verification`, `memory`, `tool-usage`)
+  - *Note*: Backward compatibility is maintained for older v0.7 fields like `version`, `updated`, `applies_to`, `triggers`, etc.
 
 ---
 

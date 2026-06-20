@@ -12,6 +12,7 @@ vi.mock("../db/client.js", () => ({
   getDb: vi.fn(),
   registerRepo: vi.fn(),
   updateRepoLastActive: vi.fn(),
+  backupDatabase: vi.fn(),
 }));
 
 vi.mock("../lib/runtime.js", () => ({
@@ -44,6 +45,12 @@ vi.mock("./task.js", () => ({
 vi.mock("./skill.js", () => ({
   skillList: vi.fn(() => ({ skills: [] })),
   skillSuggest: vi.fn(() => ({ suggested_skills: [], total_available: 0 })),
+  skillLoad: vi.fn((name) => {
+    if (name === "harness-workflow") {
+      return { name: "harness-workflow", content: "# Harness Workflow content", meta: null };
+    }
+    return { error: "not found" };
+  }),
 }));
 
 vi.mock("./instinct.js", () => ({
@@ -62,12 +69,12 @@ describe("session start and orphan recovery", () => {
 
     const mockRun = vi.fn();
     const mockPrepare = vi.fn().mockImplementation((query) => {
-      if (query.includes("SELECT id, started_at FROM sessions")) {
+      if (query.includes("SELECT") && query.includes("sessions")) {
         return {
-          all: vi.fn().mockReturnValue([{ id: "orphan-session-123", started_at: "2026-06-01T00:00:00Z" }]),
+          all: vi.fn().mockReturnValue([{ id: "orphan-session-123", started_at: "2026-06-01T00:00:00Z", pid: null, machine_id: null }]),
         };
       }
-      return { run: mockRun };
+      return { run: mockRun, get: vi.fn().mockReturnValue(undefined) };
     });
 
     const mockDb = {
@@ -98,12 +105,12 @@ describe("session start and orphan recovery", () => {
 
     const mockRun = vi.fn();
     const mockPrepare = vi.fn().mockImplementation((query) => {
-      if (query.includes("SELECT id, started_at FROM sessions")) {
+      if (query.includes("SELECT") && query.includes("sessions")) {
         return {
           all: vi.fn().mockReturnValue([]),
         };
       }
-      return { run: mockRun };
+      return { run: mockRun, get: vi.fn().mockReturnValue(undefined) };
     });
 
     const mockDb = {
@@ -124,6 +131,7 @@ describe("session start and orphan recovery", () => {
       prepare: vi.fn().mockImplementation(() => ({
         all: vi.fn().mockReturnValue([]),
         run: vi.fn(),
+        get: vi.fn().mockReturnValue(undefined),
       })),
     };
     (getDb as any).mockReturnValue(mockDb);
@@ -140,7 +148,7 @@ describe("session start and orphan recovery", () => {
     const result = sessionStart("/mock/repo");
     expect(result.never_again).toEqual([]);
     expect(result.relevant_knowledge).toEqual([
-      { id: "inst-1", description: "test lesson", type: "lesson", tags: [] }
+      { id: "inst-1", description: "test lesson" }
     ]);
   });
 
@@ -152,6 +160,7 @@ describe("session start and orphan recovery", () => {
       prepare: vi.fn().mockImplementation(() => ({
         all: vi.fn().mockReturnValue([]),
         run: mockRun,
+        get: vi.fn().mockReturnValue(undefined),
       })),
     };
     (getDb as any).mockReturnValue(mockDb);
@@ -163,5 +172,43 @@ describe("session start and orphan recovery", () => {
       summary: "Started quick modification: My Quick Task",
       status: "in-progress",
     });
+  });
+
+  it("returns harness-workflow content and checklist by default", () => {
+    const mockConfig = { repo_id: "repo-uuid-123" };
+    (readRepoConfig as any).mockReturnValue(mockConfig);
+    const mockDb = {
+      prepare: vi.fn().mockImplementation(() => ({
+        all: vi.fn().mockReturnValue([]),
+        run: vi.fn(),
+        get: vi.fn().mockReturnValue({ id: "task-1", title: "fix compilation issue", scope: "*" }),
+      })),
+    };
+    (getDb as any).mockReturnValue(mockDb);
+
+    const result = sessionStart("/mock/repo");
+    expect(result.workflow_content).toBe("# Harness Workflow content");
+    expect(result.workflow_guidance.checklist).toBeDefined();
+    // Since task is "fix compilation issue", it should be a bugfix checklist
+    expect(result.workflow_guidance.checklist?.[0]).toContain("systematic-diagnosis");
+  });
+
+  it("skips harness-workflow content when skip_workflow_content is true", () => {
+    const mockConfig = { repo_id: "repo-uuid-123" };
+    (readRepoConfig as any).mockReturnValue(mockConfig);
+    const mockDb = {
+      prepare: vi.fn().mockImplementation(() => ({
+        all: vi.fn().mockReturnValue([]),
+        run: vi.fn(),
+        get: vi.fn().mockReturnValue(undefined),
+      })),
+    };
+    (getDb as any).mockReturnValue(mockDb);
+
+    const result = sessionStart("/mock/repo", { skip_workflow_content: true });
+    expect(result.workflow_content).toBeNull();
+    expect(result.workflow_guidance.checklist).toBeDefined();
+    // Default checklist
+    expect(result.workflow_guidance.checklist?.[0]).toContain("Verify requirements");
   });
 });

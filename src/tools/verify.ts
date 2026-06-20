@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execSync, exec } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
@@ -8,6 +8,10 @@ import { parseGenericOutput } from "../lib/parsers/generic.js";
 import { getChangedFiles } from "../lib/git-diff.js";
 import { saveEvidence } from "../lib/evidence.js";
 import { getDb } from "../db/client.js";
+import { validateVerifyYaml } from "../lib/yaml-parser.js";
+import { scopeCheck } from "./scope.js";
+import { ErrorCode } from "../lib/errors.js";
+import { z } from "zod";
 
 export const STEP_ORDER = [
   "install",
@@ -33,6 +37,7 @@ export interface VerifyOptions {
   task_id?: string;          // if provided, auto-save evidence
   force_install?: boolean;
   skip_steps?: string[];
+  no_cache?: boolean;
 }
 
 export interface VerifyResult {
@@ -91,25 +96,30 @@ function truncate(str: string, max: number): string {
   return str.slice(0, max) + "\n... [truncated to 8KB]";
 }
 
-function runCommand(
+function runCommandAsync(
   cmd: string,
   cwd: string,
   timeoutMs: number
-): { ok: boolean; output: string } {
-  try {
-    const stdout = execSync(cmd, {
-      cwd,
-      timeout: timeoutMs,
-      maxBuffer: 1024 * 1024,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return { ok: true, output: stdout };
-  } catch (err: unknown) {
-    const e = err as { stdout?: string; stderr?: string; message?: string };
-    const output = [e.stdout, e.stderr, e.message].filter(Boolean).join("\n");
-    return { ok: false, output };
-  }
+): Promise<{ ok: boolean; output: string }> {
+  return new Promise((resolve) => {
+    exec(
+      cmd,
+      {
+        cwd,
+        timeout: timeoutMs,
+        maxBuffer: 1024 * 1024,
+        encoding: "utf-8",
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          const output = [stdout, stderr, error.message].filter(Boolean).join("\n");
+          resolve({ ok: false, output });
+        } else {
+          resolve({ ok: true, output: stdout });
+        }
+      }
+    );
+  });
 }
 
 function loadVerifyConfig(repoPath: string): VerifyConfig | null {
@@ -127,63 +137,17 @@ function loadVerifyConfig(repoPath: string): VerifyConfig | null {
 }
 
 export function parseVerifyYaml(content: string): VerifyConfig {
-  const config: VerifyConfig = { commands: {}, timeouts: {}, optional: {} };
-  const lines = content.split("\n");
-  let section = "";
-
-  for (const line of lines) {
-    const trimmed = line.trimEnd();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const indent = trimmed.length - trimmed.trimStart().length;
-    const stripped = trimmed.trim();
-
-    if (indent === 0 && stripped.endsWith(":")) {
-      section = stripped.slice(0, -1);
-      continue;
-    }
-
-    if (indent === 0 && stripped.includes(":")) {
-      const [key, ...rest] = stripped.split(":");
-      const val = rest.join(":").trim().replace(/^["']|["']$/g, "");
-      if (key.trim() === "runtime") config.runtime = val;
-      continue;
-    }
-
-    if (section === "commands" && stripped.includes(":")) {
-      const [key, ...rest] = stripped.split(":");
-      const val = rest.join(":").trim();
-      const cleanVal = val.replace(/^["']|["']$/g, "");
-      const cmdKey = key.trim() as keyof NonNullable<VerifyConfig["commands"]>;
-      if (val === "null" || val === "~" || val === "") {
-        config.commands![cmdKey] = null;
-      } else {
-        config.commands![cmdKey] = cleanVal;
-      }
-      continue;
-    }
-
-    if (section === "timeouts" && stripped.includes(":")) {
-      const [key, ...rest] = stripped.split(":");
-      const val = rest.join(":").trim();
-      const num = parseInt(val, 10);
-      if (!isNaN(num)) {
-        const timeoutKey = key.trim() as keyof NonNullable<VerifyConfig["timeouts"]>;
-        config.timeouts![timeoutKey] = num * 1000; // seconds → ms
-      }
-      continue;
-    }
-
-    if (section === "optional" && stripped.includes(":")) {
-      const [key, ...rest] = stripped.split(":");
-      const val = rest.join(":").trim().replace(/^["']|["']$/g, "");
-      const optKey = key.trim() as keyof NonNullable<VerifyConfig["optional"]>;
-      config.optional![optKey] = val === "true";
-      continue;
-    }
+  try {
+    const parsed = validateVerifyYaml(content);
+    return {
+      runtime: parsed.runtime,
+      commands: parsed.commands || {},
+      timeouts: parsed.timeouts || {},
+      optional: parsed.optional || {},
+    };
+  } catch {
+    return { commands: {}, timeouts: {}, optional: {} };
   }
-
-  return config;
 }
 
 export function filterLintableFiles(files: string[], runtimeName: string): string[] {
@@ -264,22 +228,54 @@ function checkDepsDirExists(repoPath: string, runtime: string): boolean {
   return true;
 }
 
-export function verifyRun(
+export async function verifyRun(
   repoPath: string,
   options: VerifyOptions = {}
-): VerifyResult {
-  const { steps, fail_fast = true, changed_only = false, task_id, force_install = false, skip_steps = [] } = options;
+): Promise<VerifyResult> {
+  const { steps, fail_fast = true, changed_only = false, task_id, force_install = false, skip_steps = [], no_cache = false } = options;
   const absPath = resolve(repoPath);
   const verifyConfig = loadVerifyConfig(absPath);
   const runtime = detectRuntime(absPath);
   const skipStepsSet = new Set(skip_steps);
 
-  // Check cache
+  // A5: Chặn ghi file ngoài scope bằng cách phân tích git diff trước khi chạy verify
+  let taskId = task_id;
+  if (!taskId) {
+    try {
+      const db = getDb();
+      const activeSession = db.prepare("SELECT id FROM sessions WHERE repo_path = ? AND status = 'active'").get(absPath) as { id: string } | undefined;
+      if (activeSession) {
+        const activeTask = db.prepare("SELECT id FROM tasks WHERE session_id = ? AND status = 'in-progress'").get(activeSession.id) as { id: string } | undefined;
+        if (activeTask) {
+          taskId = activeTask.id;
+        }
+      }
+    } catch {}
+  }
+
+  const changedFilesList = getChangedFiles(absPath);
+  if (changedFilesList.length > 0) {
+    const outOfScopeFiles: string[] = [];
+    for (const file of changedFilesList) {
+      const check = scopeCheck(absPath, taskId, file);
+      if (!check.in_scope) {
+        outOfScopeFiles.push(`${file} (${check.reason})`);
+      }
+    }
+
+    if (outOfScopeFiles.length > 0) {
+      const err = new Error(`ERR_OUT_OF_SCOPE: Cannot verify because modified files are out of scope: \n${outOfScopeFiles.join("\n")}`);
+      (err as any).code = ErrorCode.ERR_OUT_OF_SCOPE;
+      throw err;
+    }
+  }
+
+  // Check cache (skip if no_cache is true)
   const repoStateHash = getRepoStateHash(absPath);
   const cacheFile = join(absPath, ".harness", "verify_cache.json");
   const optionsHash = createHash("sha256").update(JSON.stringify(options)).digest("hex");
 
-  if (repoStateHash) {
+  if (!no_cache && repoStateHash) {
     try {
       if (existsSync(cacheFile)) {
         const cacheContent = readFileSync(cacheFile, "utf-8");
@@ -412,7 +408,7 @@ export function verifyRun(
       outputs.push(`=== ${step.name} (SKIP — cached) ===\n${output}`);
     } else {
       const startTime = Date.now();
-      const runRes = runCommand(step.cmd, absPath, step.timeout);
+      const runRes = await runCommandAsync(step.cmd, absPath, step.timeout);
       duration_ms = Date.now() - startTime;
       ok = runRes.ok;
       output = runRes.output;
@@ -438,7 +434,12 @@ export function verifyRun(
         duration_ms,
       };
       stepResults.push(stepResult);
-      outputs.push(`=== ${step.name} (${ok ? "PASS" : "FAIL"}${isOptional ? " [OPTIONAL]" : ""}) ===\n${output}`);
+
+      if (ok) {
+        outputs.push(`=== ${step.name} (PASS) ===`);
+      } else {
+        outputs.push(`=== ${step.name} (FAIL${isOptional ? " [OPTIONAL]" : ""}) ===\n${output}`);
+      }
     }
 
     // Parse test output if this is the test step
@@ -471,24 +472,42 @@ export function verifyRun(
 
   let workflow_guidance: { current_phase: string; next_action: string } | undefined;
 
-  if (task_id) {
-    try {
-      const db = getDb();
+  // Auto-set current_phase and verify_passed in the session
+  try {
+    const db = getDb();
+    let sessionId: string | null = null;
+    if (task_id) {
       const row = db.prepare("SELECT session_id FROM tasks WHERE id = ?").get(task_id) as { session_id: string | null } | undefined;
       if (row && row.session_id) {
-        db.prepare("UPDATE sessions SET current_phase = 'VERIFY', verify_called = 1 WHERE id = ?")
-          .run(row.session_id);
-        
-        workflow_guidance = {
-          current_phase: "VERIFY",
-          next_action: allPassed
-            ? "All checks passed. Proceed to session_handoff() to save progress"
-            : "Verification failed. Fix issues and run verify_run() again",
-        };
+        sessionId = row.session_id;
       }
-    } catch {
-      // ignore db errors in case verify_run is run standalone without tables
     }
+    if (!sessionId) {
+      const sessionRow = db.prepare("SELECT id FROM sessions WHERE repo_path = ? AND status = 'active'").get(absPath) as { id: string } | undefined;
+      if (sessionRow) {
+        sessionId = sessionRow.id;
+      }
+    }
+
+    if (sessionId) {
+      const verifyPassedVal = allPassed ? 1 : 0;
+      db.prepare(`
+        UPDATE sessions 
+        SET current_phase = 'VERIFY', 
+            verify_called = 1, 
+            verify_passed = CASE WHEN ? = 1 THEN 1 ELSE verify_passed END 
+        WHERE id = ?
+      `).run(verifyPassedVal, sessionId);
+      
+      workflow_guidance = {
+        current_phase: "VERIFY",
+        next_action: allPassed
+          ? "All checks passed. Proceed to session_handoff() to save progress"
+          : "Verification failed. Fix issues and run verify_run() again",
+      };
+    }
+  } catch {
+    // ignore db errors in case verify_run is run standalone without tables
   }
 
   const result: VerifyResult = {
@@ -497,15 +516,12 @@ export function verifyRun(
     steps_run: stepsRan,
     step_results: stepResults,
     test_results: testResults,
+    changed_files: changedFilesList,
     ...(workflow_guidance ? { workflow_guidance } : {}),
   };
 
   if (evidencePath) {
     result.evidence_path = evidencePath;
-  }
-
-  if (changed_only && changedFiles !== undefined) {
-    result.changed_files = changedFiles;
   }
 
   // Save cache
@@ -522,3 +538,21 @@ export function verifyRun(
 
   return result;
 }
+
+export const mcpTools = [
+  {
+    name: "verify_run",
+    description: "Run verification pipeline for a repo (install, build, test, lint).",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo to verify"),
+      steps: z.array(z.string()).optional().describe("Explicit commands to run (overrides auto-detect)"),
+      fail_fast: z.boolean().optional().describe("Stop on first failure (default true)"),
+      changed_only: z.boolean().optional().describe("Lint only changed files (default false)"),
+      task_id: z.string().optional().describe("If provided, auto-save evidence for this task"),
+      force_install: z.boolean().optional().describe("If true, bypass lockfile cache and force dependency installation (default false)"),
+      skip_steps: z.array(z.string()).optional().describe("List of verification steps to skip"),
+      no_cache: z.boolean().optional().describe("Bypass cache and force verify run"),
+    },
+    handler: async (args: any) => verifyRun(args.repo_path, args),
+  },
+];

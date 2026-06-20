@@ -67,16 +67,17 @@ export async function runOrchestrate(
     let verifyResult;
     try {
       verifyResult = await awaitWithTimeout(
-        async () => verifyRun(repoPath, { steps: options.steps, task_id: taskId }),
+        async () => await verifyRun(repoPath, { steps: options.steps, task_id: taskId }),
         timeoutPerLoop,
         `Verification timeout after ${timeoutPerLoop / 1000}s`
       );
     } catch (timeoutError) {
       log("error", `Loop iteration ${loops} TIMEOUT: ${timeoutError}`);
       taskUpdate(taskId, "blocked");
-      sessionHandoff(session.session_id, `Orchestrator timeout for task "${taskTitle}" after ${loops} loops`, 
+      await sessionHandoff(session.session_id, `Orchestrator timeout for task "${taskTitle}" after ${loops} loops`, 
         [`Timeout after ${timeoutPerLoop / 1000}s`], 
-        ["Check for infinite loops or resource constraints"]
+        ["Check for infinite loops or resource constraints"],
+        undefined, undefined, true, "Orchestration timeout"
       );
       return {
         success: false,
@@ -93,9 +94,10 @@ export async function runOrchestrate(
       if (outputStr.includes(pattern.toLowerCase())) {
         log("error", `Fail-fast pattern matched: "${pattern}" in output`);
         taskUpdate(taskId, "blocked");
-        sessionHandoff(session.session_id, `Orchestrator fail-fast for task "${taskTitle}"`, 
+        await sessionHandoff(session.session_id, `Orchestrator fail-fast for task "${taskTitle}"`, 
           [`Fail-fast pattern matched: ${pattern}`], 
-          ["Investigate infrastructure or dependency issue"]
+          ["Investigate infrastructure or dependency issue"],
+          undefined, undefined, true, "Orchestrator fail-fast"
         );
         return {
           success: false,
@@ -117,7 +119,7 @@ export async function runOrchestrate(
       writeFileSync(doneFile, `Task "${taskTitle}" completed successfully after ${loops} loops.\nTimestamp: ${new Date().toISOString()}`, "utf-8");
       
       // Hand off and end session successfully
-      sessionHandoff(session.session_id, `Completed task "${taskTitle}" via orchestrator Ralph Loop`, [], [], {
+      await sessionHandoff(session.session_id, `Completed task "${taskTitle}" via orchestrator Ralph Loop`, [], [], {
         passed: true,
         steps_run: verifyResult.steps_run
       });
@@ -140,9 +142,10 @@ export async function runOrchestrate(
 
   // If we reach here, we hit max loops without passing verification
   taskUpdate(taskId, "blocked");
-  sessionHandoff(session.session_id, `Orchestrator failed to complete task "${taskTitle}" after ${loops} loops`, 
+  await sessionHandoff(session.session_id, `Orchestrator failed to complete task "${taskTitle}" after ${loops} loops`, 
     [lastError], 
-    ["Investigate verification failure logs"]
+    ["Investigate verification failure logs"],
+    undefined, undefined, true, "Orchestrator reached max loops without passing verification"
   );
 
   return {

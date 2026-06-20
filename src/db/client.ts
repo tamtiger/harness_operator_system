@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { mkdirSync, existsSync } from "node:fs";
+import { mkdirSync, existsSync, copyFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { RepoConfig } from "../lib/repo-identity.js";
@@ -160,6 +160,13 @@ function runMigrations(db: Database.Database): void {
       status TEXT NOT NULL DEFAULT 'pending_review',
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS guard_state (
+      key TEXT PRIMARY KEY,
+      count INTEGER NOT NULL,
+      last_triggered_at INTEGER NOT NULL,
+      type TEXT NOT NULL
+    );
   `);
 
   // Idempotent column migrations for instincts table
@@ -196,6 +203,15 @@ function runMigrations(db: Database.Database): void {
   if (!sessionColNames.includes("variant_id")) {
     db.exec("ALTER TABLE sessions ADD COLUMN variant_id TEXT DEFAULT 'default'");
   }
+  if (!sessionColNames.includes("pid")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN pid INTEGER");
+  }
+  if (!sessionColNames.includes("machine_id")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN machine_id TEXT");
+  }
+  if (!sessionColNames.includes("verify_passed")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN verify_passed INTEGER DEFAULT 0");
+  }
 
   // Idempotent column migrations for tasks table
   const taskCols = db.prepare("PRAGMA table_info(tasks)").all() as Array<{ name: string }>;
@@ -203,6 +219,20 @@ function runMigrations(db: Database.Database): void {
 
   if (!taskColNames.includes("task_type")) {
     db.exec("ALTER TABLE tasks ADD COLUMN task_type TEXT DEFAULT 'unknown'");
+  }
+
+  // Idempotent column migrations for analysis_events table
+  const aeCols = db.prepare("PRAGMA table_info(analysis_events)").all() as Array<{ name: string }>;
+  const aeColNames = aeCols.map(c => c.name);
+  if (!aeColNames.includes("severity")) {
+    db.exec("ALTER TABLE analysis_events ADD COLUMN severity TEXT DEFAULT 'info'");
+  }
+
+  // Idempotent column migrations for proposals table
+  const propCols = db.prepare("PRAGMA table_info(proposals)").all() as Array<{ name: string }>;
+  const propColNames = propCols.map(c => c.name);
+  if (!propColNames.includes("evidence_summary")) {
+    db.exec("ALTER TABLE proposals ADD COLUMN evidence_summary TEXT");
   }
 }
 
@@ -214,6 +244,14 @@ export function getDb(): Database.Database {
   _db.pragma("journal_mode = WAL");
   _db.pragma("foreign_keys = ON");
   runMigrations(_db);
+
+  // TTL cleanup: delete entries older than 1 hour
+  try {
+    const oneHourAgo = Date.now() - 3600 * 1000;
+    _db.prepare("DELETE FROM guard_state WHERE last_triggered_at < ?").run(oneHourAgo);
+  } catch (err) {
+    // Ignore error
+  }
 
   // Auto-close on process exit
   process.once("exit", () => {
@@ -267,4 +305,51 @@ export function updateRepoLastActive(repoId: string): void {
     new Date().toISOString(),
     repoId,
   );
+}
+
+export function backupDatabase(): void {
+  try {
+    const dbPath = DB_PATH;
+    const backupPath = `${dbPath}.bak`;
+
+    if (existsSync(backupPath)) {
+      const stats = statSync(backupPath);
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      if (stats.mtimeMs > oneHourAgo) {
+        return;
+      }
+    }
+
+    copyFileSync(dbPath, backupPath);
+  } catch (err) {
+    // Ignore backup errors
+  }
+}
+
+export function checkDatabaseIntegrity(): { passed: boolean; errors: string[] } {
+  const db = getDb();
+  const errors: string[] = [];
+  try {
+    const integrity = db.prepare("PRAGMA integrity_check").all() as Array<any>;
+    const quick = db.prepare("PRAGMA quick_check").all() as Array<any>;
+
+    const extractErrors = (rows: any[]) => {
+      for (const row of rows) {
+        const val = Object.values(row)[0] as string;
+        if (val.toLowerCase() !== "ok") {
+          errors.push(val);
+        }
+      }
+    };
+
+    extractErrors(integrity);
+    extractErrors(quick);
+  } catch (err: any) {
+    errors.push(`Integrity check query failed: ${err.message}`);
+  }
+
+  return {
+    passed: errors.length === 0,
+    errors,
+  };
 }

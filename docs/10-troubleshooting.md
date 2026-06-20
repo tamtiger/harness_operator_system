@@ -221,12 +221,6 @@ harness instincts --export > instincts.json
 
 ---
 
-### Q: `session_start` vs `session_resume` khác gì?
-
-**A:** Cùng logic, khác semantics. `session_resume` signal cho agent rằng đây là continuation (nên đọc handoff kỹ hơn). Cả hai đều tạo session mới trong DB.
-
----
-
 ### Q: Làm sao biết agent đang dùng harness đúng cách?
 
 **A:** Kiểm tra:

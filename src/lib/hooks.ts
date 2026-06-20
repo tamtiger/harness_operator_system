@@ -1,7 +1,9 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { verifyRun } from "../tools/verify.js";
 import { log } from "./logger.js";
+
+import { validateHooksYaml } from "./yaml-parser.js";
 
 export interface HookBlockRule {
   tool: string;
@@ -18,83 +20,44 @@ export interface HooksConfig {
 }
 
 /**
- * Super simple YAML parser to parse .harness/hooks.yaml without adding external dependencies.
+ * Parses hooks.yaml using the consolidated yaml parser.
  */
 export function parseHooksYaml(content: string): HooksConfig {
-  const config: HooksConfig = { pre_tool_block: [] };
-  const lines = content.split("\n");
-  let currentSection = "";
-  let currentBlockItem: HookBlockRule | null = null;
-
-  for (const line of lines) {
-    const trimmed = line.trimEnd();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const indent = trimmed.length - trimmed.trimStart().length;
-    const stripped = trimmed.trim();
-
-    if (indent === 0 && stripped.endsWith(":")) {
-      currentSection = stripped.slice(0, -1);
-      if (currentSection === "stop_validation") {
-        config.stop_validation = { required_steps: [] };
-      }
-      continue;
-    }
-
-    if (currentSection === "pre_tool_block") {
-      if (stripped.startsWith("-")) {
-        if (currentBlockItem) {
-          config.pre_tool_block!.push(currentBlockItem);
-        }
-        currentBlockItem = { tool: "" };
-        const contentAfterDash = stripped.slice(1).trim();
-        if (contentAfterDash.includes(":")) {
-          const [key, ...rest] = contentAfterDash.split(":");
-          const val = rest.join(":").trim().replace(/^["']|["']$/g, "");
-          const cleanKey = key.trim();
-          if (cleanKey === "tool") currentBlockItem.tool = val;
-          if (cleanKey === "pattern") currentBlockItem.pattern = val;
-          if (cleanKey === "message") currentBlockItem.message = val;
-        }
-      } else if (stripped.includes(":") && currentBlockItem) {
-        const [key, ...rest] = stripped.split(":");
-        const val = rest.join(":").trim().replace(/^["']|["']$/g, "");
-        const cleanKey = key.trim();
-        if (cleanKey === "tool") currentBlockItem.tool = val;
-        if (cleanKey === "pattern") currentBlockItem.pattern = val;
-        if (cleanKey === "message") currentBlockItem.message = val;
-      }
-    }
-
-    if (currentSection === "stop_validation" && config.stop_validation) {
-      if (stripped.startsWith("required_steps:")) {
-        // inline list like [test, lint]
-        const val = stripped.split("required_steps:")[1].trim().replace(/^\[|\]$/g, "");
-        config.stop_validation.required_steps = val ? val.split(",").map(s => s.trim()) : [];
-      } else if (stripped.startsWith("fail_on_warning:")) {
-        const val = stripped.split("fail_on_warning:")[1].trim();
-        config.stop_validation.fail_on_warning = val === "true";
-      }
-    }
+  try {
+    const parsed = validateHooksYaml(content);
+    return {
+      pre_tool_block: parsed.pre_tool_block || [],
+      stop_validation: parsed.stop_validation || { required_steps: [] },
+    };
+  } catch (err: any) {
+    // Return empty configuration on failure to match legacy parser behavior
+    return { pre_tool_block: [] };
   }
-
-  if (currentBlockItem) {
-    config.pre_tool_block!.push(currentBlockItem);
-  }
-
-  return config;
 }
+
+const cachedHooks = new Map<string, { config: HooksConfig | null; mtimeMs: number }>();
 
 /**
  * Load hooks configuration from .harness/hooks.yaml
  */
 export function loadHooksConfig(repoPath: string): HooksConfig | null {
   const configFile = join(resolve(repoPath), ".harness", "hooks.yaml");
-  if (!existsSync(configFile)) return null;
+  if (!existsSync(configFile)) {
+    cachedHooks.delete(configFile);
+    return null;
+  }
 
   try {
+    const stats = statSync(configFile);
+    const cached = cachedHooks.get(configFile);
+    if (cached && cached.mtimeMs === stats.mtimeMs) {
+      return cached.config;
+    }
+
     const content = readFileSync(configFile, "utf-8");
-    return parseHooksYaml(content);
+    const config = parseHooksYaml(content);
+    cachedHooks.set(configFile, { config, mtimeMs: stats.mtimeMs });
+    return config;
   } catch (err: any) {
     log("error", `Failed to read hooks configuration: ${err.message}`);
     return null;
@@ -140,10 +103,10 @@ export function checkPreToolHooks(
 /**
  * Execute stop validation check, confirming that required verify steps pass before closing session.
  */
-export function checkStopValidation(
+export async function checkStopValidation(
   repoPath: string,
   lastVerifyStatus?: { passed: boolean; steps_run: string[]; failed_step?: string; output?: string }
-): { passed: boolean; error?: string } {
+): Promise<{ passed: boolean; error?: string }> {
   const config = loadHooksConfig(repoPath);
   if (!config || !config.stop_validation) return { passed: true };
 
@@ -155,7 +118,7 @@ export function checkStopValidation(
   if (!verify) {
     log("info", "No recent verify status found. Running automatic verify for validation.");
     try {
-      const res = verifyRun(repoPath);
+      const res = await verifyRun(repoPath);
       verify = {
         passed: res.passed,
         steps_run: res.steps_run,
@@ -256,11 +219,11 @@ export interface HookDryRunResult {
 /**
  * Perform dry-run evaluation of hooks for a given tool call.
  */
-export function dryRunHooks(
+export async function dryRunHooks(
   repoPath: string,
   toolName: string,
   args: Record<string, unknown>
-): HookDryRunResult {
+): Promise<HookDryRunResult> {
   const result: HookDryRunResult = {
     allowed: true,
     preToolBlock: { matched: false },
@@ -300,7 +263,7 @@ export function dryRunHooks(
 
   // Evaluate stop validation if the tool is session_end or session_handoff
   if (toolName === "session_end" || toolName === "session_handoff") {
-    const stopVal = checkStopValidation(repoPath);
+    const stopVal = await checkStopValidation(repoPath);
     if (!stopVal.passed) {
       result.allowed = false;
       result.stopValidation = {

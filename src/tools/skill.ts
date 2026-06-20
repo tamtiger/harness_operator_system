@@ -7,6 +7,8 @@ import { log } from "../lib/logger.js";
 import { matchSkills, type SkillWithMetadata, type MatchContext } from "../lib/skill-matcher.js";
 import { auditLog } from "./observe.js";
 import { resolveToolContext } from "../lib/tool-context.js";
+import { getDb } from "../db/client.js";
+import { detectRuntime } from "../lib/runtime.js";
 
 export interface SkillLoadResult {
   name: string;
@@ -336,4 +338,54 @@ based on what worked and what didn't in the session.
 
   return { draft, event_count: events.length };
 }
+
+import { z } from "zod";
+
+export const mcpTools = [
+  {
+    name: "skill_load",
+    description: "Load a skill by name. Returns skill content and metadata.",
+    inputSchema: {
+      name: z.string().describe("Skill name (e.g. 'karpathy-guidelines')"),
+      repo_path: z.string().optional().describe("Repo path for repo-specific skill lookup"),
+    },
+    handler: async (args: any) => skillLoad(args.name, args.repo_path),
+  },
+  {
+    name: "skill_list",
+    description: "List all available skills with metadata. Optionally filter by stack.",
+    inputSchema: {
+      stack_filter: z.string().optional().describe("Filter by stack (e.g. 'node', 'dotnet')"),
+      repo_path: z.string().optional().describe("Include repo-specific skills"),
+    },
+    handler: async (args: any) => skillList(args.stack_filter, args.repo_path),
+  },
+  {
+    name: "skill_create_from_session",
+    description: "Generate a SKILL.md draft from a session's audit log. Returns draft only (does NOT auto-save).",
+    inputSchema: {
+      session_id: z.string().describe("Session ID to extract patterns from"),
+      theme: z.string().describe("Theme/name for the skill (e.g. 'refactoring-workflow')"),
+    },
+    handler: async (args: any) => skillCreateFromSession(args.session_id, args.theme, getDb(), detectRuntime),
+  },
+  {
+    name: "skill_suggest",
+    description: "Suggest relevant skills for a task based on title and context.",
+    inputSchema: {
+      task_title: z.string().optional().describe("Task title to match against"),
+      task_scope: z.string().optional().describe("Task scope for additional context"),
+      stack: z.string().optional().describe("Stack filter (node, dotnet, etc.)"),
+      max_results: z.number().optional().describe("Max skills to return (default 8)"),
+      repo_path: z.string().optional().describe("Repo path for repo-specific skills"),
+    },
+    handler: async (args: any) => skillSuggest(
+      args.task_title,
+      args.task_scope,
+      args.stack,
+      args.max_results,
+      args.repo_path
+    ),
+  },
+];
 

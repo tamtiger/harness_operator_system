@@ -1,9 +1,10 @@
-import { appendFileSync, existsSync, statSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { appendFileSync, existsSync, statSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs";
+import { join, dirname } from "node:path";
 import { gzipSync } from "node:zlib";
 import { resolveGlobalHome } from "../lib/repo.js";
 
 export let AUDIT_LIMIT = 10 * 1024 * 1024; // 10MB
+export const MAX_BACKUP_FILES = 10;
 
 export function setAuditLimit(limit: number) {
   AUDIT_LIMIT = limit;
@@ -36,6 +37,28 @@ function rotateAuditFile(filePath: string): void {
 
     writeFileSync(backupPath, compressed);
     writeFileSync(filePath, ""); // Clear original file
+
+    // Clean up oldest backups if exceeding MAX_BACKUP_FILES
+    try {
+      const dir = dirname(filePath);
+      const files = readdirSync(dir);
+      const gzFiles = files
+        .filter(f => f.startsWith("audit.") && f.endsWith(".jsonl.gz"))
+        .map(f => ({ name: f, path: join(dir, f), stat: statSync(join(dir, f)) }));
+      
+      gzFiles.sort((a, b) => a.stat.mtimeMs - b.stat.mtimeMs);
+
+      if (gzFiles.length > MAX_BACKUP_FILES) {
+        const toDeleteCount = gzFiles.length - MAX_BACKUP_FILES;
+        for (let i = 0; i < toDeleteCount; i++) {
+          try {
+            unlinkSync(gzFiles[i].path);
+          } catch {}
+        }
+      }
+    } catch (err) {
+      process.stderr.write(`[Audit Cleanup Error] ${err}\n`);
+    }
   } catch (err) {
     process.stderr.write(`[Audit Rotation Error] ${err}\n`);
   }

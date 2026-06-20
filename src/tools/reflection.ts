@@ -118,3 +118,18 @@ export function reflectionRun(
     suggested_topics: suggestedTopics
   };
 }
+
+import { z } from "zod";
+
+export const mcpTools = [
+  {
+    name: "reflection_run",
+    description: "Retrieve raw tool execution statistics, error frequencies, and patterns from a completed task or session for reflection.",
+    inputSchema: {
+      session_id: z.string().describe("Session ID to analyze"),
+      task_id: z.string().optional().describe("Specific task ID to analyze"),
+      trigger: z.enum(["task_complete", "task_failed", "session_handoff"]).describe("Trigger condition for this reflection"),
+    },
+    handler: async (args: any) => reflectionRun(args.session_id, args.task_id, args.trigger),
+  },
+];

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import picomatch from "picomatch";
 import { resolveHarnessDir } from "../lib/repo.js";
+import { validateScopeYaml } from "../lib/yaml-parser.js";
 
 let cachedScope: { config: ScopeYaml, mtimeMs: number } | null = null;
 const matcherCache = new Map<string, (str: string) => boolean>();
@@ -35,71 +36,11 @@ interface ScopeYaml {
 }
 
 function parseScopeYaml(content: string): ScopeYaml {
-  // Simple YAML parser for scope.yaml structure
-  const result: ScopeYaml = {};
-  const lines = content.split("\n");
-  let currentKey = "";
-  let currentTask = "";
-  let currentSubKey = "";
-
-  for (const line of lines) {
-    const trimmed = line.trimEnd();
-
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    // Top-level key
-    if (!trimmed.startsWith(" ") && !trimmed.startsWith("\t") && trimmed.endsWith(":")) {
-      currentKey = trimmed.slice(0, -1).trim();
-      currentTask = "";
-      currentSubKey = "";
-      if (currentKey === "forbidden_paths") {
-        result.forbidden_paths = [];
-      } else if (currentKey === "allowed_per_task") {
-        result.allowed_per_task = {};
-      }
-      continue;
-    }
-
-    // Second-level (task ID under allowed_per_task)
-    const indent = trimmed.length - trimmed.trimStart().length;
-    const stripped = trimmed.trim();
-
-    if (currentKey === "forbidden_paths" && stripped.startsWith("- ")) {
-      const val = stripped.slice(2).trim().replace(/^["']|["']$/g, "");
-      result.forbidden_paths!.push(val);
-      continue;
-    }
-
-    if (currentKey === "allowed_per_task") {
-      if (indent <= 4 && stripped.endsWith(":") && !stripped.startsWith("- ")) {
-        currentTask = stripped.slice(0, -1).trim();
-        result.allowed_per_task![currentTask] = { paths: [], definition_of_done: [] };
-        currentSubKey = "";
-        continue;
-      }
-
-      if (currentTask && stripped.endsWith(":") && !stripped.startsWith("- ")) {
-        currentSubKey = stripped.slice(0, -1).trim();
-        continue;
-      }
-
-      if (currentTask && stripped.startsWith("- ")) {
-        const val = stripped.slice(2).trim().replace(/^["']|["']$/g, "");
-        const taskEntry = result.allowed_per_task![currentTask];
-        if (typeof taskEntry === "object" && !Array.isArray(taskEntry)) {
-          if (currentSubKey === "definition_of_done") {
-            taskEntry.definition_of_done!.push(val);
-          } else {
-            // Default to paths
-            taskEntry.paths!.push(val);
-          }
-        }
-        continue;
-      }
-    }
+  try {
+    return validateScopeYaml(content);
+  } catch (err: any) {
+    return {};
   }
-
-  return result;
 }
 
 function loadScopeConfig(repoPath: string): ScopeYaml | null {
@@ -205,3 +146,27 @@ export function scopeCheck(
     reason: `File does not match any allowed pattern for task ${taskId}`,
   };
 }
+
+import { z } from "zod";
+
+export const mcpTools = [
+  {
+    name: "scope_get",
+    description: "Get scope configuration for a task.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+      task_id: z.string().optional().describe("Task ID"),
+    },
+    handler: async (args: any) => scopeGet(args.repo_path, args.task_id),
+  },
+  {
+    name: "scope_check",
+    description: "Check if a file path is within scope for a task.",
+    inputSchema: {
+      repo_path: z.string().describe("Path to the repo"),
+      task_id: z.string().optional().describe("Task ID"),
+      file_path: z.string().describe("File path to check"),
+    },
+    handler: async (args: any) => scopeCheck(args.repo_path, args.task_id, args.file_path),
+  },
+];

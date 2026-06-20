@@ -2,12 +2,17 @@ import { describe, it, expect, vi } from "vitest";
 import { parseHooksYaml, checkPreToolHooks, checkStopValidation, validateHooksConfig, dryRunHooks } from "./hooks.js";
 import * as fs from "node:fs";
 
+let mockMtime = 0;
 vi.mock("node:fs", async () => {
   const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
   return {
     ...actual,
     existsSync: vi.fn(),
     readFileSync: vi.fn(),
+    statSync: vi.fn().mockImplementation(() => {
+      mockMtime++;
+      return { mtimeMs: mockMtime };
+    }),
   };
 });
 
@@ -52,14 +57,14 @@ pre_tool_block:
     expect(goodCheck.allowed).toBe(true);
   });
 
-  it("enforces stop validation checks", () => {
+  it("enforces stop validation checks", async () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue(`
 stop_validation:
   required_steps: [build, test]
 `);
 
-    const badCheck = checkStopValidation(".", {
+    const badCheck = await checkStopValidation(".", {
       passed: false,
       steps_run: ["build", "test"],
       failed_step: "test",
@@ -67,14 +72,14 @@ stop_validation:
     expect(badCheck.passed).toBe(false);
     expect(badCheck.error).toContain("failed at step 'test'");
 
-    const incompleteCheck = checkStopValidation(".", {
+    const incompleteCheck = await checkStopValidation(".", {
       passed: true,
       steps_run: ["build"],
     });
     expect(incompleteCheck.passed).toBe(false);
     expect(incompleteCheck.error).toContain("Required verify step 'test' was not run");
 
-    const goodCheck = checkStopValidation(".", {
+    const goodCheck = await checkStopValidation(".", {
       passed: true,
       steps_run: ["build", "test"],
     });
@@ -94,7 +99,7 @@ pre_tool_block:
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it("evaluates hooks dry run correctly", () => {
+  it("evaluates hooks dry run correctly", async () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue(`
 pre_tool_block:
@@ -103,12 +108,12 @@ pre_tool_block:
     message: "Destroying commands are forbidden"
 `);
 
-    const resultBlock = dryRunHooks(".", "subagent_invoke", { commands: ["rm -rf dist"] });
+    const resultBlock = await dryRunHooks(".", "subagent_invoke", { commands: ["rm -rf dist"] });
     expect(resultBlock.allowed).toBe(false);
     expect(resultBlock.preToolBlock.matched).toBe(true);
     expect(resultBlock.preToolBlock.reason).toBe("Destroying commands are forbidden");
 
-    const resultAllow = dryRunHooks(".", "subagent_invoke", { commands: ["pnpm build"] });
+    const resultAllow = await dryRunHooks(".", "subagent_invoke", { commands: ["pnpm build"] });
     expect(resultAllow.allowed).toBe(true);
     expect(resultAllow.preToolBlock.matched).toBe(false);
   });

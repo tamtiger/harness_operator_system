@@ -8,16 +8,16 @@
 
 | Group | Tools |
 |-------|-------|
-| [Session Lifecycle](#session-lifecycle) | `session_start`, `session_resume`, `session_end`, `session_handoff` |
+| [Session Lifecycle](#session-lifecycle) | `session_start`, `session_end`, `session_handoff` |
 | [Task Management](#task-management) | `task_create`, `task_update`, `task_list` |
-| [State Files](#state-files) | `progress_log`, `handoff_write`, `handoff_read` |
+| [State Files](#state-files) | `progress_log`, `handoff_read` |
 | [Scope & Verification](#scope--verification) | `scope_get`, `scope_check`, `verify_run` |
 | [Codebase Search](#codebase-search) | `code_search_grep`, `code_search_symbols` |
 | [Skills](#skills) | `skill_load`, `skill_list`, `skill_create_from_session`, `skill_suggest` |
-| [Instincts](#instincts) | `instinct_add`, `instinct_get`, `instinct_record_outcomes`, `instinct_prune`, `instinct_evolve`, `instinct_promote` |
+| [Instincts](#instincts) | `instinct_add`, `instinct_get`, `instinct_reference`, `instinct_record_outcomes`, `instinct_prune`, `instinct_evolve`, `instinct_promote` |
 | [Reflection](#reflection) | `reflection_run` |
 | [Repo Intelligence](#repo-intelligence) | `repo_summary_read` |
-| [Observability](#observability) | `audit_log`, `harness_status` |
+| [Observability](#observability) | `harness_status` |
 | [Subagents](#subagents) | `subagent_invoke` |
 | [Aegis](#aegis) | `aegis_analyze`, `aegis_propose` |
 
@@ -52,17 +52,6 @@ Bắt đầu session mới, trả về context đầy đủ.
   "instructions_to_read": ["AGENTS.md", "skill:harness-workflow"]
 }
 ```
-
-### `session_resume`
-
-Tiếp tục session (alias của `session_start` với semantics "continue").
-
-| Parameter | Type | Required | Mô tả |
-|-----------|------|----------|-------|
-| `repo_path` | string | ✅ | Đường dẫn tới repo |
-| `quick` | boolean | ❌ | Nếu là `true`, tự động tạo tác vụ hoạt động nhanh và đặt phạm vi (scope) thành `*` |
-| `quick_task_title` | string | ❌ | Tiêu đề tùy chỉnh cho tác vụ nhanh |
-| `variant_id` | string | ❌ | ID biến thể cấu hình định danh (ví dụ: `'coding-strict'`, `'coding-fast'`, v.v.) |
 
 ### `session_end`
 
@@ -158,17 +147,6 @@ Append entry vào `.harness/progress.md`. Timestamps dùng giờ Việt Nam (UTC
 | `entry.status` | string | ✅ | `done` \| `in-progress` \| `blocked` |
 | `entry.evidence_ref` | string | ❌ | Tham chiếu tới evidence file |
 | `entry.files_changed` | string[] | ❌ | Danh sách files đã sửa |
-
-### `handoff_write`
-
-| Parameter | Type | Required | Mô tả |
-|-----------|------|----------|-------|
-| `repo_path` | string | ✅ | Đường dẫn repo |
-| `session_id` | string | ✅ | Session ID hiện tại |
-| `next_steps` | string[] | ✅ | Bước tiếp theo |
-| `unfinished` | string[] | ✅ | Việc chưa xong |
-| `suggested_skills` | string[] | ❌ | Gợi ý các skill cần thiết cho session tiếp theo |
-| `last_known_good` | string | ✅ | Trạng thái tốt cuối cùng |
 
 ### `handoff_read`
 
@@ -445,6 +423,22 @@ Gợi ý các skills phù hợp dựa trên tiêu đề task, scope, stack và r
 { "error": "Need at least 5 instincts with tag 'testing', found 3" }
 ```
 
+### `instinct_reference`
+
+Ghi nhận các instincts được sử dụng/tham chiếu trong session để phục vụ cho việc tính toán Bayesian confidence.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `session_id` | string | ✅ | Session ID |
+| `instinct_ids` | string[] | ✅ | Danh sách các instinct IDs được tham chiếu |
+
+```json
+// Response
+{
+  "referenced_count": 2
+}
+```
+
 ### `instinct_record_outcomes`
 
 Ghi nhận kết quả thực tế (success/failure) cho các instincts đã được tham chiếu trong session nhằm cập nhật độ tin cậy theo phân phối Bayes (Bayesian confidence).
@@ -557,15 +551,6 @@ Trích xuất chỉ số thống kê thô (raw statistics) và các mẫu sự k
 ---
 
 ## Observability
-
-### `audit_log`
-
-| Parameter | Type | Required | Mô tả |
-|-----------|------|----------|-------|
-| `event_type` | string | ✅ | Loại event |
-| `payload` | object | ✅ | Dữ liệu event |
-
-> Mọi tool call đều tự động emit audit event (qua wrapper). Tool này dùng cho event thủ công.
 
 ### `harness_status`
 

@@ -42,8 +42,7 @@
 │                    MCP Transport                      │
 │              StdioServerTransport (stdin/stdout)      │
 ├──────────────────────────────────────────────────────┤
-│                 Tool Registration                     │
-│              src/index.ts (32 tools)                  │
+│              src/index.ts (MCP tools)                 │
 ├──────────────────────────────────────────────────────┤
 │         ┌──────────────────┐ ┌──────────────────┐     │
 │         │   Tool Modules   │ │     Lib Helpers   │     │
@@ -54,8 +53,7 @@
 │                  Database Layer                       │
 │              src/db/client.ts (SQLite)                │
 ├──────────────────────────────────────────────────────┤
-│              CLI (Optional Overlay)                   │
-│           src/cli/harness.ts (21 commands)            │
+│           src/cli/harness.ts (CLI commands)           │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -63,7 +61,7 @@
 
 | Layer | File | Vai trò |
 |-------|------|---------|
-| **Entry** | `src/index.ts` | Tạo MCP server, register 32 tools with Zod schemas, kết nối stdio transport |
+| **Entry** | `src/index.ts` | Tạo MCP server, register tools with Zod schemas, kết nối stdio transport |
 | **Wrapper** | `src/lib/wrapper.ts` | Decorator pattern: try/catch + audit + loop guard + circuit breaker + hooks |
 | **Session** | `src/tools/session.ts` | Lifecycle: start, end, resume, handoff. Orphan recovery, state migration |
 | **Task** | `src/tools/task.ts` | CRUD task với scope tracking |
@@ -77,7 +75,7 @@
 | **Subagent** | `src/tools/subagent.ts` | Spawn worker processes cho task execution |
 | **Repo Summary** | `src/tools/repo_summary.ts` | Auto-generate repo tree + stack info |
 | **DB** | `src/db/client.ts` | SQLite singleton, WAL mode, 7 tables |
-| **CLI** | `src/cli/harness.ts` | 21 commands, manual argv parsing, template rendering |
+| **CLI** | `src/cli/harness.ts` | CLI commands, manual argv parsing, template rendering |
 
 ### 2.3 Các thành phần giao tiếp
 
@@ -300,7 +298,7 @@ Cargo.toml → rust
 getSearchDirs(repoPath?): dirs[]
   1. <repoPath>/.harness/skills/
   2. ~/.harness/skills/
-  3. <projectRoot>/skills/  (built-in, 32 skills)
+  3. <projectRoot>/skills/  (built-in skills)
 ```
 
 **Edge cases:**
@@ -495,22 +493,24 @@ Layer 6 (worker):     src/subagent-worker.ts
 
 **Kiến trúc:** MCP server chạy local qua stdin/stdout. Mọi tool call đều qua `wrapTool()` — một decorator tự động kiểm tra hook, circuit breaker, loop guard trước khi chạy thật, và audit sau khi chạy.
 
-**32 tools** chia làm 11 modules:
-- **Session (4 tools)**: start/end/resume/handoff — lifecycle, orphan recovery, handoff persistence
-- **Task (3 tools)**: create/update/list — simple CRUD với scope binding
-- **Verify (1 tool)**: run — pipeline install→build→test→lint, auto-detect runtime, changed-only lint
-- **Skill (4 tools)**: load/list/suggest/create — YAML frontmatter, tiered keyword matching, 32 built-in skills
-- **Instinct (6 tools)**: add/get/prune/evolve/promote/record_outcomes — Bayesian learning system
-- **State (5 tools)**: progress_log, feature_list read/update, handoff read/write — file-based + SQLite
-- **Scope (2 tools)**: get/check — glob-based path enforcement
-- **Observe (2 tools)**: audit_log, harness_status — SQLite + JSONL dual-write
-- **Repo Summary (1 tool)**: read — auto-generate tree + stack
-- **Code Search (2 tools)**: grep, symbols — scope-aware, 8KB limit
-- **Subagent (1 tool)**: invoke — spawn worker processes
+**MCP tools** chia làm các modules logic:
+- **Session**: start/end/handoff — lifecycle, orphan recovery, handoff persistence
+- **Task**: create/update/list — simple CRUD với scope binding
+- **Verify**: run — pipeline install→build→test→lint, auto-detect runtime, changed-only lint
+- **Skill**: load/list/suggest/create — YAML frontmatter, tiered keyword matching, built-in skills
+- **Instinct**: add/get/reference/record_outcomes/prune/evolve/promote — Bayesian learning system
+- **State**: progress_log, handoff_read — file-based + SQLite
+- **Scope**: get/check — glob-based path enforcement
+- **Observe**: harness_status — SQLite + JSONL dual-write
+- **Repo Summary**: read — auto-generate tree + stack
+- **Code Search**: grep, symbols — scope-aware, 8KB limit
+- **Subagent**: invoke — spawn worker processes
+- **Reflection**: run — session statistics and error loop analysis
+- **Aegis**: analyze, propose — detect failure patterns and propose optimization proposals
 
 **Database:** SQLite WAL mode, 7 tables (sessions, tasks, instincts, session_instinct_refs, audit_events, repos, workers).
 
-**CLI:** 21 commands — init, doctor, status, verify, skills, tasks, instincts, install-mcp, orchestrate, workers, hooks, report.
+**CLI:** various commands — init, doctor, status, verify, skills, tasks, instincts, install-mcp, orchestrate, workers, hooks, report.
 
 **Resilience layer:**
 - Circuit breaker: 3 failures → 5 phút cooldown (repo-scoped)
@@ -519,4 +519,4 @@ Layer 6 (worker):     src/subagent-worker.ts
 - Orphan recovery: auto-close sessions từ IDE crash
 - Audit: SQLite + JSONL dual-write
 
-**Tổng:** 198 unit tests (vitest), 1 smoke test, 0 production dependencies ngoài 4 packages.
+**Tổng:** suite of unit tests (vitest), 1 smoke test, 0 production dependencies ngoài 4 packages.

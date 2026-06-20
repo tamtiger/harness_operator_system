@@ -6,6 +6,9 @@ import { checkPreToolHooks } from "./hooks.js";
 import { resolveToolContext } from "./tool-context.js";
 import { redactSecrets } from "./redact.js";
 
+import { getDb } from "../db/client.js";
+import { ErrorCode, createError } from "./errors.js";
+
 interface ToolResult {
   [x: string]: unknown;
   content: Array<{ type: "text"; text: string; [x: string]: unknown }>;
@@ -14,12 +17,32 @@ interface ToolResult {
 
 type ToolHandler = (args: Record<string, unknown>) => Promise<ToolResult>;
 
+const MUTATION_TOOLS = new Set([
+  "task_create",
+  "task_update",
+  "progress_log",
+  "verify_run",
+  "session_handoff",
+  "instinct_add",
+  "instinct_promote",
+  "aegis_propose",
+  "instinct_reference",
+  "instinct_record_outcomes",
+]);
+
 /**
  * Helper to create an error result
  */
 function errorResult(message: string): ToolResult {
   return {
     content: [{ type: "text", text: JSON.stringify({ error: message }) }],
+    isError: true,
+  };
+}
+
+function errorWithCode(code: ErrorCode, message: string): ToolResult {
+  return {
+    content: [{ type: "text", text: JSON.stringify(createError(code, message)) }],
     isError: true,
   };
 }
@@ -52,6 +75,44 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
   return async (args: Record<string, unknown>): Promise<ToolResult> => {
     const startTime = Date.now();
     const ctx = resolveToolContext(args);
+    const db = getDb();
+
+    // A2 (Bắt buộc session_start trước khi gọi mutation tools)
+    if (MUTATION_TOOLS.has(name)) {
+      const activeSession = db.prepare(
+        "SELECT id FROM sessions WHERE repo_path = ? AND status = 'active'"
+      ).get(ctx.repo_path) as { id: string } | undefined;
+
+      if (!activeSession) {
+        const duration_ms = Date.now() - startTime;
+        auditLog("session_missing_error", { tool: name, repo_path: ctx.repo_path, duration_ms });
+        return errorWithCode(
+          ErrorCode.ERR_SESSION_NOT_FOUND,
+          `No active session found for repository path "${ctx.repo_path}". You must call session_start first.`
+        );
+      }
+    }
+
+    // A7 (Kiểm tra ID ảo / Hallucination ID check)
+    if (typeof args.session_id === "string") {
+      const sessExists = db.prepare("SELECT 1 FROM sessions WHERE id = ?").get(args.session_id);
+      if (!sessExists) {
+        return errorWithCode(
+          ErrorCode.ERR_SESSION_NOT_FOUND,
+          `Session ID "${args.session_id}" does not exist in the database.`
+        );
+      }
+    }
+
+    if (typeof args.task_id === "string") {
+      const taskExists = db.prepare("SELECT 1 FROM tasks WHERE id = ?").get(args.task_id);
+      if (!taskExists) {
+        return errorWithCode(
+          ErrorCode.ERR_TASK_NOT_FOUND,
+          `Task ID "${args.task_id}" does not exist in the database.`
+        );
+      }
+    }
 
     // 1. Pre-tool hook check
     const hookCheck = checkPreToolHooks(ctx.repo_path, name, args);
@@ -78,7 +139,10 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
         duration_ms,
         session_id: ctx.session_id
       });
-      return errorResult(`Circuit open: ${name} failed ${circuitCheck.failures} times consecutively in this repo. Cooldown ${Math.ceil(circuitCheck.cooldown_remaining_ms! / 1000)}s remaining.`);
+      return errorWithCode(
+        ErrorCode.ERR_CIRCUIT_BREAKER,
+        `Circuit open: ${name} failed ${circuitCheck.failures} times consecutively in this repo. Cooldown ${Math.ceil(circuitCheck.cooldown_remaining_ms! / 1000)}s remaining.`
+      );
     }
 
     // 3. Loop guard check
@@ -92,7 +156,7 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
         duration_ms,
         repo_id: ctx.repo_id
       });
-      return errorResult(`Loop detected: ${name} called ${loopCheck.count} times in 60s with same args. Blocked.`);
+      return errorWithCode(ErrorCode.ERR_LOOP_DETECTED, `Loop detected: ${name} called ${loopCheck.count} times in 60s with same args. Blocked.`);
     }
 
     // 4. Execute handler
@@ -133,6 +197,7 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
       const duration_ms = Date.now() - startTime;
       const verbose = process.env.HARNESS_VERBOSE_AUDIT !== '0';
       const errorMsg = err instanceof Error ? err.message : String(err);
+      const errorCode = (err as any).code || undefined;
       const stack = err instanceof Error ? err.stack : undefined;
 
       // Record failure for circuit breaker
@@ -147,6 +212,9 @@ export function wrapTool(name: string, handler: ToolHandler): ToolHandler {
         repo_id: ctx.repo_id,
         session_id: ctx.session_id
       });
+      if (errorCode) {
+        return errorWithCode(errorCode, errorMsg);
+      }
       return errorResult(errorMsg);
     }
   };
