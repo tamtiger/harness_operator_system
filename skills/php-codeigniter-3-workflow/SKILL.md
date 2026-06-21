@@ -8,6 +8,11 @@ metadata:
   triggers: []
   tier: 2
   keywords: ["codeigniter", "ci3", "hmvc", "mx_controller", "php", "xampp", "codeigniter-3"]
+action_map:
+  verify_run:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
 ---
 
 # CodeIgniter 3 Workflow

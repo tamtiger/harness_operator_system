@@ -8,6 +8,14 @@ metadata:
   triggers: ["session_end", "task_update"]
   tier: 2
   keywords: ["learn", "pattern", "instinct", "capture", "evolve", "học", "mẫu", "bản năng", "bắt", "phát triển"]
+action_map:
+  add_instinct:
+    tool: "instinct_add"
+    required: true
+compliance_weight: 15
+narrative_fields:
+  - pattern_learned
+  - context_reusable
 ---
 
 # Continuous Learning

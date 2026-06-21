@@ -8,6 +8,11 @@ metadata:
   triggers: ["subagent_invoke", "task_create"]
   tier: 2
   keywords: ["subagent", "parallel", "worker", "delegate", "dispatch", "dag", "fan-out", "stage", "phân công", "ủy thác", "song song"]
+action_map:
+  delegate_task:
+    tool: "subagent_invoke"
+    required: true
+compliance_weight: 15
 ---
 
 # Subagent-Driven Development

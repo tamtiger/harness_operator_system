@@ -8,6 +8,11 @@ metadata:
   triggers: []
   tier: 2
   keywords: ["csharp", "dotnet", "feature", "implement", "service", "controller", "c#", ".net", "tính năng", "triển khai", "dịch vụ", "bộ điều khiển"]
+action_map:
+  verify_feature:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
 ---
 
 # C# Feature Implementation Workflow

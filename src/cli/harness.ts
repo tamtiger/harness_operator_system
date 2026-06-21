@@ -20,7 +20,8 @@ import { cmdHooks } from "./commands/hooks.js";
 import { cmdReport } from "./commands/report.js";
 import { cmdKnowledge } from "./commands/knowledge.js";
 import { cmdOrchestrate } from "./commands/orchestrate.js";
-import { args } from "./commands/utils.js";
+import { runDashboard } from "./dashboard.js";
+import { args, getFlag } from "./commands/utils.js";
 
 async function main() {
   const command = args[0];
@@ -89,6 +90,9 @@ async function main() {
     case "variants":
       cmdVariants();
       break;
+    case "dashboard":
+      runDashboard(getFlag("repo"));
+      break;
     default:
       console.log(`
 harness-os — Local harness operator system for agentic coding
@@ -116,6 +120,7 @@ Usage:
   harness report [--period 7d|30d|all] [--repo path] [--format json|table]
   harness knowledge [--type lesson|pattern|decision|...] [--tags "tag1,tag2"] [--list]
   harness knowledge --add --type decision <description> [--tags "tag1,tag2"]
+  harness dashboard [--repo path]
 `);
       break;
   }

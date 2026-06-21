@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { getDb } from "../db/client.js";
 import { skillSuggest } from "./skill.js";
 import { detectRuntime } from "../lib/runtime.js";
+import { complianceCheck } from "./compliance.js";
 
 export interface TaskCreateResult {
   task_id: string;
@@ -92,6 +93,20 @@ export function taskUpdate(
   const task = db.prepare("SELECT session_id FROM tasks WHERE id = ?").get(taskId) as { session_id: string | null } | undefined;
   if (!task) {
     throw new Error(`Task not found: ${taskId}`);
+  }
+
+  if (task.session_id && status === "done") {
+    const session = db.prepare("SELECT verify_passed FROM sessions WHERE id = ?").get(task.session_id) as { verify_passed: number } | undefined;
+    if (session) {
+      const comp = complianceCheck(task.session_id);
+      if (session.verify_passed === 0 || comp.status === "FAIL") {
+        const err = new Error(
+          `ERR_COMPLIANCE: Cannot complete task because verification failed or compliance check failed. Verification passed: ${session.verify_passed === 1}, Compliance status: ${comp.status}.`
+        );
+        (err as any).code = "ERR_COMPLIANCE";
+        throw err;
+      }
+    }
   }
 
   const result = db

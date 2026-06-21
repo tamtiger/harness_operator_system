@@ -8,6 +8,19 @@ metadata:
   triggers: ["task_create"]
   tier: 2
   keywords: ["bug", "fix", "error", "crash", "debug", "investigate", "diagnose", "reproduce", "regression", "broken", "lỗi", "sửa", "sập", "gỡ lỗi", "điều tra", "chẩn đoán", "tái tạo", "hồi quy"]
+action_map:
+  gather_evidence:
+    tool: code_search_grep
+    required: true
+  validate_fix:
+    tool: verify_run
+    required: true
+  - root_cause
+  - hypothesis
+compliance_weight: 15
+narrative_fields:
+  - root_cause
+  - hypothesis
 ---
 
 # Systematic Diagnosis

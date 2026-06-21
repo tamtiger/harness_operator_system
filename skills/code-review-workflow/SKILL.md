@@ -8,6 +8,14 @@ metadata:
   triggers: ["task_update"]
   tier: 2
   keywords: ["review", "diff", "verification", "check", "harness", "lập trình", "code-review", "pr"]
+action_map:
+  run_checks:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
+narrative_fields:
+  - self_review_checklist
+  - feedback_severity
 ---
 
 # Code Review & Quality Workflow

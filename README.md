@@ -3,20 +3,21 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.6.1-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.7.0-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
-[![Tools](https://img.shields.io/badge/MCP_tools-30-blue)](#)
+[![Tools](https://img.shields.io/badge/MCP_tools-33-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-32-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-222%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-229%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
 Một hệ thống có cấu trúc đảm bảo AI coding agent:
 
-- ✅ Không tuyên bố "done" khi chưa verify
-- ✅ Không edit file ngoài scope
-- ✅ Không mất context giữa các session
-- ✅ Không lặp lại sai lầm đã từng phạm
+- ✅ **Không tuyên bố "done"** khi chưa verify (Completion Guard cứng)
+- ✅ **Không edit file ngoài scope** (Kiểm soát chặt chẽ và Sequence Validation)
+- ✅ **Không mất context** giữa các session (Tự động nạp Skill & Workflow Router)
+- ✅ **Không lặp lại sai lầm** đã từng phạm (Instincts & Continuos learning)
+- ✅ **Đo lường mức độ tuân thủ định lượng** (Observability Dashboard & Compliance Engine)
 
 Hoạt động với mọi IDE hỗ trợ MCP: **Cursor, Claude Code, Kiro, VS Code, Antigravity, OpenCode**. Có instruction-only adapter cho **Codex** và **Copilot**.
 
@@ -50,16 +51,16 @@ pnpm run dev -- install-mcp --ide cursor
 | **Continuous Learning & Reflection** | Pattern tái sử dụng & Tự kiểm điểm | `instinct_add/get/prune/evolve/promote`, `reflection_run` |
 | **Subagent Delegation** | Điều phối agent con chạy lệnh | `subagent_invoke` |
 
-## 30 MCP tools
+## 33 MCP tools
 
 <details>
 <summary><b>Session lifecycle (3 tools)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
-| `session_start` | Bắt đầu session, trả về context + handoff + applicable skills (tier 1 only) |
-| `session_end` | Đóng session |
-| `session_handoff` | Kết thúc với handoff atomic (handoff + progress + đóng session) |
+| `session_start` | Bắt đầu session, tự động nạp trước các skill phù hợp (Auto Skill Resolution) và phân loại Workflow qua Router |
+| `session_end` | Đóng session (Hạn chế đóng bừa bãi bằng Handoff Guard nếu chưa gọi handoff) |
+| `session_handoff` | Kết thúc với handoff atomic (bàn giao + cập nhật progress + đóng session) |
 
 </details>
 
@@ -68,8 +69,8 @@ pnpm run dev -- install-mcp --ide cursor
 
 | Tool | Mô tả |
 |---|---|
-| `task_create` | Tạo task với title + scope |
-| `task_update` | Cập nhật status (pending/in-progress/done/blocked) |
+| `task_create` | Tạo task với title + scope và liên kết session |
+| `task_update` | Cập nhật status (chặn chuyển sang 'done' bằng Completion Guard nếu chưa pass verify) |
 | `task_list` | Liệt kê tasks (filter theo repo/status) |
 
 </details>
@@ -90,8 +91,8 @@ pnpm run dev -- install-mcp --ide cursor
 | Tool | Mô tả |
 |---|---|
 | `scope_get` | Lấy scope config từ `.harness/scope.yaml` |
-| `scope_check` | Kiểm tra file có trong scope không (glob patterns) |
-| `verify_run` | Chạy pipeline verify (install/build/test/lint) — hỗ trợ `verify.yaml` |
+| `scope_check` | Kiểm tra file có trong scope không (phải chạy trước khi verify_run) |
+| `verify_run` | Chạy pipeline verify (install/build/test/lint) — tự động capture exit_code và git diff làm bằng chứng |
 
 </details>
 
@@ -160,15 +161,18 @@ pnpm run dev -- install-mcp --ide cursor
 </details>
 
 <details>
-<summary><b>Observability (1 tool)</b></summary>
+<summary><b>Observability (4 tools)</b></summary>
 
 | Tool | Mô tả |
 |---|---|
 | `harness_status` | Snapshot: active session, pending tasks, last verify, recent instincts |
+| `workflow_status` | **NEW** — Lấy trạng thái workflow hiện tại và các bước đã hoàn thành |
+| `compliance_check` | **NEW** — Kiểm chứng tuân thủ chi tiết, tính toán điểm tuân thủ dựa trên bằng chứng |
+| `skill_narrative_submit` | **NEW** — Nộp dữ liệu tường thuật (giả thuyết, nguyên nhân lỗi) phục vụ audit |
 
 </details>
 
-## CLI Commands (21)
+## CLI Commands (22)
 
 ```bash
 harness init [path] [--stack auto|node|dotnet|python|go]   # Setup repo
@@ -192,6 +196,7 @@ harness report [--period 7d|30d|all] [--repo path]          # Get analytics repo
 harness knowledge [--type type] [--tags tags] [--list] [--add] # Manage learned knowledge
 harness proposals [--list] [--approve <id>] [--reject <id>] [--details <id>] [--apply <id>]
 harness variants [--benchmark]
+harness dashboard [--repo path]                             # View Observability Dashboard
 ```
 
 ## Built-in Skills (32)
@@ -276,7 +281,7 @@ Công thức: **`[Tier-1 Core] + [Stack Baseline] + [Task-Type] + [Add-ons]`**
 ```
 harness-os/
 ├── src/
-│   ├── index.ts              # MCP stdio server (30 tools, all wrapped)
+│   ├── index.ts              # MCP stdio server (33 tools, all wrapped)
 │   ├── cli/harness.ts        # CLI entry point
 │   ├── db/
 │   │   ├── client.ts         # SQLite + migrations
@@ -317,7 +322,7 @@ pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
 pnpm test             # Unit tests (222 tests)
-pnpm run smoke        # End-to-end MCP test (30 tools, 32 skills)
+pnpm run smoke        # End-to-end MCP test (33 tools, 32 skills)
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.
@@ -328,7 +333,7 @@ pnpm run smoke        # End-to-end MCP test (30 tools, 32 skills)
   - [Bắt đầu](./docs/01-getting-started.md) — Cài đặt, yêu cầu hệ thống
   - [Cấu hình IDE](./docs/02-ide-setup.md) — Setup cho 8 IDEs
   - [Workflow](./docs/04-workflow.md) — Lifecycle hàng ngày
-  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 30 MCP tools
+  - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 33 MCP tools
   - [CLI Reference](./docs/06-cli-reference.md) — 21 CLI commands
   - [Skills](./docs/07-skills.md) — Hệ thống skills
   - [Instincts](./docs/08-instincts.md) — Continuous learning

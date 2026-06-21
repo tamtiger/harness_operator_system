@@ -8,6 +8,11 @@ metadata:
   triggers: ["task_create"]
   tier: 2
   keywords: ["optimize", "performance", "benchmark", "measure", "improve", "profile", "tối ưu", "hiệu suất", "chuẩn mực", "đo lường", "cải thiện", "hồ sơ"]
+action_map:
+  verify_optimization:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
 ---
 
 # Autonomous Optimizer Skill

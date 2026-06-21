@@ -8,6 +8,14 @@ metadata:
   triggers: ["task_create"]
   tier: 2
   keywords: ["search", "find", "existing", "pattern", "duplicate", "understand", "tìm kiếm", "tìm", "có sẵn", "mẫu", "trùng lặp", "hiểu"]
+action_map:
+  search_patterns:
+    tool: "code_search_grep"
+    required: true
+  understand_structure:
+    tool: "repo_summary_read"
+    required: true
+compliance_weight: 15
 ---
 
 # Read First

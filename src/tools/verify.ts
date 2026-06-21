@@ -49,6 +49,8 @@ export interface VerifyResult {
   evidence_path?: string;
   changed_files?: string[];
   workflow_guidance?: { current_phase: string; next_action: string };
+  diff_captured?: string;
+  verify_exit_code?: number;
 }
 
 interface VerifyConfig {
@@ -510,6 +512,17 @@ export async function verifyRun(
     // ignore db errors in case verify_run is run standalone without tables
   }
 
+  // Capture Git Diff patch content
+  let diffCaptured = "";
+  try {
+    const gitTimeout = 10000;
+    const unstagedDiff = execSync("git diff", { cwd: absPath, timeout: gitTimeout, encoding: "utf-8" });
+    const stagedDiff = execSync("git diff --cached", { cwd: absPath, timeout: gitTimeout, encoding: "utf-8" });
+    diffCaptured = `${unstagedDiff}\n${stagedDiff}`.trim();
+  } catch {}
+
+  const verifyExitCode = allPassed ? 0 : 1;
+
   const result: VerifyResult = {
     passed: allPassed,
     output: truncate(outputs.join("\n\n"), MAX_OUTPUT),
@@ -517,6 +530,8 @@ export async function verifyRun(
     step_results: stepResults,
     test_results: testResults,
     changed_files: changedFilesList,
+    diff_captured: diffCaptured || undefined,
+    verify_exit_code: verifyExitCode,
     ...(workflow_guidance ? { workflow_guidance } : {}),
   };
 

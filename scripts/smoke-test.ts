@@ -66,6 +66,9 @@ async function main() {
       "reflection_run",
       "aegis_analyze",
       "aegis_propose",
+      "workflow_status",
+      "compliance_check",
+      "skill_narrative_submit",
     ];
 
     if (toolNames.length !== expected.length) {
@@ -107,6 +110,28 @@ async function main() {
       throw new Error("task_create missing task_id");
     }
     console.log(`✓ task_create — task_id: ${taskData.task_id}`);
+
+    // Call workflow_status
+    const statusRes = await client.callTool({
+      name: "workflow_status",
+      arguments: { session_id: sessionData.session_id },
+    });
+    const statusVal = JSON.parse((statusRes.content as any)[0].text);
+    if (typeof statusVal.complianceScore !== "number") {
+      throw new Error("workflow_status did not return complianceScore");
+    }
+    console.log(`✓ workflow_status — score: ${statusVal.complianceScore}`);
+
+    // Call compliance_check
+    const compRes = await client.callTool({
+      name: "compliance_check",
+      arguments: { session_id: sessionData.session_id },
+    });
+    const compVal = JSON.parse((compRes.content as any)[0].text);
+    if (!compVal.status) {
+      throw new Error("compliance_check did not return status");
+    }
+    console.log(`✓ compliance_check — status: ${compVal.status}`);
 
     // Call skill_load
     const skillResult = await client.callTool({

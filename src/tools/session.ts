@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { join, resolve, isAbsolute } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { readRepoConfig, createRepoConfig, resolveGlobalRepoPath } from "../lib/
 import { migrateRepoState } from "../lib/state-migration.js";
 import { ensureDir } from "../lib/repo.js";
 import { handoffRead, handoffWrite, progressLog, type HandoffData } from "./state.js";
+import { classifyWorkflow } from "../lib/router.js";
 import { taskList } from "./task.js";
 import { skillList, skillSuggest, skillLoad } from "./skill.js";
 import { getTier1Skills, type SkillWithMetadata } from "../lib/skill-matcher.js";
@@ -42,6 +43,7 @@ export interface WorkflowGuidance {
   next_action: string;
   ctr_needed: boolean;
   checklist?: string[];
+  workflow_type?: "Quick" | "Full";
 }
 
 export interface SessionStartResult {
@@ -50,6 +52,7 @@ export interface SessionStartResult {
   pending_tasks_count: number;
   applicable_skills: string[];
   workflow_content: string | null; // Content of harness-workflow
+  auto_loaded_skills: Array<{ name: string; content: string }>;
   suggested_skills: SuggestedSkill[];
   instructions_to_read: string[];
   never_again: string[];
@@ -84,17 +87,18 @@ export interface SessionStartOptions {
 }
 
 export function sessionStart(repoPath: string, options: SessionStartOptions = {}): SessionStartResult {
+  const absRepoPath = isAbsolute(repoPath) ? repoPath : resolve(repoPath);
   // Trigger automatic SQLite backup
   backupDatabase();
 
   // --- v1.0 auto-migration: config, register, migrate, ensure dirs ---
-  let config = readRepoConfig(repoPath);
-  if (!config) config = createRepoConfig(repoPath);
+  let config = readRepoConfig(absRepoPath);
+  if (!config) config = createRepoConfig(absRepoPath);
 
   registerRepo(config);
   updateRepoLastActive(config.repo_id);
 
-  migrateRepoState(repoPath, config.repo_id);
+  migrateRepoState(absRepoPath, config.repo_id);
 
   const globalRepoDir = resolveGlobalRepoPath(config.repo_id);
   ensureDir(join(globalRepoDir, "artifacts", "plans"));
@@ -110,7 +114,7 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
   // Auto-detect and recover orphaned sessions for this repo or detect conflicts
   const activeSessions = db.prepare(
     "SELECT id, started_at, pid, machine_id FROM sessions WHERE repo_path = ? AND status = 'active'"
-  ).all(repoPath) as Array<{ id: string; started_at: string; pid: number | null; machine_id: string | null }>;
+  ).all(absRepoPath) as Array<{ id: string; started_at: string; pid: number | null; machine_id: string | null }>;
 
   const actualOrphaned: string[] = [];
 
@@ -147,7 +151,7 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
     }
 
     // Log to progress
-    progressLog(repoPath, {
+    progressLog(absRepoPath, {
       summary: `${actualOrphaned.length} orphaned session(s) auto-closed (IDE likely crashed)`,
       status: 'orphaned',
     });
@@ -161,7 +165,7 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
 
   db.prepare(
     `INSERT INTO sessions (id, repo_path, status, started_at, variant_id, pid, machine_id) VALUES (?, ?, 'active', ?, ?, ?, ?)`
-  ).run(id, repoPath, now, variantId, currentPid, host);
+  ).run(id, absRepoPath, now, variantId, currentPid, host);
 
   // If quick start is selected, auto-create an active task
   let quickTaskId: string | undefined;
@@ -173,7 +177,7 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
       VALUES (?, ?, ?, '*', 'in-progress', ?)
     `).run(quickTaskId, id, taskTitle, now);
 
-    progressLog(repoPath, {
+    progressLog(absRepoPath, {
       task_id: quickTaskId,
       summary: `Started quick modification: ${taskTitle}`,
       status: "in-progress",
@@ -181,15 +185,15 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
   }
 
   // Read last handoff
-  const { handoff } = handoffRead(repoPath);
+  const { handoff } = handoffRead(absRepoPath);
 
   // Count pending tasks
-  const { tasks } = taskList(repoPath, "pending");
+  const { tasks } = taskList(absRepoPath, "pending");
   const pendingCount = tasks.length;
 
   // Detect stack and get applicable skills (tier 1 only for session_start)
-  const runtime = detectRuntime(repoPath);
-  const { skills } = skillList(runtime.runtime !== "unknown" ? runtime.runtime : undefined, repoPath);
+  const runtime = detectRuntime(absRepoPath);
+  const { skills } = skillList(runtime.runtime !== "unknown" ? runtime.runtime : undefined, absRepoPath);
   
   // Convert to SkillWithMetadata format for tier filtering
   const skillsWithMeta: SkillWithMetadata[] = skills.map((s) => ({
@@ -207,7 +211,7 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
   const firstTask = tasks.find(t => t.status === "pending") || tasks[0];
   const taskTitle = firstTask ? firstTask.title : undefined;
   const taskScope = firstTask ? firstTask.scope || undefined : undefined;
-  const suggestRes = skillSuggest(taskTitle, taskScope, stack, 15, repoPath);
+  const suggestRes = skillSuggest(taskTitle, taskScope, stack, 15, absRepoPath);
   
   const suggestedSkills = suggestRes.suggested_skills
     .filter(s => s.tier >= 2)
@@ -217,6 +221,22 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
       score: s.score,
       reason: `Matched for stack ${stack || "generic"} and task context`
     }));
+
+  // Auto Skill Resolution (Phase 7)
+  const autoLoadedSkills: Array<{ name: string; content: string }> = [];
+  const skipWorkflowContent = options.skip_workflow_content === true;
+  if (!skipWorkflowContent) {
+    for (const s of suggestedSkills) {
+      try {
+        const loaded = skillLoad(s.name, absRepoPath);
+        if (loaded && !("error" in loaded)) {
+          autoLoadedSkills.push({ name: s.name, content: loaded.content });
+        }
+      } catch (err) {
+        log("warn", `Failed to auto-load skill ${s.name}: ${err}`);
+      }
+    }
+  }
 
   // Determine instructions to read
   const instructions: string[] = ["AGENTS.md", "skill:harness-workflow"];
@@ -229,7 +249,7 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
   }
 
   // Read never_again.md warnings
-  const neverAgainPath = join(repoPath, ".harness", "never_again.md");
+  const neverAgainPath = join(absRepoPath, ".harness", "never_again.md");
   let neverAgainWarnings: string[] = [];
   if (existsSync(neverAgainPath)) {
     try {
@@ -278,11 +298,10 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
     description: k.description,
   }));
 
-  const skipWorkflowContent = options.skip_workflow_content === true;
   let workflowContent: string | null = null;
   if (!skipWorkflowContent) {
     try {
-      const loaded = skillLoad("harness-workflow", repoPath);
+      const loaded = skillLoad("harness-workflow", absRepoPath);
       if (loaded && !("error" in loaded)) {
         workflowContent = loaded.content;
       }
@@ -297,6 +316,14 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
   ).get() as { id: string; title: string; scope: string; status: string } | undefined;
   const targetTitle = quickTaskId ? (options.quick_task_title || "Quick modification") : (firstPendingTask ? firstPendingTask.title : "");
   
+  // Workflow Router (Phase 8)
+  let workflowType: "Quick" | "Full" = "Full";
+  if (options.quick || options.quick_task_title) {
+    workflowType = "Quick";
+  } else if (firstPendingTask) {
+    workflowType = classifyWorkflow(absRepoPath, firstPendingTask.title, firstPendingTask.scope);
+  }
+
   let taskType = "generic";
   if (targetTitle) {
     const t = targetTitle.toLowerCase();
@@ -355,15 +382,17 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
     pending_tasks_count: pendingCount,
     applicable_skills: applicableSkills,
     workflow_content: workflowContent,
+    auto_loaded_skills: autoLoadedSkills,
     suggested_skills: suggestedSkills,
     instructions_to_read: instructions,
     never_again: neverAgainWarnings,
     relevant_knowledge: optimizedKnowledge,
     workflow_guidance: {
       current_phase: "START",
-      next_action: "Read instructions_to_read, review last_handoff, then load suggested skills and proceed to SELECT phase",
+      next_action: "Read instructions_to_read, review last_handoff, then proceed to SELECT phase. Note your workflow_type and adhere to required auto-loaded skills.",
       ctr_needed: false,
       checklist: checklist,
+      workflow_type: workflowType,
     }
   };
 
@@ -383,11 +412,22 @@ export async function sessionEnd(sessionId: string): Promise<SessionEndResult> {
   const now = new Date().toISOString();
 
   const session = db
-    .prepare(`SELECT repo_path, started_at FROM sessions WHERE id = ?`)
-    .get(sessionId) as { repo_path: string; started_at: string } | undefined;
+    .prepare(`SELECT repo_path, started_at, current_phase FROM sessions WHERE id = ?`)
+    .get(sessionId) as { repo_path: string; started_at: string; current_phase: string } | undefined;
 
   if (!session) {
     return { session_id: sessionId, status: "error", duration_seconds: 0, error: `Session not found: ${sessionId}` };
+  }
+
+  // Sprint 4 (Phase 10): Handoff Guard
+  // Block session close if handoff hasn't been called (which sets current_phase = 'WRAP_UP')
+  if (session.current_phase !== "WRAP_UP") {
+    return {
+      session_id: sessionId,
+      status: "active",
+      duration_seconds: 0,
+      error: "ERR_HANDOFF_MISSING: You must call session_handoff to properly end the session and provide a summary for the next agent. Do not use session_end directly for development tasks."
+    };
   }
 
   // Hook validation check
@@ -576,7 +616,53 @@ export async function sessionHandoff(
   };
 }
 
+export function skillNarrativeSubmit(
+  sessionId: string,
+  skill: string,
+  field: string,
+  text: string
+): { ok: boolean; event_id: number } {
+  const db = getDb();
+
+  // Verify session exists
+  const session = db.prepare("SELECT id FROM sessions WHERE id = ?").get(sessionId);
+  if (!session) {
+    throw new Error(`Session not found: ${sessionId}`);
+  }
+
+  // Log to audit events
+  const payload = {
+    session_id: sessionId,
+    skill,
+    field,
+    text,
+  };
+
+  const now = new Date().toISOString();
+  const result = db.prepare(
+    "INSERT INTO audit_events (event_type, payload, created_at) VALUES (?, ?, ?)"
+  ).run("narrative_submit", JSON.stringify(payload), now);
+
+  return { ok: true, event_id: result.lastInsertRowid as number };
+}
+
 export const mcpTools = [
+  {
+    name: "skill_narrative_submit",
+    description: "Submit narrative evidence (hypothesis, root cause) for a loaded skill. Narrative does not count towards compliance score.",
+    inputSchema: {
+      session_id: z.string().describe("Session ID"),
+      skill: z.string().describe("Skill name"),
+      field: z.string().describe("Narrative field name (e.g. 'root_cause', 'hypothesis')"),
+      text: z.string().describe("Narrative text content"),
+    },
+    handler: async (args: any) => skillNarrativeSubmit(
+      args.session_id,
+      args.skill,
+      args.field,
+      args.text
+    ),
+  },
   {
     name: "session_start",
     description: "Start a new harness session for a repo. Returns session ID, last handoff, and pending tasks.",

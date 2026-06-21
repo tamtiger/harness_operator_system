@@ -31,10 +31,10 @@ For any coding task, bug fix, refactor, feature implementation, test creation, o
 
 ## Required First Action
 
-Call:
+Call `session_start` with the absolute path of the repository:
 
 ```text
-session_start(".")
+session_start("{{REPO_PATH}}")
 ```
 
 before inspecting source code, editing files, or creating plans.
@@ -83,8 +83,8 @@ After `session_start()` determine which workflow applies.
 | -------------------------------------------- | --------- |
 | Questions, research, reviews, planning       | Read-only |
 | Documentation only                           | Doc-only  |
-| Small code change                            | Quick     |
-| Feature, bugfix, refactor, multi-file change | Full      |
+| Small code change (1-2 files, low risk)      | Quick     |
+| Feature, bugfix, refactor, high-risk code    | Full      |
 
 ---
 
@@ -142,9 +142,11 @@ Use for small isolated code fixes.
 
 # Skill Loading
 
-After `session_start()` read `suggested_skills` and `workflow_guidance` and load `harness-workflow` plus recommended skills.
+From v1.7.0, `session_start()` performs **Auto Skill Resolution** and returns a list of pre-loaded skills in the `auto_loaded_skills` field. You do not need to manually call `skill_load` for these skills.
 
-Examples:
+You only need to manually load stack-specific skills if they are not already auto-loaded.
+
+Examples of typical skill combinations (many will be auto-loaded):
 
 ### Bug Fix
 * `harness-workflow`
@@ -178,7 +180,7 @@ If scope validation fails: stop, explain why, and request clarification. Do not 
 
 ---
 
-# Verification Policy
+# Verification & Compliance Policy
 
 Any task that changes code must execute:
 ```text
@@ -189,9 +191,11 @@ before claiming completion.
 Verification is considered incomplete if build, tests, or lint fail. Never report success if verification has not been executed.
 
 > [!IMPORTANT]
-> **Verification Gate Enforcement (v1.6.1)**:
-> `session_handoff` will block if `verify_run` has not passed in the current session.
-> If verification fails due to unresolvable environment issues, you must set `bypass_verify: true` and provide a valid justification in `bypass_rationale`.
+> **Strict Compliance & Sequence Validation (v1.7.0)**:
+> - **Completion Guard**: `task_update` to `done` is blocked if `verify_passed === 0` or compliance status is `FAIL`.
+> - **Sequence Validation**: The compliance engine validates execution order. Specifically, `scope_check` must occur chronologically **before** any `verify_run` tool calls.
+> - **Handoff Guard**: `session_end` is strictly blocked if you haven't successfully completed `session_handoff` first (reaching the `WRAP_UP` phase).
+> - **Verification Gate**: `session_handoff` will block if `verify_run` has not passed in the current session. If verification fails due to unresolvable environment issues, you must set `bypass_verify: true` and provide a valid justification in `bypass_rationale`.
 
 {{#if_node}}
 ### Build Commands (Node)

@@ -15,6 +15,11 @@ export interface SkillFrontmatter {
   metadata?: Record<string, unknown>;
   "allowed-tools"?: string;
 
+  // Sprint 2 (v1.7) fields
+  action_map?: Record<string, { tool: string; required?: boolean }>;
+  narrative_fields?: string[];
+  compliance_weight?: number;
+
   // Validation result (attached by validateFrontmatter)
   _errors?: string[];
 
@@ -123,6 +128,50 @@ export function validateFrontmatter(
   if (fm["allowed-tools"] != null) {
     if (typeof fm["allowed-tools"] !== "string") {
       errors.push("allowed-tools must be a string");
+    }
+  }
+
+  // Validate action_map (top-level or in metadata)
+  const actionMap = fm.action_map || fm.metadata?.action_map;
+  if (actionMap != null) {
+    if (typeof actionMap !== "object" || Array.isArray(actionMap)) {
+      errors.push("action_map must be an object");
+    } else {
+      for (const [key, value] of Object.entries(actionMap)) {
+        if (typeof value !== "object" || value === null) {
+          errors.push(`action_map.${key} must be an object`);
+        } else {
+          const val = value as any;
+          if (typeof val.tool !== "string") {
+            errors.push(`action_map.${key}.tool must be a string`);
+          }
+          if (val.required !== undefined && typeof val.required !== "boolean") {
+            errors.push(`action_map.${key}.required must be a boolean`);
+          }
+        }
+      }
+    }
+  }
+
+  // Validate narrative_fields (top-level or in metadata)
+  const narrativeFields = fm.narrative_fields || fm.metadata?.narrative_fields;
+  if (narrativeFields != null) {
+    if (!Array.isArray(narrativeFields)) {
+      errors.push("narrative_fields must be an array");
+    } else {
+      for (let idx = 0; idx < narrativeFields.length; idx++) {
+        if (typeof narrativeFields[idx] !== "string") {
+          errors.push(`narrative_fields[${idx}] must be a string`);
+        }
+      }
+    }
+  }
+
+  // Validate compliance_weight (top-level or in metadata)
+  const complianceWeight = fm.compliance_weight || fm.metadata?.compliance_weight;
+  if (complianceWeight != null) {
+    if (typeof complianceWeight !== "number") {
+      errors.push("compliance_weight must be a number");
     }
   }
 

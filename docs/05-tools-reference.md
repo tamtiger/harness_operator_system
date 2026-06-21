@@ -708,4 +708,68 @@ Gửi đề xuất tối ưu hóa (merge, prune, evolve, penalize) cho các inst
   }
 }
 ```
+
+---
+
+## Compliance & Narrative
+
+### `workflow_status`
+
+Lấy trạng thái thực thi quy trình làm việc (workflow) và điểm tuân thủ hiện tại của phiên làm việc.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `session_id` | string | ✅ | Session ID cần kiểm tra |
+
+```json
+// Response
+{
+  "sessionStarted": true,
+  "taskCreated": true,
+  "skillsLoaded": ["harness-workflow"],
+  "progressLogged": true,
+  "verifyExecuted": true,
+  "verifyPassed": true,
+  "handoffCreated": false,
+  "completedSteps": ["session_start", "task_create", "skill_load", "progress_log", "verify_run"],
+  "complianceScore": 70
+}
 ```
+
+### `compliance_check`
+
+Đánh giá chi tiết điểm tuân thủ, danh sách các hành động bị thiếu, bằng chứng xác minh bị thiếu và trạng thái tuân thủ của session.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `session_id` | string | ✅ | Session ID cần kiểm tra |
+
+```json
+// Response
+{
+  "score": 70,
+  "missingActions": ["session_handoff"],
+  "missingVerifiableEvidence": [],
+  "status": "PASS"
+}
+```
+
+### `skill_narrative_submit`
+
+Gửi bằng chứng tường thuật (giả thuyết, nguyên nhân gốc rễ, lập luận) cho các skill được tải. Bằng chứng tường thuật chỉ được lưu trữ để phục vụ kiểm toán và học hỏi, không được tính vào điểm tuân thủ.
+
+| Parameter | Type | Required | Mô tả |
+|-----------|------|----------|-------|
+| `session_id` | string | ✅ | Session ID |
+| `skill` | string | ✅ | Tên skill liên quan |
+| `field` | string | ✅ | Tên trường tường thuật (vd: `root_cause`, `hypothesis`) |
+| `text` | string | ✅ | Nội dung tường thuật |
+
+```json
+// Response
+{
+  "ok": true,
+  "event_id": 42
+}
+```
+

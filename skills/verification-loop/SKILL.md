@@ -8,6 +8,11 @@ metadata:
   triggers: ["verify_run"]
   tier: 2
   keywords: ["verify", "done", "proof", "evidence", "loop", "pass", "xác minh", "bằng chứng", "hoàn thành"]
+action_map:
+  verify_fix:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
 ---
 
 # Verification Loop

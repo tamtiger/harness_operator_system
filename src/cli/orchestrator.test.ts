@@ -23,14 +23,21 @@ describe("Ralph Loop Orchestrator", () => {
   });
 
   it("completes successfully on first iteration if verify passes", async () => {
-    vi.mocked(verifyTool.verifyRun).mockResolvedValue({
-      passed: true,
-      output: "Verify passed",
-      steps_run: ["build", "test"],
-      step_results: [
-        { name: "build", passed: true, output: "", duration_ms: 10 },
-        { name: "test", passed: true, output: "", duration_ms: 20 }
-      ]
+    vi.mocked(verifyTool.verifyRun).mockImplementation(async () => {
+      try {
+        const { getDb } = await import("../db/client.js");
+        const db = getDb();
+        db.prepare("UPDATE sessions SET verify_passed = 1, verify_called = 1").run();
+      } catch {}
+      return {
+        passed: true,
+        output: "Verify passed",
+        steps_run: ["build", "test"],
+        step_results: [
+          { name: "build", passed: true, output: "", duration_ms: 10 },
+          { name: "test", passed: true, output: "", duration_ms: 20 }
+        ]
+      };
     });
 
     const result = await runOrchestrate("Build main binary", {

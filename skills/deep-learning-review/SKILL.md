@@ -8,6 +8,15 @@ metadata:
   triggers: ["session_end", "session_handoff"]
   tier: 2
   keywords: ["learn", "review", "explain", "understand", "knowledge", "học", "hiểu", "giải thích", "tổng kết", "recap", "session review", "project review", "elii", "intern"]
+action_map:
+  check_status:
+    tool: "harness_status"
+    required: true
+compliance_weight: 15
+narrative_fields:
+  - problem
+  - solution
+  - impact
 ---
 
 # Deep Learning Review

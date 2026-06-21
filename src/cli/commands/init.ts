@@ -149,6 +149,7 @@ export function cmdInit() {
     // Pass all template variables
     content = renderTemplate(content, {
       REPO_NAME: repoName,
+      REPO_PATH: repoPath.replace(/\\/g, "/"),
       STACK: stack,
       DATE: date,
       PM_NAME: pmName,

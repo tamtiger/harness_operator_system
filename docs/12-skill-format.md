@@ -50,6 +50,9 @@ metadata:
 | `metadata.triggers` | string[] | ⚠️ | — | **Deprecated** — use `tier` + `keywords` instead |
 | `metadata.tier` | number | ❌ | 2 | Skill priority: 1 (core), 2 (contextual), 3 (on-demand) |
 | `metadata.keywords` | string[] | ❌ | [] | Keywords for tier 2 matching (English + Vietnamese) |
+| `action_map` | object | ❌ | — | Ánh xạ bước logic sang MCP tool (Class A/B) |
+| `narrative_fields` | string[] | ❌ | — | Các trường tường thuật (hypothesis, root_cause) (Class B) |
+| `compliance_weight` | number | ❌ | — | Trọng số điểm tuân thủ của skill này |
 
 ### Valid `applies_to` Values
 

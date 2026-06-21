@@ -21,6 +21,10 @@ vi.mock("./skill.js", () => ({
   })),
 }));
 
+vi.mock("./compliance.js", () => ({
+  complianceCheck: vi.fn(() => ({ status: "PASS", score: 85 })),
+}));
+
 describe("task tools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,10 +81,14 @@ describe("task tools", () => {
 
   it("taskUpdate to done recommends verify_run step", () => {
     const mockRun = vi.fn();
-    const mockGet = vi.fn().mockReturnValue({ session_id: "session-123" });
+    const mockGetSession = vi.fn().mockReturnValue({ session_id: "session-123" });
+    const mockGetVerify = vi.fn().mockReturnValue({ verify_passed: 1 });
     const mockPrepare = vi.fn().mockImplementation((query) => {
       if (query.includes("SELECT session_id")) {
-        return { get: mockGet };
+        return { get: mockGetSession };
+      }
+      if (query.includes("SELECT verify_passed")) {
+        return { get: mockGetVerify };
       }
       return { run: mockRun };
     });
@@ -93,5 +101,25 @@ describe("task tools", () => {
     expect(result.status).toBe("done");
     expect(result.workflow_guidance?.current_phase).toBe("EXECUTE");
     expect(result.workflow_guidance?.next_action).toContain("verify_run()");
+  });
+
+  it("taskUpdate to done throws error if verification has not passed", () => {
+    const mockRun = vi.fn();
+    const mockGetSession = vi.fn().mockReturnValue({ session_id: "session-123" });
+    const mockGetVerify = vi.fn().mockReturnValue({ verify_passed: 0 });
+    const mockPrepare = vi.fn().mockImplementation((query) => {
+      if (query.includes("SELECT session_id")) {
+        return { get: mockGetSession };
+      }
+      if (query.includes("SELECT verify_passed")) {
+        return { get: mockGetVerify };
+      }
+      return { run: mockRun };
+    });
+
+    const mockDb = { prepare: mockPrepare };
+    (getDb as any).mockReturnValue(mockDb);
+
+    expect(() => taskUpdate("task-123", "done")).toThrowError("ERR_COMPLIANCE");
   });
 });

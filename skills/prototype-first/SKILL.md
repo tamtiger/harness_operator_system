@@ -8,6 +8,11 @@ metadata:
   triggers: ["task_create"]
   tier: 2
   keywords: ["prototype", "spike", "experiment", "poc", "proof-of-concept", "explore", "nguyên mẫu", "thử nghiệm", "khám phá"]
+action_map:
+  verify_prototype:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
 ---
 
 # Prototype First

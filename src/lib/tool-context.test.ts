@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { resolve } from "node:path";
 import { resolveToolContext } from "./tool-context.js";
 import { readRepoConfig } from "./repo-identity.js";
 import { getDb } from "../db/client.js";
@@ -50,7 +51,7 @@ describe("tool-context", () => {
     (readRepoConfig as any).mockReturnValue(null);
 
     const ctx = resolveToolContext({});
-    expect(ctx.repo_path).toBe(".");
+    expect(ctx.repo_path).toBe(resolve("."));
   });
 
   it("resolves session_id from active session", () => {

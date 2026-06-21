@@ -16,7 +16,7 @@ harness-os là một hệ thống có cấu trúc giúp kiểm soát AI coding a
 - **MCP-first** — giao tiếp qua Model Context Protocol (stdio transport)
 - **Cross-IDE** — hỗ trợ 7 IDE (Cursor, Claude Code, Kiro, VS Code, Antigravity, OpenCode + instruction-only cho Codex, Copilot)
 - **Multi-repo** — một harness-os phục vụ nhiều repo cùng lúc
-- **32 MCP tools** trải đều 11 subsystems
+- **33 MCP tools** trải đều 11 subsystems
 - **32 built-in skills** cho workflow chuẩn
 
 ### 4 vấn đề harness-os giải quyết

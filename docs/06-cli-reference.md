@@ -15,6 +15,7 @@ harness <command> [options]
 | `init` | Khởi tạo harness cho repo |
 | `doctor` | Health check hệ thống |
 | `status` | Snapshot trạng thái hiện tại |
+| `dashboard` | Xem Observability Dashboard |
 | `verify` | Chạy verify pipeline thủ công (hỗ trợ skip/force install) |
 | `quick-start` | Khởi tạo session nhanh với task mặc định và '*' scope |
 | `skills` | Duyệt skills |
@@ -104,6 +105,40 @@ harness status [--repo path] [--format json|table]
 harness status
 harness status --format json
 harness status --repo ~/projects/my-api
+```
+
+---
+
+## `harness dashboard`
+
+Hiển thị Observability Dashboard, tính toán các chỉ số Compliance Rate, Verification Rate và Handoff Rate.
+
+```bash
+harness dashboard [--repo path]
+```
+
+| Flag | Mô tả |
+|------|--------|
+| `--repo` | Đường dẫn repo (default: tính toán trên toàn bộ sessions toàn cầu) |
+
+**Ví dụ:**
+
+```bash
+harness dashboard
+harness dashboard --repo ~/projects/my-api
+```
+
+**Output ví dụ:**
+
+```
+=== Harness-OS Observability Dashboard ===
+Scope: Global
+------------------------------------------
+Total Sessions:        194
+Compliance Rate:       79.4% (154/194)
+Verification Rate:     99.5% (193/194)
+Handoff Rate:          56.2% (109/194)
+==========================================
 ```
 
 ---

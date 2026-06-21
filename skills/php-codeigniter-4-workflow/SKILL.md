@@ -8,6 +8,11 @@ metadata:
   triggers: []
   tier: 2
   keywords: ["codeigniter", "ci4", "spark", "psr-4", "php", "shield", "entities", "migrations", "codeigniter-4"]
+action_map:
+  verify_run:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
 ---
 
 # CodeIgniter 4 Workflow

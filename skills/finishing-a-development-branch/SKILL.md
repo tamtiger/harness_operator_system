@@ -8,6 +8,14 @@ metadata:
   triggers: ["session_end", "session_handoff"]
   tier: 2
   keywords: ["finish", "branch", "handoff", "end", "close", "cleanup", "hoàn thành"]
+action_map:
+  final_verify:
+    tool: "verify_run"
+    required: true
+  close_session:
+    tool: "session_handoff"
+    required: true
+compliance_weight: 15
 ---
 
 # Finishing a Development Branch

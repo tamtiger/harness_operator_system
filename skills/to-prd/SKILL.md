@@ -8,6 +8,11 @@ metadata:
   triggers: ["session_start", "task_create"]
   tier: 2
   keywords: ["prd", "requirements", "product", "feature", "user-story", "acceptance", "yêu cầu", "sản phẩm", "tính năng", "câu chuyện người dùng", "chấp nhận"]
+action_map:
+  create_task:
+    tool: "task_create"
+    required: true
+compliance_weight: 15
 ---
 
 # Product Requirements Document (PRD) Generation

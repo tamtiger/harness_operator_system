@@ -8,6 +8,19 @@ metadata:
   triggers: ["task_create"]
   tier: 2
   keywords: ["test", "tdd", "red-green", "refactor", "unit-test", "coverage", "kiểm thử", "test-driven", "đỏ-xanh", "tái cấu trúc", "bao phủ"]
+action_map:
+  define_behavior:
+    tool: "task_create"
+    required: true
+  run_verify:
+    tool: "verify_run"
+    required: true
+  log_progress:
+    tool: "progress_log"
+    required: true
+compliance_weight: 15
+narrative_fields:
+  - behaviors_list
 ---
 
 # TDD Workflow

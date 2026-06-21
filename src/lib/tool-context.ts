@@ -1,3 +1,4 @@
+import { resolve, isAbsolute } from "node:path";
 import { getDb } from "../db/client.js";
 import { readRepoConfig } from "./repo-identity.js";
 import { repoHash } from "./repo.js";
@@ -15,7 +16,8 @@ export interface ToolContext {
  * for loop guard, circuit breaker, and analytics.
  */
 export function resolveToolContext(args: Record<string, unknown>): ToolContext {
-  const repoPath = (args.repo_path as string) || ".";
+  const rawPath = (args.repo_path as string) || ".";
+  const repoPath = isAbsolute(rawPath) ? rawPath : resolve(rawPath);
 
   // Resolve repo_id
   let repo_id: string;

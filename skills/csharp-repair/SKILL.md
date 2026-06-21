@@ -8,6 +8,11 @@ metadata:
   triggers: []
   tier: 2
   keywords: ["csharp", "dotnet", "hotfix", "repair", "patch", "urgent", "c#", ".net", "sửa nóng", "sửa chữa", "vá", "khẩn cấp"]
+action_map:
+  verify_repair:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
 ---
 
 # C# Repair Guide

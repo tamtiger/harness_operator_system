@@ -8,6 +8,11 @@ metadata:
   triggers: ["task_create", "task_update"]
   tier: 2
   keywords: ["triage", "priority", "severity", "classify", "assign", "backlog", "phân loại", "ưu tiên", "mức độ", "phân lớp", "gán", "danh sách chờ"]
+action_map:
+  update_task:
+    tool: "task_update"
+    required: true
+compliance_weight: 15
 ---
 
 # Issue Triage & Management

@@ -8,6 +8,11 @@ metadata:
   triggers: []
   tier: 2
   keywords: ["csharp", "dotnet", "bug", "fix", "exception", "null", "ef-core", "c#", ".net", "lỗi", "sửa", "ngoại lệ", "entity-framework"]
+action_map:
+  verify_fix:
+    tool: "verify_run"
+    required: true
+compliance_weight: 15
 ---
 
 # C# Bugfix Workflow

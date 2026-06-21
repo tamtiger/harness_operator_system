@@ -8,6 +8,17 @@ metadata:
   triggers: ["session_start", "task_create"]
   tier: 1
   keywords: ["spec", "research", "innovate", "plan", "execute", "review", "phase", "đặc tả", "nghiên cứu", "kế hoạch", "thực hiện"]
+action_map:
+  session_start:
+    tool: session_start
+    required: true
+  verify_run:
+    tool: verify_run
+    required: true
+  session_handoff:
+    tool: session_handoff
+    required: true
+compliance_weight: 30
 ---
 
 # Harness & Spec-Driven Workflow (RIPER-5) v2.1

@@ -15,7 +15,7 @@
 
 - AI coding agents (thông qua MCP protocol)
 - Developers (thông qua CLI tool `harness`)
-- 11 modules, 32 MCP tools, 32 built-in skills
+- 11 modules, 33 MCP tools, 32 built-in skills
 
 ### Tech stack
 

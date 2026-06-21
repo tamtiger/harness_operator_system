@@ -8,6 +8,11 @@ metadata:
   triggers: ["task_create"]
   tier: 3
   keywords: []
+action_map:
+  create_skill:
+    tool: "skill_create_from_session"
+    required: true
+compliance_weight: 15
 ---
 
 # Writing Skills in Harness-OS

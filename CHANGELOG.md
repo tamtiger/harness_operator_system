@@ -3,6 +3,20 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.7.0] — 2026-06-20
+
+### Thêm (Added)
+- **Module Compliance & Điểm tuân thủ (Sprint 1 / Phase 1, 2, 5)**: Triển khai engine kiểm tra tuân thủ bằng chứng thực tế qua 2 MCP tool mới: `workflow_status` (theo dõi các bước workflow) và `compliance_check` (tính điểm tuân thủ dựa trên hành động thực tế).
+- **Rào cản Hoàn thành Task tuyệt đối (Sprint 1 / Phase 6)**: Tích hợp Completion Guard chặn đứng việc chuyển trạng thái task sang `done` trong `task_update` nếu quy trình xác minh chưa pass (`verify_passed === 0`) hoặc trạng thái tuân thủ là `FAIL`. Bỏ cơ chế bypass đối với việc kết thúc task.
+- **Skill Contracts & Ánh xạ Skill-to-Action (Sprint 2 / Phase 3, 3.5)**: Hỗ trợ cấu trúc hợp đồng kỹ năng `action_map`, `narrative_fields` và `compliance_weight` trong parser frontmatter và các skill file. Điểm tuân thủ tính theo hành động thực tế thay vì loading đơn thuần.
+- **Workflow Sequence Validation (Sprint 2 / Phase 3.5)**: Tích hợp kiểm tra trình tự thực thi công cụ trong Compliance Engine. Enforce yêu cầu chạy `scope_check` trước `verify_run` trong phiên làm việc.
+- **Kênh thu thập Bằng chứng Tường thuật (Sprint 2 / Phase 4)**: Cung cấp MCP tool mới `skill_narrative_submit` để thu thập bằng chứng tường thuật (hypothesis, root_cause) mà không ảnh hưởng tới điểm tuân thủ.
+- **Bằng chứng Side-Effect tự động (Sprint 2 / Phase 4)**: Tự động ghi nhận `verify_exit_code` và chụp lại `diff_captured` từ git trong công cụ `verify_run` để làm bằng chứng kiểm chứng khách quan.
+- **Auto Skill Resolution (Sprint 3)**: Cập nhật `sessionStart` tự động tải các skill được đề xuất (`auto_loaded_skills`), giảm sự phụ thuộc vào trí nhớ của agent.
+- **Workflow Router (Sprint 3)**: Thêm `router.ts` phân loại heuristic giữa luồng `Quick` và `Full` dựa trên scope thay đổi, trả về qua `WorkflowGuidance`.
+- **Handoff Guard (Sprint 4)**: Thêm rào cản ở `sessionEnd` chặn đóng session nếu chưa chạy `session_handoff` (đạt phase `WRAP_UP`).
+- **Observability Dashboard (Sprint 4)**: Thêm lệnh CLI `harness dashboard` tính toán Compliance Rate, Verification Rate và Handoff Rate.
+
 ## [1.6.1] — 2026-06-20
 
 ### Thêm (Added)
