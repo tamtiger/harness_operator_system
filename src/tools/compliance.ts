@@ -207,10 +207,12 @@ export function complianceCheck(sessionId: string): ComplianceCheckResult {
 
     const meta = loaded.meta;
     const actionMap = meta?.action_map || meta?.metadata?.action_map;
+    const steps = meta?.steps || meta?.metadata?.steps;
 
+    let allRequiredToolsCalled = true;
+
+    // Legacy action_map support
     if (actionMap && typeof actionMap === "object") {
-      let allRequiredToolsCalled = true;
-
       for (const [actionName, actionConfig] of Object.entries(actionMap)) {
         const val = actionConfig as any;
         if (val && typeof val === "object" && val.tool) {
@@ -232,7 +234,65 @@ export function complianceCheck(sessionId: string): ComplianceCheckResult {
           }
         }
       }
+    }
 
+    // New steps array support
+    if (Array.isArray(steps)) {
+      for (const step of steps) {
+        if (step.type === "action_mappable" && step.required_tool) {
+          const calledRow = db.prepare(`
+            SELECT COUNT(*) as count FROM audit_events
+            WHERE json_extract(payload, '$.session_id') = ?
+              AND event_type = 'tool_success'
+              AND json_extract(payload, '$.tool') = ?
+          `).get(sessionId, step.required_tool) as { count: number };
+
+          if (calledRow.count === 0) {
+            allRequiredToolsCalled = false;
+            missingActions.push(`${skillName}:${step.required_tool}`);
+          }
+
+          // Check sequence if order is defined e.g. "before(verify_run)"
+          if (step.order && typeof step.order === "string") {
+            const match = step.order.match(/^before\((.+)\)$/);
+            if (match) {
+              const targetTool = match[1];
+              const events = db.prepare(`
+                SELECT json_extract(payload, '$.tool') as tool, created_at
+                FROM audit_events
+                WHERE json_extract(payload, '$.session_id') = ?
+                  AND event_type = 'tool_success'
+                  AND json_extract(payload, '$.tool') IN (?, ?)
+                ORDER BY created_at ASC
+              `).all(sessionId, step.required_tool, targetTool) as Array<{ tool: string | null; created_at: string }>;
+              
+              const firstTarget = events.findIndex(e => e.tool === targetTool);
+              const firstRequired = events.findIndex(e => e.tool === step.required_tool);
+              
+              if (firstTarget !== -1 && (firstRequired === -1 || firstRequired > firstTarget)) {
+                allRequiredToolsCalled = false;
+                missingVerifiableEvidence.push(`sequence_violation: ${step.required_tool} must run before ${targetTool}`);
+              }
+            }
+          }
+        } else if (step.type === "narrative_gated" && step.gate_field) {
+          const narrativeRow = db.prepare(`
+            SELECT COUNT(*) as count FROM audit_events
+            WHERE json_extract(payload, '$.session_id') = ?
+              AND event_type = 'tool_success'
+              AND json_extract(payload, '$.tool') = 'skill_narrative_submit'
+              AND json_extract(payload, '$.args.field') = ?
+          `).get(sessionId, step.gate_field) as { count: number };
+          
+          if (narrativeRow.count === 0) {
+            allRequiredToolsCalled = false;
+            missingActions.push(`narrative_gate:${step.gate_field}`);
+          }
+        }
+      }
+    }
+
+    if (actionMap || Array.isArray(steps)) {
       // Check required verifiable evidence for this skill
       const reqEvidence = meta?.required_verifiable_evidence || meta?.metadata?.required_verifiable_evidence;
       if (Array.isArray(reqEvidence)) {

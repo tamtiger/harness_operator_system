@@ -93,10 +93,10 @@ async function main() {
     if (!sessionData.session_id) {
       throw new Error("session_start missing session_id");
     }
-    if (!Array.isArray(sessionData.applicable_skills)) {
-      throw new Error("session_start missing applicable_skills");
+    if (!Array.isArray(sessionData.required_skills)) {
+      throw new Error("session_start missing required_skills");
     }
-    console.log(`✓ session_start — session_id: ${sessionData.session_id} (${sessionData.applicable_skills.length} skills)`);
+    console.log(`✓ session_start — session_id: ${sessionData.session_id} (${sessionData.required_skills.length} skills)`);
 
     // Call task_create
     const taskResult = await client.callTool({

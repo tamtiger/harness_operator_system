@@ -37,11 +37,8 @@ Call `session_start` with the absolute path of the repository:
 session_start("{{REPO_PATH}}")
 ```
 
-before inspecting source code, editing files, or creating plans.
 
-> [!TIP]
-> If you already have the `harness-workflow` skill content in your conversation history, you can pass `skip_workflow_content: true` to prevent context bloating:
-> `session_start(".", { skip_workflow_content: true })`
+before inspecting source code, editing files, or creating plans.
 
 Why?
 
@@ -191,9 +188,10 @@ before claiming completion.
 Verification is considered incomplete if build, tests, or lint fail. Never report success if verification has not been executed.
 
 > [!IMPORTANT]
-> **Strict Compliance & Sequence Validation (v1.7.0)**:
+> **Strict Compliance & Sequence Validation (v1.7.1)**:
 > - **Completion Guard**: `task_update` to `done` is blocked if `verify_passed === 0` or compliance status is `FAIL`.
 > - **Sequence Validation**: The compliance engine validates execution order. Specifically, `scope_check` must occur chronologically **before** any `verify_run` tool calls.
+> - **Narrative Gated Tool Blocks**: If a loaded skill requires a narrative submission, certain tools (e.g. `verify_run`) will be blocked dynamically until you call `skill_narrative_submit` with the exact `gate_field` required.
 > - **Handoff Guard**: `session_end` is strictly blocked if you haven't successfully completed `session_handoff` first (reaching the `WRAP_UP` phase).
 > - **Verification Gate**: `session_handoff` will block if `verify_run` has not passed in the current session. If verification fails due to unresolvable environment issues, you must set `bypass_verify: true` and provide a valid justification in `bypass_rationale`.
 

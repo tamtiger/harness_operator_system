@@ -2,6 +2,8 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { verifyRun } from "../tools/verify.js";
 import { log } from "./logger.js";
+import { getDb } from "../db/client.js";
+import { skillLoad } from "../tools/skill.js";
 
 import { validateHooksYaml } from "./yaml-parser.js";
 
@@ -73,31 +75,91 @@ export function checkPreToolHooks(
   args: Record<string, unknown>
 ): { allowed: boolean; reason?: string } {
   const config = loadHooksConfig(repoPath);
-  if (!config || !config.pre_tool_block) return { allowed: true };
-
   const argsStr = JSON.stringify(args);
 
-  for (const rule of config.pre_tool_block) {
-    if (rule.tool === toolName || rule.tool === "*") {
-      if (rule.pattern) {
-        const regex = new RegExp(rule.pattern, "i");
-        if (regex.test(argsStr)) {
+  if (config && config.pre_tool_block) {
+    for (const rule of config.pre_tool_block) {
+      if (rule.tool === toolName || rule.tool === "*") {
+        if (rule.pattern) {
+          const regex = new RegExp(rule.pattern, "i");
+          if (regex.test(argsStr)) {
+            return {
+              allowed: false,
+              reason: rule.message || `Tool '${toolName}' call blocked by hook rule matching pattern '${rule.pattern}'`,
+            };
+          }
+        } else {
+          // Block always
           return {
             allowed: false,
-            reason: rule.message || `Tool '${toolName}' call blocked by hook rule matching pattern '${rule.pattern}'`,
+            reason: rule.message || `Tool '${toolName}' call blocked by hook rule`,
           };
         }
-      } else {
-        // Block always
-        return {
-          allowed: false,
-          reason: rule.message || `Tool '${toolName}' call blocked by hook rule`,
-        };
       }
     }
   }
 
+  // Dynamic Narrative-Gated Blocking
+  try {
+    const sessionId = (args.session_id as string) || getActiveSessionId(repoPath);
+    if (sessionId) {
+      const db = getDb();
+      const skillEvents = db.prepare(`
+        SELECT DISTINCT json_extract(payload, '$.args.name') as skill_name
+        FROM audit_events
+        WHERE json_extract(payload, '$.session_id') = ?
+          AND event_type = 'tool_success'
+          AND json_extract(payload, '$.tool') = 'skill_load'
+      `).all(sessionId) as Array<{ skill_name: string | null }>;
+      
+      const skillsLoaded = Array.from(new Set(skillEvents.map(e => e.skill_name).filter((n): n is string => typeof n === "string")));
+      
+      for (const skillName of skillsLoaded) {
+        const loaded = skillLoad(skillName, repoPath);
+        if (!loaded || "error" in loaded) continue;
+        
+        const steps = loaded.meta?.steps || loaded.meta?.metadata?.steps;
+        if (Array.isArray(steps)) {
+          for (const step of steps) {
+            if (step.type === "narrative_gated" && step.blocks === toolName && step.gate_field) {
+              const narrativeRow = db.prepare(`
+                SELECT COUNT(*) as count FROM audit_events
+                WHERE json_extract(payload, '$.session_id') = ?
+                  AND event_type = 'tool_success'
+                  AND json_extract(payload, '$.tool') = 'skill_narrative_submit'
+                  AND json_extract(payload, '$.args.field') = ?
+              `).get(sessionId, step.gate_field) as { count: number };
+              
+              if (narrativeRow.count === 0) {
+                return {
+                  allowed: false,
+                  reason: `Action '${toolName}' is blocked by skill '${skillName}'. You must call 'skill_narrative_submit' with gate_field '${step.gate_field}' before proceeding.`,
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore DB errors during evaluation
+  }
+
   return { allowed: true };
+}
+
+function getActiveSessionId(repoPath: string): string | null {
+  try {
+    const db = getDb();
+    const row = db.prepare(`
+      SELECT id FROM sessions
+      WHERE repo_path = ? AND status = 'active'
+      ORDER BY started_at DESC LIMIT 1
+    `).get(repoPath) as { id: string } | undefined;
+    return row?.id || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -229,36 +291,14 @@ export async function dryRunHooks(
     preToolBlock: { matched: false },
   };
 
-  const config = loadHooksConfig(repoPath);
-  if (!config) return result;
-
-  // Evaluate pre-tool block
-  if (config.pre_tool_block) {
-    const argsStr = JSON.stringify(args);
-    for (const rule of config.pre_tool_block) {
-      if (rule.tool === toolName || rule.tool === "*") {
-        if (rule.pattern) {
-          const regex = new RegExp(rule.pattern, "i");
-          if (regex.test(argsStr)) {
-            result.allowed = false;
-            result.preToolBlock = {
-              matched: true,
-              rule,
-              reason: rule.message || `Blocked by pattern '${rule.pattern}'`,
-            };
-            break;
-          }
-        } else {
-          result.allowed = false;
-          result.preToolBlock = {
-            matched: true,
-            rule,
-            reason: rule.message || "Blocked always",
-          };
-          break;
-        }
-      }
-    }
+  // Evaluate pre-tool block + dynamic gates
+  const preCheck = checkPreToolHooks(repoPath, toolName, args);
+  if (!preCheck.allowed) {
+    result.allowed = false;
+    result.preToolBlock = {
+      matched: true,
+      reason: preCheck.reason,
+    };
   }
 
   // Evaluate stop validation if the tool is session_end or session_handoff

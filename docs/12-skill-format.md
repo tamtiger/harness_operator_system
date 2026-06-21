@@ -31,12 +31,19 @@ Directory name MUST match the `name` field in frontmatter.
 name: my-skill-name
 description: One-line description of what this skill teaches.
 metadata:
-  version: "1.0"
-  updated: 2026-01-15
+  version: "1.1"
+  updated: 2026-06-21
   applies_to: ["node", "dotnet"]
-  triggers: ["task_create"]
   tier: 2
   keywords: ["keyword1", "keyword2"]
+steps:
+  - id: check_scope
+    type: action_mappable
+    required_tool: scope_check
+  - id: analyze_cause
+    type: narrative_gated
+    blocks: verify_run
+    gate_field: root_cause
 ---
 ```
 
@@ -50,9 +57,13 @@ metadata:
 | `metadata.triggers` | string[] | ⚠️ | — | **Deprecated** — use `tier` + `keywords` instead |
 | `metadata.tier` | number | ❌ | 2 | Skill priority: 1 (core), 2 (contextual), 3 (on-demand) |
 | `metadata.keywords` | string[] | ❌ | [] | Keywords for tier 2 matching (English + Vietnamese) |
-| `action_map` | object | ❌ | — | Ánh xạ bước logic sang MCP tool (Class A/B) |
-| `narrative_fields` | string[] | ❌ | — | Các trường tường thuật (hypothesis, root_cause) (Class B) |
-| `compliance_weight` | number | ❌ | — | Trọng số điểm tuân thủ của skill này |
+| `steps` | object[] | ❌ | — | Danh sách các bước logic (thay thế cho `action_map` cũ) |
+| `steps[].id` | string | ✅ | — | ID của step |
+| `steps[].type` | string | ✅ | — | `action_mappable`, `narrative_gated`, hoặc `unenforceable` |
+| `steps[].required_tool` | string | ⚠️ | — | Tool cần thực thi (bắt buộc cho `action_mappable`) |
+| `steps[].order` | string | ❌ | — | Điều kiện thứ tự, vd `before(verify_run)` |
+| `steps[].blocks` | string | ⚠️ | — | Tên tool bị chặn (bắt buộc cho `narrative_gated`) |
+| `steps[].gate_field` | string | ⚠️ | — | Trường dữ liệu cần nộp (bắt buộc cho `narrative_gated`) |
 
 ### Valid `applies_to` Values
 

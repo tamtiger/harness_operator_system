@@ -38,26 +38,24 @@ export interface SuggestedSkill {
   reason: string;
 }
 
-export interface WorkflowGuidance {
+export interface WorkflowState {
   current_phase: string;
-  next_action: string;
-  ctr_needed: boolean;
-  checklist?: string[];
-  workflow_type?: "Quick" | "Full";
+  missing_requirements: string[];
+  action_queue: string[];
+  compliance_status: "PASS" | "FAIL" | "PENDING";
 }
 
 export interface SessionStartResult {
   session_id: string;
   last_handoff: HandoffData | null;
   pending_tasks_count: number;
-  applicable_skills: string[];
+  required_skills: string[];
+  recommended_skills: SuggestedSkill[];
   workflow_content: string | null; // Content of harness-workflow
   auto_loaded_skills: Array<{ name: string; content: string }>;
-  suggested_skills: SuggestedSkill[];
-  instructions_to_read: string[];
   never_again: string[];
   relevant_knowledge: Array<{ id: string; description: string }>;
-  workflow_guidance: WorkflowGuidance;
+  workflow_state: WorkflowState;
   quick_task_id?: string;
   _warn?: string;
 }
@@ -105,6 +103,8 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
   ensureDir(join(globalRepoDir, "artifacts", "research"));
   ensureDir(join(globalRepoDir, "artifacts", "reviews"));
   // --- end v1.0 auto-migration ---
+
+  const skipWorkflowContent = options.skip_workflow_content === true;
 
   const db = getDb();
 
@@ -204,7 +204,7 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
   
   // Get only tier 1 skills for session_start
   const tier1Results = getTier1Skills(skillsWithMeta);
-  const applicableSkills = tier1Results.map((r) => r.name);
+  const requiredSkills = tier1Results.map((r) => r.name);
 
   // Auto-suggest skills based on context
   const stack = runtime.runtime !== "unknown" ? runtime.runtime : undefined;
@@ -224,28 +224,25 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
 
   // Auto Skill Resolution (Phase 7)
   const autoLoadedSkills: Array<{ name: string; content: string }> = [];
-  const skipWorkflowContent = options.skip_workflow_content === true;
-  if (!skipWorkflowContent) {
-    for (const s of suggestedSkills) {
-      try {
-        const loaded = skillLoad(s.name, absRepoPath);
-        if (loaded && !("error" in loaded)) {
-          autoLoadedSkills.push({ name: s.name, content: loaded.content });
-        }
-      } catch (err) {
-        log("warn", `Failed to auto-load skill ${s.name}: ${err}`);
+  for (const s of suggestedSkills) {
+    try {
+      const loaded = skillLoad(s.name, absRepoPath);
+      if (loaded && !("error" in loaded)) {
+        autoLoadedSkills.push({ name: s.name, content: loaded.content });
       }
+    } catch (err) {
+      log("warn", `Failed to auto-load skill ${s.name}: ${err}`);
     }
   }
 
-  // Determine instructions to read
-  const instructions: string[] = ["AGENTS.md", "skill:harness-workflow"];
+  // Determine missing requirements
+  const missingRequirements: string[] = ["AGENTS.md", "harness-workflow"];
   const stackBaseline = `${runtime.runtime}-baseline`;
   if (skills.some(s => s.name === stackBaseline)) {
-    instructions.push(`skill:${stackBaseline}`);
+    missingRequirements.push(stackBaseline);
   }
   if (suggestedSkills.length > 0 && suggestedSkills[0].score >= 1.5) {
-    instructions.push(`skill:${suggestedSkills[0].name}`);
+    missingRequirements.push(suggestedSkills[0].name);
   }
 
   // Read never_again.md warnings
@@ -337,42 +334,42 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
     else if (t.includes("hotfix")) taskType = "hotfix";
   }
 
-  let checklist: string[] = [];
+  let actionQueue: string[] = [];
   if (taskType === "bugfix" || taskType === "hotfix") {
-    checklist = [
-      "1. Run systematic-diagnosis to find the root cause",
-      "2. Create a reproduction test case if possible",
-      "3. Check file scope via scope_check before modifying any files",
-      "4. Make changes incrementally and run verify_run frequently",
-      "5. Review changes against code-review-workflow checklist",
-      "6. Call session_handoff to submit the bugfix"
+    actionQueue = [
+      "Run systematic-diagnosis to find the root cause",
+      "Create a reproduction test case if possible",
+      "Check file scope via scope_check before modifying any files",
+      "Make changes incrementally and run verify_run frequently",
+      "Review changes against code-review-workflow checklist",
+      "Call session_handoff to submit the bugfix"
     ];
   } else if (taskType === "refactor") {
-    checklist = [
-      "1. Establish regression tests to ensure behavior remains identical",
-      "2. Check file scope via scope_check before refactoring",
-      "3. Perform modifications in small, compiler-verifiable chunks",
-      "4. Run verify_run after each refactoring step",
-      "5. Review changes using code-review-workflow checklist",
-      "6. Call session_handoff to submit the refactored code"
+    actionQueue = [
+      "Establish regression tests to ensure behavior remains identical",
+      "Check file scope via scope_check before refactoring",
+      "Perform modifications in small, compiler-verifiable chunks",
+      "Run verify_run after each refactoring step",
+      "Review changes using code-review-workflow checklist",
+      "Call session_handoff to submit the refactored code"
     ];
   } else if (taskType === "feature") {
-    checklist = [
-      "1. Review design guidelines and establish vertical slices",
-      "2. Check file scope via scope_check before modifying any files",
-      "3. Write tests first following TDD workflow",
-      "4. Implement the feature code incrementally",
-      "5. Run verify_run to ensure all tests, build, and lint pass",
-      "6. Review changes using code-review-workflow checklist",
-      "7. Call session_handoff to submit the feature"
+    actionQueue = [
+      "Review design guidelines and establish vertical slices",
+      "Check file scope via scope_check before modifying any files",
+      "Write tests first following TDD workflow",
+      "Implement the feature code incrementally",
+      "Run verify_run to ensure all tests, build, and lint pass",
+      "Review changes using code-review-workflow checklist",
+      "Call session_handoff to submit the feature"
     ];
   } else {
-    checklist = [
-      "1. Verify requirements and define task scope",
-      "2. Check file scope via scope_check before editing",
-      "3. Apply modifications incrementally",
-      "4. Run verify_run to validate build, tests, and lint",
-      "5. Call session_handoff to persist progress and next steps"
+    actionQueue = [
+      "Verify requirements and define task scope",
+      "Check file scope via scope_check before editing",
+      "Apply modifications incrementally",
+      "Run verify_run to validate build, tests, and lint",
+      "Call session_handoff to persist progress and next steps"
     ];
   }
 
@@ -380,19 +377,17 @@ export function sessionStart(repoPath: string, options: SessionStartOptions = {}
     session_id: id,
     last_handoff: optimizedHandoff,
     pending_tasks_count: pendingCount,
-    applicable_skills: applicableSkills,
+    required_skills: requiredSkills,
+    recommended_skills: suggestedSkills,
     workflow_content: workflowContent,
     auto_loaded_skills: autoLoadedSkills,
-    suggested_skills: suggestedSkills,
-    instructions_to_read: instructions,
     never_again: neverAgainWarnings,
     relevant_knowledge: optimizedKnowledge,
-    workflow_guidance: {
+    workflow_state: {
       current_phase: "START",
-      next_action: "Read instructions_to_read, review last_handoff, then proceed to SELECT phase. Note your workflow_type and adhere to required auto-loaded skills.",
-      ctr_needed: false,
-      checklist: checklist,
-      workflow_type: workflowType,
+      missing_requirements: missingRequirements,
+      action_queue: actionQueue,
+      compliance_status: "PENDING",
     }
   };
 

@@ -1,8 +1,20 @@
 /**
  * Parse and validate YAML frontmatter from SKILL.md files.
  * Compliant with agentskills.io specification.
- * Simple implementation — no heavy deps.
  */
+import { parseYamlString } from "./yaml-parser.js";
+
+export type SkillStepType = "action_mappable" | "narrative_gated" | "unenforceable";
+
+export interface SkillStep {
+  id: string;
+  type: SkillStepType;
+  required_tool?: string;
+  order?: string;
+  gate_field?: string;
+  blocks?: string;
+  note?: string;
+}
 
 export interface SkillFrontmatter {
   // Required (spec)
@@ -16,7 +28,8 @@ export interface SkillFrontmatter {
   "allowed-tools"?: string;
 
   // Sprint 2 (v1.7) fields
-  action_map?: Record<string, { tool: string; required?: boolean }>;
+  action_map?: Record<string, { tool: string; required?: boolean }>; // kept for backwards compatibility during transition
+  steps?: SkillStep[];
   narrative_fields?: string[];
   compliance_weight?: number;
 
@@ -59,7 +72,7 @@ export function parseFrontmatter(raw: string): ParsedSkill {
   const content = trimmed.slice(endIndex + 3).trim();
 
   try {
-    const meta = parseSimpleYaml(yamlBlock) as SkillFrontmatter;
+    const meta = parseYamlString(yamlBlock) as SkillFrontmatter;
     return { meta, content };
   } catch {
     return { meta: null, content: raw };
@@ -153,160 +166,49 @@ export function validateFrontmatter(
     }
   }
 
-  // Validate narrative_fields (top-level or in metadata)
-  const narrativeFields = fm.narrative_fields || fm.metadata?.narrative_fields;
-  if (narrativeFields != null) {
-    if (!Array.isArray(narrativeFields)) {
-      errors.push("narrative_fields must be an array");
+  // Validate steps
+  const steps = fm.steps || fm.metadata?.steps;
+  if (steps != null) {
+    if (!Array.isArray(steps)) {
+      errors.push("steps must be an array");
     } else {
-      for (let idx = 0; idx < narrativeFields.length; idx++) {
-        if (typeof narrativeFields[idx] !== "string") {
-          errors.push(`narrative_fields[${idx}] must be a string`);
+      for (let idx = 0; idx < steps.length; idx++) {
+        const step = steps[idx];
+        if (typeof step !== "object" || step === null) {
+          errors.push(`steps[${idx}] must be an object`);
+          continue;
+        }
+
+        if (typeof step.id !== "string") {
+          errors.push(`steps[${idx}].id must be a string`);
+        }
+
+        if (!["action_mappable", "narrative_gated", "unenforceable"].includes(step.type)) {
+          errors.push(`steps[${idx}].type must be 'action_mappable', 'narrative_gated', or 'unenforceable'`);
+        }
+
+        if (step.type === "action_mappable") {
+          if (typeof step.required_tool !== "string") {
+            errors.push(`steps[${idx}].required_tool is required for action_mappable steps`);
+          }
+          if (step.order !== undefined && typeof step.order !== "string") {
+            errors.push(`steps[${idx}].order must be a string`);
+          }
+        }
+
+        if (step.type === "narrative_gated") {
+          if (typeof step.gate_field !== "string") {
+            errors.push(`steps[${idx}].gate_field is required for narrative_gated steps`);
+          }
+          if (step.blocks !== undefined && typeof step.blocks !== "string") {
+            errors.push(`steps[${idx}].blocks must be a string`);
+          }
         }
       }
-    }
-  }
-
-  // Validate compliance_weight (top-level or in metadata)
-  const complianceWeight = fm.compliance_weight || fm.metadata?.compliance_weight;
-  if (complianceWeight != null) {
-    if (typeof complianceWeight !== "number") {
-      errors.push("compliance_weight must be a number");
     }
   }
 
   return errors;
 }
 
-/**
- * Minimal YAML parser for flat key-value + arrays + nested objects.
- * Handles: strings, quoted strings, inline arrays ["a", "b"], numbers, null,
- * and indented nested objects (for `metadata` field).
- */
-function parseSimpleYaml(yaml: string): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  const lines = yaml.split("\n");
-  let i = 0;
 
-  while (i < lines.length) {
-    const line = lines[i];
-    const trimmedLine = line.trim();
-
-    // Skip empty lines and comments
-    if (!trimmedLine || trimmedLine.startsWith("#")) {
-      i++;
-      continue;
-    }
-
-    const colonIdx = trimmedLine.indexOf(":");
-    if (colonIdx === -1) {
-      i++;
-      continue;
-    }
-
-    const key = trimmedLine.slice(0, colonIdx).trim();
-    const rawValue = trimmedLine.slice(colonIdx + 1).trim();
-
-    // Check if this is a nested object (value is empty and next lines are indented)
-    if (rawValue === "" || rawValue === "|" || rawValue === ">") {
-      // Look ahead for indented lines (nested object)
-      const nested = collectNestedBlock(lines, i + 1);
-      if (nested.lines.length > 0 && nested.isObject) {
-        result[key] = parseSimpleYaml(
-          nested.lines.map((l) => l.replace(/^ {2}/, "")).join("\n")
-        );
-        i = nested.endIndex;
-        continue;
-      }
-      // No nested content — treat as null
-      result[key] = null;
-      i++;
-      continue;
-    }
-
-    // Inline array: ["a", "b"]
-    if (rawValue.startsWith("[") && rawValue.endsWith("]")) {
-      result[key] = parseInlineArray(rawValue);
-      i++;
-      continue;
-    }
-
-    // Parse scalar value
-    result[key] = parseScalar(rawValue);
-    i++;
-  }
-
-  return result;
-}
-
-/**
- * Collect indented lines that form a nested block.
- * Returns the lines and the index after the block ends.
- */
-function collectNestedBlock(
-  lines: string[],
-  startIndex: number
-): { lines: string[]; endIndex: number; isObject: boolean } {
-  const collected: string[] = [];
-  let i = startIndex;
-  let isObject = false;
-
-  while (i < lines.length) {
-    const line = lines[i];
-    // A nested line must start with at least 2 spaces
-    if (line.startsWith("  ") || line.trim() === "") {
-      if (line.trim() !== "" && line.trim().includes(":")) {
-        isObject = true;
-      }
-      collected.push(line);
-      i++;
-    } else {
-      break;
-    }
-  }
-
-  return { lines: collected, endIndex: i, isObject };
-}
-
-/**
- * Parse an inline YAML array like ["a", "b", "c"]
- */
-function parseInlineArray(value: string): unknown[] {
-  const inner = value.slice(1, -1);
-  if (inner.trim() === "") return [];
-
-  return inner
-    .split(",")
-    .map((s) => s.trim())
-    .map((s) => parseScalar(s))
-    .filter((s) => s !== "");
-}
-
-/**
- * Parse a scalar YAML value: string, number, boolean, null.
- */
-function parseScalar(value: string): unknown {
-  // null
-  if (value === "null" || value === "~" || value === "") {
-    return null;
-  }
-
-  // boolean
-  if (value === "true") return true;
-  if (value === "false") return false;
-
-  // Quoted string
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1);
-  }
-
-  // Number (only if purely numeric, not quoted)
-  if (/^\d+(\.\d+)?$/.test(value)) {
-    return parseFloat(value);
-  }
-
-  return value;
-}

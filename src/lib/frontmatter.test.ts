@@ -10,7 +10,7 @@ describe("parseFrontmatter", () => {
     const input = `---
 name: test-skill
 version: "1.0"
-updated: 2026-05-26
+updated: "2026-05-26"
 applies_to: ["node", "python"]
 triggers: ["session_start"]
 description: A test skill for unit testing.
@@ -312,6 +312,107 @@ describe("validateFrontmatter", () => {
       "allowed-tools": "search, read",
     };
     expect(validateFrontmatter(fm)).toEqual([]);
+  });
+
+  // --- steps validation ---
+
+  it("accepts valid action_mappable step", () => {
+    const fm: SkillFrontmatter = {
+      name: "valid-skill",
+      description: "valid",
+      steps: [
+        {
+          id: "step1",
+          type: "action_mappable",
+          required_tool: "verify_run",
+          order: "before(session_handoff)",
+        },
+      ],
+    };
+    expect(validateFrontmatter(fm)).toEqual([]);
+  });
+
+  it("accepts valid narrative_gated step", () => {
+    const fm: SkillFrontmatter = {
+      name: "valid-skill",
+      description: "valid",
+      steps: [
+        {
+          id: "step1",
+          type: "narrative_gated",
+          gate_field: "root_cause",
+          blocks: "verify_run",
+        },
+      ],
+    };
+    expect(validateFrontmatter(fm)).toEqual([]);
+  });
+
+  it("accepts valid unenforceable step", () => {
+    const fm: SkillFrontmatter = {
+      name: "valid-skill",
+      description: "valid",
+      steps: [
+        {
+          id: "step1",
+          type: "unenforceable",
+          note: "human review only",
+        },
+      ],
+    };
+    expect(validateFrontmatter(fm)).toEqual([]);
+  });
+
+  it("rejects step with missing id", () => {
+    const fm = {
+      name: "valid-skill",
+      description: "valid",
+      steps: [
+        { type: "unenforceable" },
+      ],
+    } as unknown as SkillFrontmatter;
+    const errors = validateFrontmatter(fm);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]).toContain("must be a string");
+  });
+
+  it("rejects step with invalid type", () => {
+    const fm = {
+      name: "valid-skill",
+      description: "valid",
+      steps: [
+        { id: "step1", type: "invalid_type" },
+      ],
+    } as unknown as SkillFrontmatter;
+    const errors = validateFrontmatter(fm);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]).toContain("type must be");
+  });
+
+  it("rejects action_mappable step missing required_tool", () => {
+    const fm = {
+      name: "valid-skill",
+      description: "valid",
+      steps: [
+        { id: "step1", type: "action_mappable" },
+      ],
+    } as unknown as SkillFrontmatter;
+    const errors = validateFrontmatter(fm);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]).toContain("required_tool is required");
+  });
+
+  it("rejects narrative_gated step missing gate_field", () => {
+    const fm = {
+      name: "valid-skill",
+      description: "valid",
+      steps: [
+        { id: "step1", type: "narrative_gated" },
+      ],
+    } as unknown as SkillFrontmatter;
+    const errors = validateFrontmatter(fm);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]).toContain("gate_field is required");
   });
 });
 

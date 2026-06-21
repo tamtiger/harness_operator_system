@@ -69,9 +69,15 @@ describe("session start and orphan recovery", () => {
 
     const mockRun = vi.fn();
     const mockPrepare = vi.fn().mockImplementation((query) => {
+      if (query.includes("ORDER BY started_at DESC")) {
+        return {
+          get: vi.fn().mockReturnValue(undefined),
+        };
+      }
       if (query.includes("SELECT") && query.includes("sessions")) {
         return {
           all: vi.fn().mockReturnValue([{ id: "orphan-session-123", started_at: "2026-06-01T00:00:00Z", pid: null, machine_id: null }]),
+          get: vi.fn().mockReturnValue(undefined),
         };
       }
       return { run: mockRun, get: vi.fn().mockReturnValue(undefined) };
@@ -105,9 +111,15 @@ describe("session start and orphan recovery", () => {
 
     const mockRun = vi.fn();
     const mockPrepare = vi.fn().mockImplementation((query) => {
+      if (query.includes("ORDER BY started_at DESC")) {
+        return {
+          get: vi.fn().mockReturnValue(undefined),
+        };
+      }
       if (query.includes("SELECT") && query.includes("sessions")) {
         return {
           all: vi.fn().mockReturnValue([]),
+          get: vi.fn().mockReturnValue(undefined),
         };
       }
       return { run: mockRun, get: vi.fn().mockReturnValue(undefined) };
@@ -178,22 +190,31 @@ describe("session start and orphan recovery", () => {
     const mockConfig = { repo_id: "repo-uuid-123" };
     (readRepoConfig as any).mockReturnValue(mockConfig);
     const mockDb = {
-      prepare: vi.fn().mockImplementation(() => ({
-        all: vi.fn().mockReturnValue([]),
-        run: vi.fn(),
-        get: vi.fn().mockReturnValue({ id: "task-1", title: "fix compilation issue", scope: "*" }),
-      })),
+      prepare: vi.fn().mockImplementation((query) => {
+        if (query.includes("sessions") && query.includes("SELECT")) {
+          // Mock lastSession query returning undefined (no previous session)
+          return {
+            get: vi.fn().mockReturnValue(undefined),
+            all: vi.fn().mockReturnValue([]),
+          };
+        }
+        return {
+          all: vi.fn().mockReturnValue([]),
+          run: vi.fn(),
+          get: vi.fn().mockReturnValue({ id: "task-1", title: "fix compilation issue", scope: "*" }),
+        };
+      }),
     };
     (getDb as any).mockReturnValue(mockDb);
 
     const result = sessionStart("/mock/repo");
     expect(result.workflow_content).toBe("# Harness Workflow content");
-    expect(result.workflow_guidance.checklist).toBeDefined();
+    expect(result.workflow_state.action_queue).toBeDefined();
     // Since task is "fix compilation issue", it should be a bugfix checklist
-    expect(result.workflow_guidance.checklist?.[0]).toContain("systematic-diagnosis");
+    expect(result.workflow_state.action_queue?.[0]).toContain("systematic-diagnosis");
   });
 
-  it("skips harness-workflow content when skip_workflow_content is true", () => {
+  it("skips harness-workflow content when skip_workflow_content is true explicitly", () => {
     const mockConfig = { repo_id: "repo-uuid-123" };
     (readRepoConfig as any).mockReturnValue(mockConfig);
     const mockDb = {
@@ -207,8 +228,9 @@ describe("session start and orphan recovery", () => {
 
     const result = sessionStart("/mock/repo", { skip_workflow_content: true });
     expect(result.workflow_content).toBeNull();
-    expect(result.workflow_guidance.checklist).toBeDefined();
+    expect(result.workflow_state.action_queue).toBeDefined();
     // Default checklist
-    expect(result.workflow_guidance.checklist?.[0]).toContain("Verify requirements");
+    expect(result.workflow_state.action_queue?.[0]).toContain("Verify requirements");
   });
 });
+

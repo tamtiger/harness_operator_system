@@ -3,7 +3,19 @@
 All notable changes to harness-os will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [1.7.0] — 2026-06-20
+## [1.7.1] — 2026-06-21
+
+### Thêm (Added)
+- **Hệ thống chặn Narrative Gated linh hoạt**: Tự động chặn các thao tác gọi công cụ (ví dụ: `verify_run`, `task_update`) nếu agent chưa thực hiện nộp bằng chứng tường thuật (`skill_narrative_submit`) tương ứng theo yêu cầu của skill (thông qua trường `gate_field`).
+- **Tự động hóa bỏ qua Workflow Content (Auto-Skip Workflow Content)**: Tự động hóa hoàn toàn việc bỏ qua nội dung `harness-workflow` trong `session_start` khi session trước diễn ra trong vòng 5 phút và đã được phục vụ trong tiến trình MCP hiện tại, tránh phình to ngữ cảnh (context bloating).
+- **Unit Tests**: Bổ sung bộ kiểm thử chi tiết xác thực cơ chế chặn tool (narrative gated) và cơ chế tự động bỏ qua workflow.
+
+### Thay đổi (Changed)
+- **Kiến trúc State-Oriented Workflow**: Hỗ trợ chuyển đổi từ định dạng `action_map` cũ sang mảng `steps` với schema rõ ràng (`action_mappable`, `narrative_gated`, `unenforceable`). Chuyển đổi parser YAML cũ sang sử dụng thư viện `js-yaml` linh hoạt hơn.
+- **Tuân thủ Chuỗi thao tác (Sequence Validation)**: Nâng cấp compliance engine để kiểm tra bắt buộc trình tự gọi tool thông qua thuộc tính `order` (ví dụ: `before(verify_run)`).
+- **Templates**: Loại bỏ chỉ dẫn thủ công về `skip_workflow_content: true` trong `templates/AGENTS.md.tpl` do tính năng này đã được tự động hóa.
+
+## [1.7.0] — 2026-06-21
 
 ### Thêm (Added)
 - **Module Compliance & Điểm tuân thủ (Sprint 1 / Phase 1, 2, 5)**: Triển khai engine kiểm tra tuân thủ bằng chứng thực tế qua 2 MCP tool mới: `workflow_status` (theo dõi các bước workflow) và `compliance_check` (tính điểm tuân thủ dựa trên hành động thực tế).
@@ -16,6 +28,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - **Workflow Router (Sprint 3)**: Thêm `router.ts` phân loại heuristic giữa luồng `Quick` và `Full` dựa trên scope thay đổi, trả về qua `WorkflowGuidance`.
 - **Handoff Guard (Sprint 4)**: Thêm rào cản ở `sessionEnd` chặn đóng session nếu chưa chạy `session_handoff` (đạt phase `WRAP_UP`).
 - **Observability Dashboard (Sprint 4)**: Thêm lệnh CLI `harness dashboard` tính toán Compliance Rate, Verification Rate và Handoff Rate.
+- **Tự động Bỏ qua Workflow Content**: Tự động phát hiện và bỏ qua nội dung `harness-workflow` trong `session_start` nếu phiên làm việc trước đó được khởi động trong vòng 5 phút để tránh phình to ngữ cảnh (context bloating), đồng thời cập nhật tài liệu hướng dẫn và template tương ứng.
+
 
 ## [1.6.1] — 2026-06-20
 

@@ -10,10 +10,10 @@ harness-os is a local MCP (Model Context Protocol) server that provides structur
 - **Runtime:** Node.js 20+
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP over stdio (JSON-RPC)
-- **Version:** 1.7.0
+- **Version:** 1.7.1
 - **Tools:** 33 MCP tools across 11 modules
-- **CLI:** 21 commands
-- **Tests:** 222 unit tests (vitest) + smoke test
+- **CLI:** 22 commands
+- **Tests:** 244 unit tests (vitest) + smoke test
 - **Skills:** 32 built-in skills with tiered keyword matching
 
 The server exposes tools for session lifecycle, task management, verification, scope enforcement, skill loading, instinct learning, state persistence, codebase search, and observability.
@@ -200,6 +200,7 @@ pnpm install          # Install dependencies
 pnpm run build        # Build project
 pnpm test             # Run tests
 pnpm run smoke        # Run E2E smoke tests
+pnpm run verify-workflow # Run full simulation and gating verification
 ```
 
 ---

@@ -37,6 +37,20 @@ vi.mock("./skill.js", () => ({
         },
       };
     }
+    if (name === "steps-skill") {
+      return {
+        name: "steps-skill",
+        content: "...",
+        meta: {
+          name: "steps-skill",
+          steps: [
+            { id: "s1", type: "action_mappable", required_tool: "verify_run", order: "before(session_handoff)" },
+            { id: "s2", type: "narrative_gated", gate_field: "root_cause" }
+          ],
+          compliance_weight: 15,
+        },
+      };
+    }
     return { error: "not found" };
   }),
   skillList: vi.fn(),
@@ -223,5 +237,45 @@ describe("compliance tools", () => {
     const checkRes = complianceCheck("sess-123");
     expect(checkRes.status).toBe("FAIL");
     expect(checkRes.missingVerifiableEvidence).toContain("sequence_violation: scope_check must run before verify_run");
+  });
+
+  it("validates steps array (action_mappable sequence and narrative_gated)", () => {
+    const mockDb = {
+      prepare: vi.fn().mockImplementation((query) => {
+        if (query.includes("SELECT id, repo_path")) return { get: () => ({ id: "sess-123", repo_path: "/repo", verify_called: 1, verify_passed: 1 }) };
+        if (query.includes("SELECT id, verify_called")) return { get: () => ({ id: "sess-123", verify_called: 1, verify_passed: 1 }) };
+        if (query.includes("SELECT COUNT(*) as count FROM tasks")) return { get: () => ({ count: 1 }) };
+        if (query.includes("json_extract(payload, '$.tool') = 'progress_log'")) return { all: () => [{ payload: JSON.stringify({ args: { summary: "Doing something" } }) }] };
+        if (query.includes("json_extract(payload, '$.tool') = 'skill_load'")) return { all: () => [{ skill_name: "steps-skill" }] };
+        if (query.includes("json_extract(payload, '$.tool') = 'session_handoff'")) return { get: () => ({ count: 1 }) };
+        
+        // Narrative gate check
+        if (query.includes("json_extract(payload, '$.args.field') = ?")) {
+          return { get: () => ({ count: 0 }) }; // missing narrative
+        }
+
+        // action_mappable checks
+        if (query.includes("json_extract(payload, '$.tool') IN (?, ?)")) {
+           // return out-of-order sequence: handoff before verify
+           return {
+             all: () => [
+               { tool: "session_handoff", created_at: "1" },
+               { tool: "verify_run", created_at: "2" }
+             ]
+           };
+        }
+
+        if (query.includes("SELECT json_extract(payload, '$.tool') as tool")) {
+           return { all: () => [] };
+        }
+
+        return { get: () => ({ count: 1 }), all: () => [] };
+      }),
+    };
+    (getDb as any).mockReturnValue(mockDb);
+
+    const checkRes = complianceCheck("sess-123");
+    expect(checkRes.missingActions).toContain("narrative_gate:root_cause");
+    expect(checkRes.missingVerifiableEvidence).toContain("sequence_violation: verify_run must run before session_handoff");
   });
 });

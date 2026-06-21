@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { parseHooksYaml, checkPreToolHooks, checkStopValidation, validateHooksConfig, dryRunHooks } from "./hooks.js";
 import * as fs from "node:fs";
+import { getDb } from "../db/client.js";
+import { skillLoad } from "../tools/skill.js";
+
+vi.mock("../db/client.js", () => ({ getDb: vi.fn() }));
+vi.mock("../tools/skill.js", () => ({ skillLoad: vi.fn() }));
 
 let mockMtime = 0;
 vi.mock("node:fs", async () => {
@@ -116,5 +121,51 @@ pre_tool_block:
     const resultAllow = await dryRunHooks(".", "subagent_invoke", { commands: ["pnpm build"] });
     expect(resultAllow.allowed).toBe(true);
     expect(resultAllow.preToolBlock.matched).toBe(false);
+  });
+
+  it("enforces dynamic narrative-gated blocking", () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false); // No config file
+    
+    const mockDb = {
+      prepare: vi.fn().mockImplementation((query) => {
+        if (query.includes("SELECT DISTINCT json_extract(payload, '$.args.name')")) {
+           return { all: () => [{ skill_name: "test-skill" }] };
+        }
+        if (query.includes("SELECT COUNT(*) as count FROM audit_events")) {
+           // narrative missing
+           return { get: () => ({ count: 0 }) };
+        }
+        return { get: () => null, all: () => [] };
+      })
+    };
+    (getDb as any).mockReturnValue(mockDb);
+
+    (skillLoad as any).mockReturnValue({
+      meta: {
+        steps: [
+          { type: "narrative_gated", blocks: "verify_run", gate_field: "cause" }
+        ]
+      }
+    });
+
+    const badCheck = checkPreToolHooks(".", "verify_run", { session_id: "sess-1" });
+    expect(badCheck.allowed).toBe(false);
+    expect(badCheck.reason).toContain("You must call 'skill_narrative_submit' with gate_field 'cause' before proceeding");
+
+    const mockDbPass = {
+      prepare: vi.fn().mockImplementation((query) => {
+        if (query.includes("SELECT DISTINCT json_extract(payload, '$.args.name')")) {
+           return { all: () => [{ skill_name: "test-skill" }] };
+        }
+        if (query.includes("SELECT COUNT(*) as count FROM audit_events")) {
+           return { get: () => ({ count: 1 }) }; // Narrative passed!
+        }
+        return { get: () => null, all: () => [] };
+      })
+    };
+    (getDb as any).mockReturnValue(mockDbPass);
+    
+    const goodCheck = checkPreToolHooks(".", "verify_run", { session_id: "sess-1" });
+    expect(goodCheck.allowed).toBe(true);
   });
 });

@@ -3,11 +3,11 @@
 > Hệ thống harness operator chạy local cho agentic coding. MCP-first, cross-IDE, multi-repo.
 
 [![Status](https://img.shields.io/badge/status-stable-green)](#)
-[![Version](https://img.shields.io/badge/version-1.7.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-1.7.1-blue)](#)
 [![pnpm](https://img.shields.io/badge/pnpm-v11.5.0-orange)](#)
 [![Tools](https://img.shields.io/badge/MCP_tools-33-blue)](#)
 [![Skills](https://img.shields.io/badge/skills-32-blue)](#)
-[![Tests](https://img.shields.io/badge/tests-229%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-244%20passing-brightgreen)](#)
 
 ## Đây là gì?
 
@@ -205,7 +205,7 @@ harness dashboard [--repo path]                             # View Observability
 
 Skills được phân thành 3 tiers:
 - **Tier 1 (Core):** 5 skills luôn gợi ý ở session_start (3 universal + 2 stack baselines)
-- **Tier 2 (Contextual):** 26 skills gợi ý dựa trên keyword match với task
+- **Tier 2 (Contextual):** 32 skills gợi ý dựa trên keyword match với task
 - **Tier 3 (On-demand):** 1 skill chỉ load khi explicit
 
 Xem [docs/07-skills.md](./docs/07-skills.md) để biết chi tiết.
@@ -231,7 +231,7 @@ Công thức: **`[Tier-1 Core] + [Stack Baseline] + [Task-Type] + [Add-ons]`**
 | `csharp-baseline` | C# stack baseline (architecture, naming, dependencies) — auto khi dotnet |
 | `php-baseline` | PHP baseline conventions (Composer, PSR, XAMPP) — auto khi php |
 
-### Tier 2 — Contextual Skills (26 skills)
+### Tier 2 — Contextual Skills (32 skills)
 
 **Design & Architecture (4 skills)**
 - `design-grilling` — Phản biện thiết kế triệt để
@@ -313,7 +313,7 @@ harness-os/
 - **Ngôn ngữ:** TypeScript (ES2022, NodeNext modules)
 - **Database:** better-sqlite3 (WAL mode)
 - **Protocol:** MCP (Model Context Protocol) qua stdio
-- **Testing:** Vitest (222 tests passing)
+- **Testing:** Vitest (244 tests passing)
 
 ## Phát triển
 
@@ -321,8 +321,9 @@ harness-os/
 pnpm install          # Install dependencies (tạo pnpm-lock.yaml)
 pnpm run dev          # Dev mode (tsx, không cần build)
 pnpm run build        # Compile TypeScript
-pnpm test             # Unit tests (222 tests)
+pnpm test             # Unit tests (244 tests)
 pnpm run smoke        # End-to-end MCP test (33 tools, 32 skills)
+pnpm run verify-workflow # Kiểm thử giả lập quy trình full round v1.7.1
 ```
 
 > **Lưu ý:** Dự án này sử dụng pnpm để quản lý dependencies.
@@ -334,7 +335,7 @@ pnpm run smoke        # End-to-end MCP test (33 tools, 32 skills)
   - [Cấu hình IDE](./docs/02-ide-setup.md) — Setup cho 8 IDEs
   - [Workflow](./docs/04-workflow.md) — Lifecycle hàng ngày
   - [Tools Reference](./docs/05-tools-reference.md) — Chi tiết 33 MCP tools
-  - [CLI Reference](./docs/06-cli-reference.md) — 21 CLI commands
+  - [CLI Reference](./docs/06-cli-reference.md) — 22 CLI commands
   - [Skills](./docs/07-skills.md) — Hệ thống skills
   - [Instincts](./docs/08-instincts.md) — Continuous learning
   - [Troubleshooting](./docs/10-troubleshooting.md) — Xử lý lỗi & FAQ
