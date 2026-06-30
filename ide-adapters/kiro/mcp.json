@@ -4,6 +4,10 @@
       "command": "node",
       "args": ["<HARNESS_OS>/dist/index.js"],
       "disabled": false,
+      "env": {
+        "DOTENV_CONFIG_QUIET": "true",
+        "DOTENV_LOG_LEVEL": "quiet"
+      },
       "autoApprove": [
         "session_start",
         "skill_load",

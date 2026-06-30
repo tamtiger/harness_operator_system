@@ -4,7 +4,9 @@
       "command": "node",
       "args": ["<HARNESS_OS>/dist/index.js"],
       "env": {
-        "HARNESS_HOME": "<HOME>/.harness"
+        "HARNESS_HOME": "<HOME>/.harness",
+        "DOTENV_CONFIG_QUIET": "true",
+        "DOTENV_LOG_LEVEL": "quiet"
       }
     }
   }

@@ -95,7 +95,7 @@ async function main() {
       break;
     default:
       console.log(`
-harness-os — Local harness operator system for agentic coding
+harness-os - Local harness operator system for agentic coding
 
 Usage:
   harness init [path] [--stack auto|node|dotnet|python|go|rust|php] [--force]

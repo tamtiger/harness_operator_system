@@ -30,6 +30,12 @@ If you need a custom harness home directory:
 HARNESS_HOME=/custom/path claude mcp add harness node /path/to/harness-os/dist/index.js
 ```
 
+If you encounter an "invalid character" error during initialization (often caused by `dotenvx` printing output to `stdout`), you can suppress these logs by prepending quiet environment variables:
+
+```bash
+DOTENV_CONFIG_QUIET=true DOTENV_LOG_LEVEL=quiet claude mcp add harness node /path/to/harness-os/dist/index.js
+```
+
 ## Uninstall
 
 ```bash

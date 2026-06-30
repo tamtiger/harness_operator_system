@@ -2,7 +2,11 @@
   "mcpServers": {
     "harness": {
       "command": "node",
-      "args": ["<HARNESS_OS>/dist/index.js"]
+      "args": ["<HARNESS_OS>/dist/index.js"],
+      "env": {
+        "DOTENV_CONFIG_QUIET": "true",
+        "DOTENV_LOG_LEVEL": "quiet"
+      }
     }
   }
 }

@@ -1,3 +1,6 @@
+process.env.DOTENV_CONFIG_QUIET = "true";
+process.env.DOTENV_LOG_LEVEL = "quiet";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { readFileSync } from "node:fs";
