@@ -6,6 +6,25 @@ Format dựa trên [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.4.0] — 2026-07-01
+
+### Added
+
+- **Knowledge Engine**: BM25 full-text search qua SQLite FTS5
+  - `BM25Index`: upsert, search, stale removal, content hash skip
+  - `Parser`: scan docs/, classify type (ARCHITECTURE/ADR/CONVENTION/GLOSSARY/REPO_MAP/CONCEPT_MAP), extract title/tags
+  - `KnowledgeEngine`: implements IKnowledgeEngine (index, search, getRepoMap, getConceptMap, getGlossary, getByType)
+- **CLI `harness index`**: Reads namespace from project.yaml, indexes docs/ into `~/.harness/repositories/{ns}/cache/knowledge.db`
+- **Tests**: 8 new tests cho Knowledge Engine (32 total)
+- **CONTRIBUTING.md**: Thêm Git Workflow rules (show changes + confirm trước commit)
+
+### Changed
+
+- Upgrade `better-sqlite3` 11 → 12 (Node 25 compatibility)
+- `pnpm-workspace.yaml`: allowBuilds cho native deps
+
+---
+
 ## [0.3.1] — 2026-07-01
 
 ### Changed

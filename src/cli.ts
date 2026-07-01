@@ -44,8 +44,25 @@ program.command('init').description('Initialize project.yaml + docs/ templates')
   console.log('\n  Next: edit project.yaml, then run "harness doctor"\n')
 })
 
-program.command('index').description('Rebuild knowledge + code index').action(() => {
-  console.log('📚 TODO: implement indexing')
+program.command('index').description('Rebuild knowledge + code index').action(async () => {
+  const { indexKnowledge } = await import('./commands/index.js')
+  const { readFileSync, existsSync } = await import('node:fs')
+  const { load } = await import('js-yaml')
+  const { resolve } = await import('node:path')
+
+  const cwd = process.cwd()
+  const yamlPath = resolve(cwd, 'project.yaml')
+
+  let namespace = 'unknown'
+  if (existsSync(yamlPath)) {
+    const config = load(readFileSync(yamlPath, 'utf-8')) as Record<string, unknown>
+    namespace = (config['namespace'] as string) ?? 'unknown'
+  }
+
+  console.log(`\n📚 Indexing knowledge for "${namespace}"...`)
+  const result = await indexKnowledge(cwd, namespace)
+  console.log(`  ✓ ${result.entries} entries indexed`)
+  console.log(`  DB: ${result.dbPath}\n`)
 })
 
 program.command('task [description]').description('Start a new task').action((desc?: string) => {
