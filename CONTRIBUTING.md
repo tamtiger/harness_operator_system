@@ -44,3 +44,11 @@ npx tsc --noEmit    # type check only
 - [ ] `pnpm build` — builds cleanly
 - [ ] Update `CHANGELOG.md`
 - [ ] Update `README.md` if CLI/structure changed
+
+## Git Workflow
+
+- Branch: `main` | `feature/*` | `fix/*`
+- Commit message: [Conventional Commits](https://www.conventionalcommits.org/) format
+- Before committing: **show diff + proposed commit message** to user for confirmation
+- Do NOT commit without explicit user approval
+
