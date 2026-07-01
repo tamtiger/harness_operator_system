@@ -1,131 +1,161 @@
-# Universal Coding Harness (Harness)
+# Universal Coding Harness
 
-> **Lớp orchestration độc lập với AI dành cho AI Coding Agents.**
->
-> Harness chuẩn hóa và tự động hóa toàn bộ vòng đời phát triển phần mềm khi sử dụng AI Coding Agents — từ chuẩn bị context, phân tích tác động, lập kế hoạch, đến thực thi, xác minh và phục hồi lỗi.
+> Lớp orchestration độc lập với AI dành cho AI Coding Agents (Kiro, Antigravity, Claude Code, Cursor, Codex...).
 
----
-
-## 1. Tổng quan & Vòng lặp cốt lõi (Core Loop)
-
-Harness hoạt động như một giám sát viên nghiêm ngặt giữa Lập trình viên và các AI Coding Agent (như Claude Code, Cursor, Codex). AI Agent chỉ chịu trách nhiệm tạo mã nguồn, trong khi Harness đảm bảo chúng thực hiện điều đó một cách chính xác bằng cách bao bọc chúng trong **Core Loop**:
-
-```
-    Developer Request
-          │
-          ▼
-    ┌───────────────────────────────────┐
-    │       HARNESS CORE LOOP           │
-    │                                   │
-    │  Context → Plan → Execute → Verify│
-    │     ▲                        │    │
-    │     │        Learn ◄─────────┘    │
-    │     │          │                  │
-    │     └──────────┘                  │
-    │                                   │
-    └───────────────────────────────────┘
-          │
-          ▼
-    Better AI Output Over Time
-```
-
-1.  **Context (Ngữ cảnh)**: Tổng hợp các coding conventions, kiến trúc hệ thống, sơ đồ repository và tài liệu phòng ngừa lỗi đã biết.
-2.  **Plan (Kế hoạch)**: Tạo ra một kế hoạch thực thi có cấu trúc và chạy kiểm tra tính hợp lệ tĩnh (static validation).
-3.  **Execute (Thực thi)**: Thực hiện sinh code theo từng bước nhỏ với cơ chế sao lưu snapshot độc lập phục vụ cho rollback.
-4.  **Verify (Xác minh)**: Chạy các lớp kiểm tra tự động từ L1-L4 tùy thuộc vào mức độ rủi ro của task.
-5.  **Learn (Học hỏi)**: Thu thập lỗi, phân tích pattern và tự động đề xuất tài liệu phòng ngừa lỗi cho các task sau (Phase 2).
+Harness chuẩn hóa workflow khi dùng AI Coding Agents — từ chuẩn bị context, lập kế hoạch, thực thi, đến xác minh kết quả. AI chỉ chịu trách nhiệm tạo code. Harness đảm bảo AI tạo đúng code.
 
 ---
 
-## 2. Cấu trúc thư mục dự án
+## Core Loop
 
-Harness duy trì sự tách biệt rõ ràng giữa source code của repository (chứa cấu trúc kiến trúc và cấu hình metadata) với trạng thái thực thi local:
-
-### Cấu trúc Repository (Lưu trữ Tri thức)
 ```
-repo/
-├── docs/
-│   ├── architecture/        ← Kiến trúc tổng thể & quy tắc phụ thuộc giữa các tầng
-│   ├── adr/                 ← Architecture Decision Records (Quyết định kiến trúc)
-│   ├── conventions/         ← Coding conventions và coding patterns của dự án
-│   ├── glossary.md          ← Định nghĩa thuật ngữ nghiệp vụ (domain glossary)
-│   ├── repo-map.yaml        ← Sơ đồ cấu trúc vật lý của dự án
-│   └── concept-map.yaml     ← Bản đồ liên kết khái niệm nghiệp vụ với source code
-│
-├── project.yaml             ← File cấu hình cốt lõi của Harness
-└── AGENTS.md                ← Hướng dẫn & quy tắc bắt buộc dành cho AI Coding Agents
+Developer Request → Context → Plan → Execute → Verify → Learn
+                      ▲                                   │
+                      └───────────────────────────────────┘
 ```
 
-### Trạng thái Local Workspace (Nằm ngoài Git repo)
-Tất cả dữ liệu runtime, cache, log, kế hoạch và các file snapshot được lưu trữ tại `~/.harness/`:
-```
-~/.harness/
-└── repositories/
-    └── {namespace}/
-        ├── cache/           ← Bộ nhớ đệm index BM25 & vector
-        ├── index/           ← File SQLite symbols.db lưu code symbols (tree-sitter)
-        ├── sessions/        ← Trạng thái session của task hiện tại
-        ├── snapshots/       ← Bản sao lưu snapshot phục vụ cho cơ chế Rollback
-        └── logs/            ← Log kiểm toán append-only audit.jsonl và metrics.jsonl
-```
+- **Context**: Architecture, conventions, known failures → inject vào AI
+- **Plan**: AI tạo execution plan, Harness validate + risk scoring
+- **Execute**: AI thực thi theo plan, Harness checkpoint từng step
+- **Verify**: Syntax → Lint → Tests → Architecture (L1-L4)
+- **Learn**: Failures → patterns → knowledge (Phase 2)
 
 ---
 
-## 3. Khởi hành nhanh (Quick Start cho Phase 1)
+## Quick Start
 
-Harness được phát triển bằng TypeScript và vận hành trên môi trường Node.js 20 LTS.
+### Yêu cầu
 
-### 1. Yêu cầu hệ thống
-- **Node.js** >= 20.x LTS
-- **pnpm** >= 9.x
-- **SQLite** (tích hợp sẵn qua thư viện zero-config `better-sqlite3`)
+- Node.js ≥ 20
+- Git
 
-### 2. Cài đặt phát triển
-Clone repository và cài đặt các dependencies monorepo:
+### Cài đặt
+
 ```bash
+git clone <repo-url>
+cd harness_operator_system
 pnpm install
 pnpm build
 ```
 
-### 3. Khởi tạo một dự án mới
-Di chuyển terminal đến thư mục gốc của repository bạn muốn quản lý và chạy:
-```bash
-node /path/to/harness/dist/cli.js init
-```
-Lệnh này sẽ tạo cấu trúc file cấu hình mẫu `project.yaml` và các thư mục tài liệu nền tảng trong `docs/`.
+### Sử dụng
 
-### 4. Kiểm tra môi trường
-Xác minh xem môi trường local đã đáp ứng đầy đủ các điều kiện cần thiết chưa:
 ```bash
-node /path/to/harness/dist/cli.js doctor
+# Kiểm tra môi trường
+node dist/cli.js doctor
+
+# Khởi tạo project mới (chạy tại root repo muốn quản lý)
+node dist/cli.js init
+
+# Rebuild knowledge index
+node dist/cli.js index
+
+# Bắt đầu task
+node dist/cli.js task "mô tả task"
+
+# Quản lý plan
+node dist/cli.js plan review
+node dist/cli.js plan approve
+node dist/cli.js plan reject "lý do"
+
+# Verification thủ công
+node dist/cli.js verify
+
+# Xem chi phí
+node dist/cli.js cost
 ```
 
 ---
 
-## 4. Danh mục câu lệnh CLI (Phase 1)
+## Cấu trúc dự án
 
-Mọi thao tác quản lý quy trình được thực hiện thông qua CLI chính:
+```
+harness_operator_system/
+├── src/
+│   ├── cli.ts              ← CLI entry point
+│   ├── index.ts            ← Library exports
+│   ├── commands/           ← doctor, init, index, task, plan, verify, cost
+│   ├── types/              ← TypeScript interfaces (11 files)
+│   ├── schemas/            ← Zod validation (project.yaml)
+│   ├── utils/              ← risk-scoring, token-budget, id helpers
+│   ├── engines/            ← Knowledge, Context, Planning, Runtime, Verification
+│   └── mcp/               ← MCP Server (tools cho AI agents gọi vào)
+├── tests/                  ← Unit tests
+├── package.json
+├── tsconfig.json
+├── tsup.config.ts
+├── biome.json
+├── vitest.config.ts
+├── CHANGELOG.md
+├── AGENTS.md               ← Rules cho AI coding agents
+├── TECHNICAL_DESIGN.md
+└── HARNESS-PROJECT-PLAN-v2.md
+```
 
-*   `harness doctor`: Kiểm tra tính hợp lệ của môi trường (Node, SQLite, Git, MCP SDK).
-*   `harness init`: Khởi tạo cấu hình và cấu trúc thư mục tài liệu `docs/` trong repo.
-*   `harness index`: Quét mã nguồn bằng `tree-sitter`, lập chỉ mục symbols vào SQLite `symbols.db` và build index BM25.
-*   `harness task "[mô tả]"`: Bắt đầu một task mới, build context và yêu cầu AI sinh bản nháp kế hoạch thực thi.
-*   `harness plan review`: Xem chi tiết kế hoạch thực thi đang chờ duyệt, danh sách file bị sửa và risk level.
-*   `harness plan approve`: Phê duyệt kế hoạch thực thi, cấp quyền cho AI bắt đầu sửa code.
-*   `harness plan reject "[lý do]"`: Từ chối kế hoạch hiện tại và gửi phản hồi yêu cầu AI tái tạo kế hoạch mới.
-*   `harness verify`: Kích hoạt chạy thủ công luồng kiểm tra tự động (L1 Syntax -> L4 Architecture).
-*   `harness cost`: Hiển thị thống kê số lượng token sử dụng và chi phí ước tính ($) của task hoặc session hiện tại.
+### Cấu trúc repo được quản lý bởi Harness
+
+```
+target-repo/
+├── docs/
+│   ├── architecture/       ← Kiến trúc
+│   ├── adr/                ← Architecture Decision Records
+│   ├── conventions/        ← Coding conventions
+│   ├── glossary.md         ← Thuật ngữ nghiệp vụ
+│   └── repo-map.yaml       ← Sơ đồ modules
+├── project.yaml            ← Harness config
+└── AGENTS.md               ← Rules cho AI
+```
+
+### Runtime state (ngoài git)
+
+```
+~/.harness/repositories/{namespace}/
+├── cache/       ← BM25 index
+├── index/       ← symbols.db (tree-sitter)
+├── sessions/    ← Task state
+├── snapshots/   ← Rollback checkpoints
+└── logs/        ← audit.jsonl, metrics.jsonl
+```
 
 ---
 
-## 5. Quy định phát triển (Development Guidelines)
+## Development
 
-- **Plan First**: Tuyệt đối không viết mã nguồn thực thi trực tiếp trước. Luôn viết các interface TypeScript và các định nghĩa kiểu dữ liệu (types) bên trong thư mục `packages/core/src/types/` trước.
-- **Linting & Formatting**: Biome được sử dụng làm chuẩn code style. Chạy kiểm tra trước khi tạo PR:
-  ```bash
-  pnpm lint
-  ```
-- **Viết kiểm thử (Testing)**: Chạy test thông qua Vitest. Đảm bảo mọi thay đổi code trong package `core` duy trì unit test coverage trên 70%:
-  ```bash
-  pnpm test
-  ```
+```bash
+pnpm test:run       # Run tests
+pnpm build          # Build dist/
+pnpm lint           # Biome check
+npx tsc --noEmit    # Type check
+```
+
+**Rules**:
+- Types first → implementation after
+- No `any` type
+- Tests cho mọi util/logic function
+- Update CHANGELOG.md sau mỗi feature/fix
+
+---
+
+## Khác biệt với AI trực tiếp
+
+| | AI trực tiếp | Với Harness |
+|---|---|---|
+| Context | Prompt engineering thủ công | Auto-inject architecture + conventions |
+| Plan | AI tự quyết | Plan → validate → approve trước khi code |
+| Scope | AI sửa tùy ý | Strict scope enforcement |
+| Verify | Dev tự review | L1-L4 automated verification |
+| Rollback | Manual | Snapshot-based automatic rollback |
+| Learn | Mất hết khi hết session | Failure patterns persist |
+
+---
+
+## Roadmap
+
+- [x] **Phase 1**: Foundation — CLI, types, schemas, doctor, init
+- [ ] **Phase 1**: Knowledge Engine (BM25 indexer)
+- [ ] **Phase 1**: Code Index (tree-sitter → symbols.db)
+- [ ] **Phase 1**: MCP Server (tools cho AI agents)
+- [ ] **Phase 1**: Planning Engine + Runtime Engine
+- [ ] **Phase 1**: Verification Engine (L1-L4)
+- [ ] **Phase 2**: Vector search, failure learning, project memory
+- [ ] **Phase 3**: Multi-repo, dashboard, plugin system

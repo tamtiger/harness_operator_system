@@ -2,32 +2,34 @@
 
 > AI-independent orchestration layer for AI Coding Agents.
 >
-> **Version**: 2.0
-> **Status**: Draft — pending review
+> **Version**: 3.1
+> **Status**: Active
+> **Last updated**: 2026-07-01
 
 ---
 
 ## Table of Contents
 
 - [1. Vision](#1-vision)
-- [2. Core Value Loop](#2-core-value-loop)
-- [3. Goals](#3-goals)
-- [4. Non-Goals](#4-non-goals)
-- [5. Design Principles](#5-design-principles)
-- [6. Architecture Constraints](#6-architecture-constraints)
-- [7. High Level Architecture](#7-high-level-architecture)
-- [8. Core Modules](#8-core-modules)
-- [9. Module Dependency](#9-module-dependency)
-- [10. Repository](#10-repository)
-- [11. Harness Workspace](#11-harness-workspace)
-- [12. Knowledge Artifacts](#12-knowledge-artifacts)
-- [13. Workflow](#13-workflow)
-- [14. Extensibility](#14-extensibility)
+- [2. Interaction Models](#2-interaction-models)
+- [3. Core Value Loop](#3-core-value-loop)
+- [4. Goals](#4-goals)
+- [5. Non-Goals](#5-non-goals)
+- [6. Design Principles](#6-design-principles)
+- [7. Architecture Constraints](#7-architecture-constraints)
+- [8. High Level Architecture](#8-high-level-architecture)
+- [9. Core Modules](#9-core-modules)
+- [10. Module Dependency](#10-module-dependency)
+- [11. Repository Structure](#11-repository-structure)
+- [12. Harness Workspace](#12-harness-workspace)
+- [13. Knowledge Artifacts](#13-knowledge-artifacts)
+- [14. Workflow](#14-workflow)
 - [15. Data Model](#15-data-model)
 - [16. Specifications](#16-specifications)
-- [17. Roadmap](#17-roadmap)
-- [18. Success Metrics](#18-success-metrics)
-- [19. Pre-code Checklist](#19-pre-code-checklist)
+- [17. Architecture Decision Records](#17-architecture-decision-records)
+- [18. Roadmap](#18-roadmap)
+- [19. Success Metrics](#19-success-metrics)
+- [20. Pre-code Checklist](#20-pre-code-checklist)
 
 ---
 
@@ -35,676 +37,291 @@
 
 Universal Coding Harness là lớp orchestration đứng giữa Developer và AI Coding Agent.
 
-Thay vì để mỗi AI tự quyết định cách làm việc với một repository, Harness chuẩn hóa toàn bộ workflow từ chuẩn bị context, lập kế hoạch, thực thi đến xác minh kết quả.
-
-AI chỉ chịu trách nhiệm tạo ra code.
-
-Harness chịu trách nhiệm đảm bảo AI tạo đúng code.
+AI chỉ chịu trách nhiệm tạo ra code. Harness chịu trách nhiệm đảm bảo AI tạo **đúng** code.
 
 ---
 
-## 2. Core Value Loop
+## 2. Interaction Models
 
-Harness không chỉ orchestrate — Harness **học** từ mỗi task để làm tốt hơn ở task tiếp theo.
+### Pull Model (Phase 1 — Primary)
+
+AI Agent chủ động gọi Harness qua MCP để lấy context, submit plan, report progress.
 
 ```
-    Developer Request
-          │
-          ▼
-    ┌───────────────────────────────────┐
-    │       HARNESS CORE LOOP           │
-    │                                   │
-    │  Context → Plan → Execute → Verify│
-    │     ▲                        │    │
-    │     │        Learn ◄─────────┘    │
-    │     │          │                  │
-    │     └──────────┘                  │
-    │                                   │
-    └───────────────────────────────────┘
-          │
-          ▼
-    Better AI Output Over Time
+Developer → AI Agent (Kiro, Antigravity, Cursor)
+                │
+                │ MCP Protocol (stdio)
+                ▼
+           Harness (MCP Server)
+                │
+                ├── Validate plan
+                ├── Track state + checkpoint
+                ├── Scope enforcement
+                └── Run verification
 ```
 
-**Vòng phản hồi:**
+**Tại sao Pull model cho Phase 1**: Xem [ADR-012](#adr-012-pull-model-primary-phase-1-push-model-deferred).
 
-1. **Context** — Harness cung cấp architecture, conventions, known failures cho AI
-2. **Plan** — AI tạo execution plan, Harness validate và scoring risk
-3. **Execute** — AI thực thi theo plan, Harness checkpoint từng step
-4. **Verify** — Harness kiểm tra kết quả qua nhiều layers
-5. **Learn** — Failures được phân loại, patterns được nhận diện, knowledge được bổ sung
-6. **Quay lại Context** — Task tiếp theo nhận được context tốt hơn, tránh lỗi đã biết
+### Push Model (Phase 2+ — Future)
 
-**Giá trị cốt lõi**: Mỗi task thất bại dạy Harness điều mới. Sau đủ lần, failure trở thành knowledge — inject tự động vào context để ngăn lặp lại.
+Harness chủ động gọi AI qua adapter, điều khiển từng step. Cần API key, cost tracking qua adapter. Phù hợp: Claude Code headless, batch coding.
 
 ---
 
-## 3. Goals
+## 3. Core Value Loop
+
+```
+Context → Plan → Execute → Verify → Learn
+  ▲                                   │
+  └───────────────────────────────────┘
+```
+
+1. **Context** — Harness cung cấp architecture, conventions, known failures
+2. **Plan** — AI submit plan → Harness validate + score risk
+3. **Execute** — AI thực thi, Harness checkpoint từng step
+4. **Verify** — Harness kiểm tra kết quả L1-L4
+5. **Learn** — Failures → patterns → prevention (Phase 2)
+
+---
+
+## 4. Goals
 
 - Chuẩn hóa workflow cho AI Coding Agent
-- Giảm phụ thuộc vào prompt engineering
-- Giúp AI hiểu repository chính xác hơn
+- Giảm phụ thuộc vào prompt engineering thủ công
+- Giúp AI hiểu repository chính xác hơn qua structured knowledge
 - Giảm lỗi kiến trúc và coding convention
-- Cho phép thay đổi AI mà không phải thay đổi workflow
-- Có thể sử dụng trên nhiều repository và nhiều AI khác nhau
+- Cho phép swap AI Agent mà workflow không đổi
 
 ---
 
-## 4. Non-Goals
+## 5. Non-Goals
 
-Universal Coding Harness không phải:
+Harness **không phải**: IDE, AI Model, Source Control, CI/CD, Task Manager.
 
-- IDE
-- AI Model
-- Source Control
-- CI/CD
-- Task Management
-- Project Management Tool
-
-Harness chỉ tập trung vào việc điều phối AI Coding.
-
-**Constraints (Phase 1)**:
-
-- Single-task execution **per repository**. Hai repository khác nhau có thể chạy task đồng thời, không chia sẻ lock. Concurrent tasks trong cùng một repository sẽ được hỗ trợ ở Phase 3.
+**Phase 1 constraints**: Single-task per repo. Pull model only.
 
 ---
 
-## 5. Design Principles
+## 6. Design Principles
 
-### Repository is the Source of Truth
-
-Repository luôn là nơi lưu giữ tri thức của project.
-
-Harness không tạo một knowledge base riêng thay thế repository.
-
----
-
-### Runtime belongs to Harness
-
-Mọi runtime state đều thuộc Harness Workspace.
-
-Bao gồm: cache, sessions, logs, plans, memory, index.
-
-Repository luôn sạch và chỉ chứa source code cùng tài liệu.
+| Principle | Giải thích |
+|-----------|-----------|
+| MCP Server is the Interface | Phase 1: AI gọi Harness. Harness không gọi AI. |
+| Repository is Source of Truth | Harness đọc/index docs/ — không tạo knowledge riêng |
+| Runtime belongs to Harness | Mọi state ở `~/.harness/`. Repo luôn sạch. |
+| Plan before Code | AI không sửa code trước khi plan validated + approved |
+| Verify before Complete | Task chỉ done sau verification pass |
+| AI is Replaceable | Kiro, Antigravity, Cursor — cùng MCP tools |
 
 ---
 
-### Plan before Code
+## 7. Architecture Constraints
 
-Không AI nào được phép sửa code trước khi có execution plan được chấp thuận.
-
-Planning là bước bắt buộc. Exception duy nhất được quy định tại ADR-003.
-
----
-
-### Verify before Complete
-
-Một task chỉ được xem là hoàn thành sau khi vượt qua verification phù hợp với risk level.
-
----
-
-### AI is Replaceable
-
-AI chỉ là execution engine.
-
-Claude, Codex, Gemini, Cursor hay bất kỳ AI nào đều có thể thay thế thông qua Adapter Layer mà không ảnh hưởng workflow, knowledge hay verification.
-
----
-
-### Keep Everything Simple
-
-MVP ưu tiên sự đơn giản.
-
-Chỉ bổ sung complexity khi có dữ liệu chứng minh nó cần thiết.
-
----
-
-## 6. Architecture Constraints
-
-Các luật bất biến của hệ thống. Không có exception trừ khi ghi rõ.
-
-Violation bất kỳ constraint nào đều yêu cầu tạo ADR mới hoặc update ADR hiện có.
-
-| ID | Constraint | Enforcement | Ref |
+| ID | Constraint | Enforcement | ADR |
 |---|---|---|---|
-| AC-01 | Không có code mà không có approved plan | Runtime từ chối execute | ADR-003 |
-| AC-02 | AI không được tự assign risk level | Risk scoring là deterministic formula | ADR-004 |
-| AC-03 | Knowledge Engine là module duy nhất đọc knowledge sources | Các module khác query qua API | ADR-005 |
-| AC-04 | Verification độc lập với AI đã sinh output | verify() không thuộc AI Adapter | ADR-009 |
-| AC-05 | Runtime state không bao giờ nằm trong repository | Mọi state ở `~/.harness/` | ADR-002 |
-| AC-06 | Cost tracking bắt buộc, không thể disable | Audit log append-only | — |
-| AC-07 | Mọi executable step phải có rollback capability | File snapshot tại `~/.harness/` | — |
-| AC-08 | Developer có thể escalate risk, không bao giờ downgrade | Risk Scoring Formula | ADR-004 |
-| AC-09 | AI Adapter không tự động fallback sang adapter khác khi unavailable | Pause + escalate sau timeout | ADR-010 |
-| AC-10 | Cross-repo knowledge chỉ qua git reference version-pinned, không qua filesystem path | External reference cache tại `~/.harness/` | ADR-011 |
+| AC-01 | Không code mà không có validated plan | MCP rejects progress report nếu plan chưa approved | [ADR-003](#adr-003) |
+| AC-02 | AI không tự assign risk level | Deterministic formula trong Harness | [ADR-004](#adr-004) |
+| AC-03 | Knowledge Engine là module duy nhất đọc docs/ | Modules khác query qua KE API | [ADR-005](#adr-005) |
+| AC-04 | Verification độc lập với AI | Harness tự chạy sau completion | [ADR-009](#adr-009) |
+| AC-05 | Runtime state không nằm trong repo | Mọi state ở `~/.harness/` | [ADR-002](#adr-002) |
+| AC-06 | Duration + retry tracking bắt buộc, append-only | Audit log ghi mọi event, không thể xóa | [ADR-006](#adr-006) |
+| AC-07 | Mọi step phải có rollback capability | Snapshot TRƯỚC khi AI sửa file | [ADR-007](#adr-007) |
+| AC-08 | `harness_report_progress('IN_PROGRESS')` phải được gọi TRƯỚC khi sửa file | Protocol constraint, log warning nếu vi phạm | [ADR-013](#adr-013) |
+
+> Chi tiết enforcement cho AC-06, AC-08: xem [TECHNICAL_DESIGN.md §4, §7](./TECHNICAL_DESIGN.md#4-observability)
 
 ---
 
-## 7. High Level Architecture
+## 8. High Level Architecture
 
 ```
-              Developer
-                  │
-                  ▼
-      ┌─────────────────────┐
-      │       Harness       │
-      ├─────────────────────┤
-      │ Context Engine      │
-      │ Planning Engine     │
-      │ Runtime Engine      │
-      │ Verification Engine │
-      │ Knowledge Engine    │
-      │ AI Adapter          │
-      └─────────────────────┘
-                  │
-                  ▼
-          AI Coding Agent
+    AI Agent (Kiro / Antigravity / Cursor)
+                        │
+                        │  MCP Protocol (stdio)
+                        ▼
+              ┌─────────────────────┐
+              │   MCP Server        │  ← Interface Layer (8 tools)
+              ├─────────────────────┤
+              │ Knowledge Engine    │  ← Đọc, index, search docs/
+              │ Context Engine      │  ← Build context cho task
+              │ Planning Engine     │  ← Validate plan, score risk, approve gate
+              │ Runtime Engine      │  ← Track state, checkpoint, rollback, scope check
+              │ Verification Engine │  ← L1-L4 automated checks
+              │ Code Index          │  ← tree-sitter symbols.db
+              └─────────────────────┘
+                        │
+                        ▼
+              ~/.harness/ (runtime state)
 ```
 
-Mỗi module chỉ có một trách nhiệm duy nhất.
-
 ---
 
-## 8. Core Modules
+## 9. Core Modules
 
-### Context Engine
+### MCP Server
 
-Chuẩn bị toàn bộ context cần thiết trước khi AI thực hiện task.
+8 tools exposed qua `@modelcontextprotocol/sdk`. Chi tiết: [TECHNICAL_DESIGN.md §3](./TECHNICAL_DESIGN.md#3-mcp-server-design).
 
-Context Engine là **consumer** của Knowledge Engine. Không đọc `docs/` trực tiếp. Mọi knowledge đều đi qua Knowledge Engine.
-
-Context có thể bao gồm:
-
-- Architecture
-- ADR
-- Coding Convention
-- Glossary terms liên quan
-- Repository Map
-- Concept Map
-- Related Source Code
-- Previous Decisions
-
-Context Engine chỉ chịu trách nhiệm cung cấp đúng context cho đúng task, trong giới hạn token budget.
-
----
-
-### Planning Engine
-
-Phân tích yêu cầu và tạo execution plan.
-
-Planning giúp:
-
-- xác định phạm vi thay đổi
-- giảm sửa ngoài scope
-- hỗ trợ review
-- tăng khả năng rollback
-
-Runtime chỉ được phép thực thi sau khi có plan được chấp thuận.
-
----
-
-### Runtime Engine
-
-Điều phối toàn bộ vòng đời của task.
-
-Bao gồm: execute, checkpoint, retry, rollback.
-
-Runtime không sinh business logic và không phụ thuộc AI cụ thể nào.
-
----
-
-### Verification Engine
-
-Đánh giá kết quả sau khi AI hoàn thành.
-
-Verification có thể bao gồm:
-
-- build / syntax
-- lint
-- unit test
-- architecture validation
-- security check
-- AI self-review
-
-Không phải mọi task đều chạy toàn bộ pipeline. Verification layers được chọn theo risk level của task.
-
----
+| Tool | Mục đích |
+|------|----------|
+| `harness_get_context(task_description)` | Lấy compiled context |
+| `harness_get_knowledge(query)` | BM25 search knowledge base |
+| `harness_submit_plan(plan)` | Submit plan → validate + risk score + approve/reject |
+| `harness_get_plan()` | Lấy plan hiện tại (poll approval status) |
+| `harness_report_progress(step_id, status)` | Báo progress → checkpoint |
+| `harness_report_completion()` | Báo xong → Harness chạy verification |
+| `harness_log_decision(text)` | Ghi architectural decisions |
+| `harness_request_clarification(msg)` | Dừng, hỏi developer |
 
 ### Knowledge Engine
 
-Quản lý và truy xuất toàn bộ knowledge từ repository.
+Parse `docs/`, BM25 index, structured query cho repo-map/concept-map/glossary. Chi tiết: [TECHNICAL_DESIGN.md §9](./TECHNICAL_DESIGN.md#9-knowledge-engine).
 
-Knowledge Engine là **module duy nhất** đọc knowledge sources. Các module khác query Knowledge Engine qua API, không đọc file trực tiếp.
+### Context Engine
 
-Knowledge sources mặc định (local, trong repository hiện tại):
+Build context trong token budget (30K–80K). Chi tiết: [TECHNICAL_DESIGN.md §5](./TECHNICAL_DESIGN.md#5-token-budget).
 
-- `docs/` — architecture, conventions, ADR, glossary
-- `README.md` — project overview
-- Paths bổ sung có thể cấu hình qua `project.yaml` → `knowledge.include`, giới hạn trong repository hiện tại
+### Planning Engine
 
-Cross-repository knowledge (ví dụ: contract của một service khác trong kiến trúc microservices) **không được hỗ trợ ở Phase 1**. Từ Phase 2, Harness hỗ trợ khai báo External Knowledge Reference qua git, version-pinned — xem AC-10 và [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md#13-cross-repo-knowledge-reference).
+Nhận plan từ AI → validate → score risk → approve/reject. Chi tiết: [TECHNICAL_DESIGN.md §10](./TECHNICAL_DESIGN.md#10-planning-engine).
 
-Harness chỉ: đọc, index, truy xuất.
+### Runtime Engine
 
-Knowledge không bị copy thành một hệ thống riêng bên ngoài repository.
+Track state, checkpoint, rollback, scope enforcement. Chi tiết: [TECHNICAL_DESIGN.md §6](./TECHNICAL_DESIGN.md#6-scope-enforcement), [§7](./TECHNICAL_DESIGN.md#7-rollback-strategy).
 
----
+### Verification Engine
 
-### AI Adapter
+L1-L4 automated checks, độc lập với AI. Chi tiết: [TECHNICAL_DESIGN.md §11](./TECHNICAL_DESIGN.md#11-verification-details).
 
-Chuẩn hóa cách Harness giao tiếp với AI Coding Agent.
+### Code Index
 
-Adapter giúp thay đổi AI mà không ảnh hưởng các module còn lại.
-
-> Chi tiết interface và context delivery: xem [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md#2-ai-adapter-interface)
+tree-sitter → symbols.db, test impact analysis. Chi tiết: [TECHNICAL_DESIGN.md §8](./TECHNICAL_DESIGN.md#8-code-index-design).
 
 ---
 
-## 9. Module Dependency
-
-Các module chỉ giao tiếp theo một chiều.
+## 10. Module Dependency
 
 ```
-Knowledge Engine
+Knowledge Engine ← đọc docs/
+Code Index       ← đọc source code
       │
       ▼
-Context Engine
+Context Engine ← query KE + CI
       │
       ▼
-Planning Engine ───┐
-      │            │
-      ▼            ▼
-Runtime Engine ──→ AI Adapter
+MCP Server ← orchestrator nội bộ, expose tools
       │
-      │ calls (sync)
-      ▼
-Verification Engine
-      │
-      │ returns VerificationResult
-      ▼
-Runtime Engine ──→ retry / rollback / done
+      ├── Planning Engine ← validate plans
+      ├── Runtime Engine ← track state, checkpoint
+      └── Verification Engine ← L1-L4 checks
 ```
-
-Planning và Runtime truy cập AI thông qua AI Adapter. Không module nào gọi AI API trực tiếp.
-
-Mỗi module chỉ giao tiếp với các module liên quan theo luồng kiểm soát hoặc AI Adapter khi cần thiết. Runtime chịu trách nhiệm điều phối toàn bộ luồng bằng cách gọi đồng bộ các dịch vụ tương ứng.
 
 ---
 
-## 10. Repository
-
-Repository chỉ chứa source code và tri thức lâu dài.
+## 11. Repository Structure
 
 ```
-repo/
-├── src/
+target-repo/
 ├── docs/
-│   ├── architecture/        ← kiến trúc tổng thể, layer rules
-│   ├── adr/                 ← Architecture Decision Records
-│   ├── conventions/         ← coding conventions, patterns
-│   ├── glossary.md          ← business terms, phân biệt khái niệm
-│   ├── repo-map.yaml        ← structural map: modules, paths, dependencies
-│   └── concept-map.yaml     ← business domain → source code map
-│
-└── project.yaml             ← Harness config (minimal)
+│   ├── architecture/       ← Kiến trúc tổng thể
+│   ├── adr/                ← Architecture Decision Records
+│   ├── conventions/        ← Coding conventions
+│   ├── glossary.md         ← Thuật ngữ nghiệp vụ
+│   ├── repo-map.yaml       ← Sơ đồ modules
+│   └── concept-map.yaml    ← Business → code mapping (optional)
+├── project.yaml            ← Harness config
+└── AGENTS.md               ← System prompt cho AI agents
 ```
 
-Repository không chứa runtime state.
+### AGENTS.md
 
-Harness không thêm file vào repository ngoài `project.yaml` và `docs/`.
+File này **commit vào git** (knowledge, không phải runtime state — nhất quán AC-05). Nội dung tối thiểu:
+
+1. Nghĩa vụ gọi `harness_get_plan()` trước khi code
+2. Nghĩa vụ gọi `harness_report_progress(step, 'IN_PROGRESS')` **TRƯỚC** khi sửa file (AC-08)
+3. Nghĩa vụ gọi `harness_report_completion()` khi xong
+4. Không sửa file ngoài plan scope
+
+`harness init` tự động generate file này. Đối với AI agent dùng convention riêng (Cursor → `.cursorrules`), `harness init` có thể output nội dung tương đương vào file phù hợp. Chi tiết: [TECHNICAL_DESIGN.md §12](./TECHNICAL_DESIGN.md#12-agents-md-specification).
 
 ---
 
-## 11. Harness Workspace
-
-Harness quản lý toàn bộ dữ liệu runtime bên ngoài repository tại `~/.harness/`.
+## 12. Harness Workspace
 
 ```
-~/.harness/
-└── repositories/
-    └── {namespace}/         ← ví dụ: paymenthub
-        ├── cache/           ← BM25 index, vector index
-        ├── index/           ← code symbol index (tree-sitter)
-        ├── sessions/        ← session state hiện tại
-        ├── plans/           ← approved plan history
-        ├── logs/            ← audit log, metrics (append-only)
-        └── memory/          ← project memory persistent
-```
-
-Lợi ích:
-
-- Repository luôn sạch, không pollute Git
-- Dễ backup và restore Harness state độc lập với repo
-- Nhiều repository dùng chung một Harness installation
-- Reset hoàn toàn bằng cách xóa `~/.harness/repositories/{namespace}/`
-
----
-
-## 12. Knowledge Artifacts
-
-Repository nên chứa các tài liệu giúp cả con người và AI hiểu project.
-
-### Required
-
-```
-docs/architecture/     ← Hệ thống được tổ chức như thế nào?
-docs/conventions/      ← Viết code đúng cách nào trong project này?
-docs/repo-map.yaml     ← File và module nằm ở đâu?
-```
-
-### Recommended
-
-```
-docs/adr/              ← Tại sao quyết định như vậy?
-docs/glossary.md       ← Khái niệm này nghĩa là gì trong business?
-```
-
-### Optional
-
-```
-docs/concept-map.yaml  ← Business concept X tương ứng với code nào?
-```
-
-Repository có thể bắt đầu với Required, sau đó bổ sung dần theo nhu cầu.
-
----
-
-### Architecture Documents
-
-`docs/architecture/*.md`
-
-Mô tả kiến trúc tổng thể, layer dependency, design decisions.
-
-Harness inject vào context khi task liên quan đến structure của project.
-
----
-
-### ADR — Architecture Decision Records
-
-`docs/adr/*.md`
-
-Ghi lại lý do của các quyết định kiến trúc quan trọng.
-
-```markdown
----
-id: adr-001
-title: "Use MediatR for CQRS"
-status: accepted
-date: 2025-01-15
----
-
-## Decision
-...
-
-## Rationale
-...
-
-## Consequences
-...
+~/.harness/repositories/{namespace}/
+├── cache/       ← BM25 index
+├── index/       ← symbols.db (tree-sitter)
+├── sessions/    ← Task state, current plan
+├── snapshots/   ← File backups cho rollback
+└── logs/        ← audit.jsonl, metrics.jsonl (append-only)
 ```
 
 ---
 
-### Coding Conventions
+## 13. Knowledge Artifacts
 
-`docs/conventions/*.md`
+**Required**: `docs/architecture/`, `docs/conventions/`, `docs/repo-map.yaml`
 
-Naming convention, code style, project-specific patterns.
+**Recommended**: `docs/adr/`, `docs/glossary.md`
 
----
-
-### Glossary
-
-`docs/glossary.md`
-
-Định nghĩa các khái niệm nghiệp vụ. Phân biệt các khái niệm có tên gần giống nhau trong cùng domain.
-
-```markdown
-## Payment
-Giao dịch thanh toán do customer khởi tạo.
-Phân biệt với:
-- **Refund**: hoàn tiền, luôn gắn với một Payment đã tồn tại
-- **Payout**: thanh toán từ hệ thống ra merchant, không phải từ customer
-
-## Settlement
-Quá trình đối soát và chuyển tiền thực tế từ acquiring bank.
-Khác với Payment ở chỗ Settlement xảy ra theo batch, không real-time.
-```
+**Optional**: `docs/concept-map.yaml`
 
 ---
 
-### Repository Map
+## 14. Workflow
 
-`docs/repo-map.yaml`
-
-Mô tả cấu trúc vật lý của project. Giúp AI tìm đúng file và module mà không cần crawl toàn bộ codebase.
-
-```yaml
-namespace: paymenthub
-language: csharp
-framework: dotnet
-
-solution: PaymentHub.sln
-
-modules:
-  - name: Domain
-    path: src/PaymentHub.Domain
-    responsibility: "Entities, Value Objects, Domain Events"
-    entry_points:
-      - src/PaymentHub.Domain/Entities/Payment.cs
-      - src/PaymentHub.Domain/Entities/Refund.cs
-
-  - name: Application
-    path: src/PaymentHub.Application
-    responsibility: "Use Cases, CQRS Commands/Queries"
-    depends_on: [Domain]
-    entry_points:
-      - src/PaymentHub.Application/Payments/
-
-  - name: Infrastructure
-    path: src/PaymentHub.Infrastructure
-    responsibility: "EF Core, Repositories, External Services"
-    depends_on: [Domain, Application]
-
-  - name: API
-    path: src/PaymentHub.HttpApi.Host
-    responsibility: "REST Controllers, Middleware"
-    depends_on: [Application, Infrastructure]
-
-test_projects:
-  - name: Domain.Tests
-    path: test/PaymentHub.Domain.Tests
-    tests: [Domain]
-  - name: Application.Tests
-    path: test/PaymentHub.Application.Tests
-    tests: [Application]
-
-migrations:
-  path: src/PaymentHub.Infrastructure/Migrations
-  tool: ef-core
-```
-
----
-
-### Concept Map
-
-`docs/concept-map.yaml`
-
-Mô tả các khái niệm nghiệp vụ và mapping với source code. Giúp AI tìm đúng khu vực cần sửa khi nhận yêu cầu bằng ngôn ngữ business.
-
-```yaml
-concepts:
-  - name: Payment
-    description: "Giao dịch thanh toán từ customer"
-    source:
-      entity:     src/PaymentHub.Domain/Entities/Payment.cs
-      service:    src/PaymentHub.Application/Payments/PaymentAppService.cs
-      repository: src/PaymentHub.Infrastructure/Repositories/PaymentRepository.cs
-      controller: src/PaymentHub.HttpApi/Controllers/PaymentController.cs
-      dto:        src/PaymentHub.Application/Payments/Dto/
-      tests:
-        - test/PaymentHub.Application.Tests/Payments/
-
-  - name: Refund
-    description: "Hoàn tiền cho một giao dịch đã thanh toán"
-    depends_on: [Payment]
-    source:
-      entity:     src/PaymentHub.Domain/Entities/Refund.cs
-      service:    src/PaymentHub.Application/Refunds/RefundAppService.cs
-      repository: src/PaymentHub.Infrastructure/Repositories/RefundRepository.cs
-      controller: src/PaymentHub.HttpApi/Controllers/RefundController.cs
-      tests:
-        - test/PaymentHub.Application.Tests/Refunds/
-```
-
----
-
-### project.yaml
-
-`project.yaml` (root của repo)
-
-Config tối thiểu để Harness nhận biết repo. Mọi field ngoài `namespace`, `language`, `framework` đều có default.
-
-```yaml
-namespace: paymenthub
-language: csharp
-framework: dotnet
-
-plugins:
-  - dotnet
-  - postgres
-
-team:
-  approvers:
-    - "@tech-lead"
-
-cost:
-  warn_per_task_usd: 0.50
-  block_per_task_usd: 2.00
-```
-
-> Schema đầy đủ (context budget override, knowledge.include, validation rules): xem [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md#3-token-budget)
-
----
-
-## 13. Workflow
+### Pull Model Workflow
 
 ```
-Task
+AI gọi harness_get_context(task_description)
+  │ → Nhận architecture, conventions, related code
+  ▼
+AI phân tích impact, sinh plan theo required format
   │
   ▼
-Build Context
+AI gọi harness_submit_plan(plan)
+  │ → Harness validate + risk score
+  │ → Trả về: approved | rejected | awaiting_approval
+  │
+  │ Nếu awaiting_approval:
+  │   AI poll harness_get_plan() mỗi 30s cho tới khi approved/rejected
+  │   (Poll-based, không blocking. Chi tiết: TECHNICAL_DESIGN.md §3)
+  ▼
+AI gọi harness_get_plan() → confirmed APPROVED
   │
   ▼
-Generate Plan
-  │
+AI loop steps:
+  │  ├── harness_report_progress(step, 'IN_PROGRESS')  ← TRƯỚC khi sửa file
+  │  ├── Modify files
+  │  └── harness_report_progress(step, 'DONE')         ← Harness check scope
   ▼
-Approve
+AI gọi harness_report_completion()
+  │ → Harness chạy Verification L1-L4
+  │ → Trả về VerificationResult
   │
-  ▼
-Execute
-  │
-  ▼
-Verify
-  │
-  ▼
-Complete
+  ├── PASS → Task done
+  └── FAIL → AI nhận errors
+              ├── retry < limit → AI sửa, gọi lại report_completion()
+              └── retry >= limit → Harness trả ESCALATED, task blocked
 ```
 
-Nếu Verification thất bại:
+### Approval Gate
 
-```
-Verify
-  │
-  ▼
-Retry
-  │
-  ▼
-Rollback
-  │
-  ▼
-Human Review
-```
+| Risk | Behavior |
+|------|----------|
+| LOW | Auto approve (configurable via project.yaml) |
+| MEDIUM | Require human (configurable) |
+| HIGH | Require human bắt buộc |
+| CRITICAL | Require human + 2nd opinion |
 
-### Planning Flow
+### Scope Check Timing
 
-```
-[1] Understand Task
-    AI restates: goal, scope, constraints, acceptance criteria
-    Nếu có ambiguity → request clarification trước
+Scope enforcement chạy **per-step** tại thời điểm `harness_report_progress(step, 'DONE')`:
+- So sánh file changes với plan scope
+- Nếu vi phạm → reject ngay, AI phải revert
 
-[2] Build Context
-    Knowledge Engine truy xuất: architecture, conventions, ADR, glossary
-    Code Index truy xuất: symbols và references liên quan
-
-[3] Impact Analysis
-    AI + Code Index phân tích:
-    - files cần thay đổi
-    - interfaces bị ảnh hưởng
-    - tests cần update
-    - breaking changes?
-    - db schema change?
-    - public API change?
-
-[4] Risk Scoring         ← Harness tính, không phải AI
-
-[5] Generate Plan
-    AI sinh Plan object với steps, rollback plan, test strategy
-
-[6] Validate Plan        ← Harness validate, không phải AI
-    - scope creep check
-    - rollback plan tồn tại?
-    - files trong scope hợp lệ?
-
-[7] Approval Gate
-    LOW      → auto approve (nếu project.yaml cho phép, default: ON)
-    MEDIUM   → auto approve chỉ khi được config trong project.yaml (default: OFF, require human)
-    HIGH     → human approval bắt buộc
-    CRITICAL → senior + second opinion (có thể config yêu cầu chữ ký số hoặc multi-approver)
-```
-
-### Execution Flow
-
-```
-Approved Plan
-  │
-  For each step:
-  │   ├── Checkpoint (snapshot pre-step state)
-  │   ├── Execute via AI Adapter
-  │   ├── Syntax check nhanh (< 2s)
-  │   └── Next step
-  │
-  All steps done
-  │
-  ▼
-Full Verification (theo risk level)
-  │
-  ├── PASS → Memory update → Cost log → Done
-  └── FAIL → Retry Manager
-              ├── retry < limit → fix prompt → execute lại
-              └── retry >= limit → Rollback → Escalate
-```
-
-> Chi tiết retry strategy: xem [TECHNICAL_DESIGN.md#4-retry-strategy](./TECHNICAL_DESIGN.md#4-retry-strategy)
-> Chi tiết rollback: xem [TECHNICAL_DESIGN.md#8-rollback-strategy](./TECHNICAL_DESIGN.md#8-rollback-strategy)
-> Chi tiết scope enforcement: xem [TECHNICAL_DESIGN.md#7-scope-enforcement](./TECHNICAL_DESIGN.md#7-scope-enforcement)
-
----
-
-## 14. Extensibility
-
-Universal Coding Harness được thiết kế để mở rộng.
-
-Các khả năng sau có thể bổ sung mà không ảnh hưởng kiến trúc hiện tại:
-
-- AI Adapters
-- Language Support
-- Verification Rules
-- Knowledge Providers
-- Plugins
-- CLI Commands
-
-Mọi extension đều phải tuân theo các interface của Harness.
+> Chi tiết: [TECHNICAL_DESIGN.md §6](./TECHNICAL_DESIGN.md#6-scope-enforcement)
 
 ---
 
@@ -714,23 +331,22 @@ Mọi extension đều phải tuân theo các interface của Harness.
 
 ```typescript
 interface Task {
-  id:            string   // UUID
-  repo:          string   // namespace từ project.yaml
-  session_id:    string
-  description:   string
-  type:          'FEATURE' | 'BUG' | 'REFACTOR' | 'OPS' | 'HOTFIX'
-  status:        'PENDING' | 'PLANNING' | 'AWAITING_APPROVAL'
-                 | 'EXECUTING' | 'VERIFYING' | 'DONE'
-                 | 'FAILED' | 'ESCALATED' | 'CANCELLED'
-  risk_level:    'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-  plan_id:       string | null
-  created_at:    string   // ISO timestamp
-  completed_at:  string | null
-  cost_usd:      number
-  tokens_input:  number
-  tokens_output: number
-  adapter:       string
-  retry_count:   number
+  id: string
+  repo: string
+  session_id: string
+  description: string
+  type: 'FEATURE' | 'BUG' | 'REFACTOR' | 'OPS' | 'HOTFIX'
+  status: 'PENDING' | 'PLANNING' | 'AWAITING_APPROVAL'
+          | 'EXECUTING' | 'VERIFYING' | 'DONE'
+          | 'FAILED' | 'ESCALATED' | 'CANCELLED'
+  risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  plan_id: string | null
+  agent: string | null         // AI Agent đã submit plan (kiro/cursor/antigravity/claude-code)
+  created_at: string
+  completed_at: string | null
+  duration_ms: number          // wall time, Harness đo được
+  retry_count: number
+  cost_self_reported: number | null  // optional, AI tự khai báo, đánh dấu self_reported
 }
 ```
 
@@ -738,40 +354,37 @@ interface Task {
 
 ```typescript
 interface Plan {
-  id:          string
-  task_id:     string
-  version:     number   // tăng khi regenerate
-  status:      'DRAFT' | 'APPROVED' | 'EXECUTING' | 'DONE' | 'ROLLED_BACK'
-  risk_level:  'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-  steps:       PlanStep[]
+  id: string
+  task_id: string
+  version: number
+  status: 'DRAFT' | 'APPROVED' | 'EXECUTING' | 'DONE' | 'ROLLED_BACK'
+  risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  steps: PlanStep[]
   impact: {
-    files_to_change:     string[]
+    files_to_change: string[]
     interfaces_affected: string[]
-    breaking_changes:    boolean
-    db_schema_change:    boolean
-    public_api_change:   boolean
+    breaking_changes: boolean
+    db_schema_change: boolean
+    public_api_change: boolean
   }
-  rollback_plan:  string
-  test_strategy:  string
-  approved_by:    string | null   // "auto" | "human:{name}"
-  approved_at:    string | null
-  created_at:     string
+  rollback_plan: string
+  test_strategy: string
+  submitted_by: string | null   // agent name
+  approved_by: string | null    // "auto" | "human:{name}"
+  approved_at: string | null
+  created_at: string
 }
 
 interface PlanStep {
-  id:            string
-  order:         number
-  action:        string
-  file_path:     string | null
-  description:   string
-  rationale:     string
-  risk_note:     string
-  status:        'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'ROLLED_BACK'
-  checkpoint_id: string | null   // snapshot folder id tại ~/.harness/
+  id: string
+  order: number
+  action: 'create' | 'update' | 'delete' | 'move'
+  file_path: string | null
+  description: string
+  status: 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'ROLLED_BACK'
+  checkpoint_id: string | null
 }
 ```
-
-> Implementation data models (KnowledgeEntry, VerificationResult, FailurePattern): xem [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md#11-implementation-data-models)
 
 ---
 
@@ -779,313 +392,244 @@ interface PlanStep {
 
 ### Risk Scoring Formula
 
-Harness tính risk level từ impact analysis. AI không được tự assign risk.
+Harness tính. AI không assign (AC-02). Chi tiết: [TECHNICAL_DESIGN.md §5](./TECHNICAL_DESIGN.md#5-token-budget).
 
 ```
-Base = LOW
+LOW      → files ≤ 5, no interfaces, no breaking
+MEDIUM   → files > 5 | interfaces_affected | db_schema_change
+HIGH     → breaking_changes | public_api_change | auth/payment/security scope
+CRITICAL → production data migration | credential rotation | external API contract
+```
 
-→ MEDIUM nếu bất kỳ:
-  - files_to_change > 5
-  - interfaces_affected không rỗng
-  - db_schema_change = true
+### Token Budget
 
-→ HIGH nếu bất kỳ:
-  - breaking_changes = true
-  - public_api_change = true
-  - scope chứa: auth | payment | security | shared infrastructure
+| Risk | Budget |
+|------|--------|
+| LOW | 30,000 |
+| MEDIUM | 45,000 |
+| HIGH | 60,000 |
+| CRITICAL | 80,000 |
 
-→ CRITICAL nếu bất kỳ:
-  - production data migration
-  - credential / secret rotation
-  - external API contract change
+Allocation: system 10%, plan 15%, knowledge 50%, code 20%, memory 5%.
 
-Quy tắc override:
-  Developer có thể nâng risk lên cao hơn.
-  Developer KHÔNG thể hạ risk xuống thấp hơn kết quả tính toán.
+### Verification Layers
 
-Quy tắc độc lập với risk score:
-  Nếu estimateCost(task) > project.yaml → cost.block_per_task_usd
-  → require human approval bất kể risk level đã tính ra LOW
+| Risk | Layers |
+|------|--------|
+| LOW | L1 Syntax, L2 Lint, L3 Unit Tests (affected) |
+| MEDIUM+ | + L4 Architecture |
+| HIGH+ | + L5 Security, L6 AI Review (Phase 2) |
+| CRITICAL | + L7 Mutation Testing (Phase 2) |
 
-Quy tắc liên kết Token Budget:
-  Risk Level xác định hard cap token budget ban đầu (escalate từ 30,000 đến 80,000 tokens).
-  Xem chi tiết cấu hình tại TECHNICAL_DESIGN.md#3-token-budget.
+### Retry Strategy
+
+| Failure Type | Max Retry | Escalation |
+|---|---|---|
+| Syntax error | 3 | Send exact error + file + line |
+| Test failure | 3 | Send test output + relevant code |
+| Architecture violation | 2 | Send rule + violation detail |
+| Same error 2x consecutive | 0 | Escalate immediately |
+
+Khi retry vượt limit: `harness_report_completion()` trả `{ overall: 'ESCALATED' }`. Task bị blocked, cần human intervention. Chi tiết: [TECHNICAL_DESIGN.md §5](./TECHNICAL_DESIGN.md#5-retry-strategy).
+
+---
+
+## 17. Architecture Decision Records
+
+### ADR-002: Runtime State Ngoài Repository
+
+**Decision**: Mọi runtime state (sessions, plans, logs, snapshots) lưu tại `~/.harness/`, không trong repo.
+
+**Rationale**: Repo chỉ chứa source + knowledge. Runtime state là ephemeral, không nên pollute git history.
+
+---
+
+### ADR-003: Plan Before Code — Hard Gate
+
+**Decision**: MCP Server reject `harness_report_progress()` nếu không có plan APPROVED cho task.
+
+**Rationale**: Không có plan → không biết scope → không thể rollback → rủi ro scope creep cao.
+
+**Exception**: `harness_get_context()` và `harness_get_knowledge()` không cần plan (read-only).
+
+---
+
+### ADR-004: Risk Scoring by Harness, Not AI
+
+**Decision**: Risk level tính bằng deterministic formula trong Harness. AI submit plan, Harness tính risk.
+
+**Rationale**: AI có thể đánh giá thấp risk để bypass approval gate. Deterministic formula không thể manipulate.
+
+---
+
+### ADR-005: Knowledge Engine as Single Reader
+
+**Decision**: Chỉ Knowledge Engine đọc `docs/` trực tiếp. Modules khác query qua KE API.
+
+**Rationale**: Single point of indexing, cache invalidation, format parsing. Tránh N modules tự parse docs.
+
+---
+
+### ADR-006: Duration/Retry Tracking Bắt Buộc (not Cost)
+
+**Decision**: Harness bắt buộc track `duration_ms` và `retry_count` (đo được chính xác trong Pull model). Token cost là optional self-reported field.
+
+**Rationale**: Trong Pull model, Harness không gọi AI API nên không biết token usage. Bắt buộc "cost tracking" khi không có data source là constraint không thể enforce. Duration và retry_count phản ánh chất lượng thực sự của task.
+
+**Migration từ v2**: AC-06 đổi từ "cost tracking bắt buộc" → "duration + retry tracking bắt buộc". Cost self-reported nếu AI Agent khai báo.
+
+---
+
+### ADR-007: Snapshot-based Rollback (not git stash)
+
+**Decision**: Dùng file copy snapshot, không git stash.
+
+**Rationale**: git stash xung đột với developer's local work. Snapshot isolated tại `~/.harness/snapshots/`.
+
+---
+
+### ADR-009: Verification Độc Lập Với AI
+
+**Decision**: Harness tự chạy verification (compile, lint, test, architecture check). AI không tự verify.
+
+**Rationale**: AI có thể tuyên bố "tests pass" mà không chạy. Verification phải là independent authority.
+
+---
+
+### ADR-012: Pull Model Primary Phase 1, Push Model Deferred
+
+**Decision**: Phase 1 chỉ implement Pull model (AI gọi Harness qua MCP). Push model (Harness gọi AI qua adapter) deferred sang Phase 2.
+
+**Context**: v2 giả định Push model (Harness gọi AI), kéo theo API key management, adapter interface, headless execution loop — toàn bộ phức tạp cho một interaction model.
+
+**Rationale**:
+- Agentic IDEs (Kiro, Antigravity, Cursor) đã có model access và agentic loop sẵn
+- Harness chỉ cần là MCP server để AI gọi vào
+- Loại bỏ gánh nặng API key, giảm thời gian đến giá trị đầu tiên
+- Khớp tự nhiên với cách MCP được thiết kế
+
+**Consequences**:
+- Không track token cost chính xác (chỉ self-reported) — acceptable tradeoff
+- Push model vẫn valuable cho headless batch coding — Phase 2
+- AI Adapter interface deferred, không mất
+
+---
+
+### ADR-013: Progress Report Trước File Modification (Protocol Constraint)
+
+**Decision**: AI Agent PHẢI gọi `harness_report_progress(step, 'IN_PROGRESS')` TRƯỚC khi sửa bất kỳ file nào của step đó. Đây là protocol constraint, enforced bằng documentation + safety net detection.
+
+**Context**: Rollback strategy phụ thuộc hoàn toàn vào snapshot chụp tại thời điểm IN_PROGRESS. Nếu AI sửa file trước khi gọi, snapshot chụp state đã bị thay đổi → rollback vô dụng.
+
+**Enforcement**:
+1. AGENTS.md ghi rõ nghĩa vụ
+2. MCP tool description ghi rõ constraint
+3. Safety net: khi nhận IN_PROGRESS, Harness check mtime/hash file target so với last known state. Nếu đã thay đổi → log WARNING "snapshot may be stale"
+
+**Rationale**: Không thể hard-block (AI có quyền write file mọi lúc), nhưng có thể detect + warn + document.
+
+---
+
+## 18. Roadmap
+
+### Phase 1 — Foundation + Pull Model
+
+```
+[x] Project scaffold (types, schemas, utils, CLI doctor/init)
+[ ] Knowledge Engine (BM25 indexer, docs parser, glossary, repo-map)
+[ ] Code Index (tree-sitter → symbols.db)
+[ ] Context Engine (build context, token budget enforcement)
+[ ] MCP Server (8 tools, @modelcontextprotocol/sdk)
+[ ] Planning Engine (validate, risk score, approve gate)
+[ ] Runtime Engine (state tracking, checkpoint, rollback, scope enforcement per-step)
+[ ] Verification Engine (L1-L4)
+[ ] AGENTS.md generator (harness init)
+[ ] CLI: harness index, harness task, harness plan, harness verify, harness cost
+```
+
+**Out of scope Phase 1**: Push model, Vector search, Failure Learning, L5-L7, Multi-repo.
+
+### Phase 2 — Intelligence + Push Model
+
+```
+[ ] AI Adapter interface + Claude Code adapter (Push model)
+[ ] Failure Learning + prevention injection
+[ ] Vector search + hybrid retrieval
+[ ] L5-L7 verification
+[ ] Code Index watch mode
+[ ] Cross-repo knowledge (git version-pinned)
+```
+
+### Phase 3 — Ecosystem
+
+```
+[ ] Central Registry, Web Dashboard, Plugin system
 ```
 
 ---
 
-### Verification Layers theo Risk
-
-| Risk Level | Layers |
-|---|---|
-| LOW | L1 Syntax, L2 Lint, L3 Unit Tests (affected only) |
-| MEDIUM | + L4 Architecture (layer deps, circular deps, interface compliance) |
-| HIGH | + L5 Security (secret detection, SAST), L6 AI Review (plan compliance) |
-| CRITICAL | + L7 Mutation Testing (verify tests không bị hardcode) |
-
-> Chi tiết test impact analysis và mutation testing: xem [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md#10-verification-details)
-
----
-
-## 17. Roadmap
-
-### Phase 1 — Foundation (Tháng 1–3)
-
-**Mục tiêu**: Một AI Agent có thể làm việc đúng kiến trúc của repository.
-
-**Core:**
-
-```
-[ ] packages/core — types và interfaces viết TRƯỚC implementation
-[ ] Knowledge Engine
-    [ ] docs/ indexer (Markdown + YAML parser)
-    [ ] BM25 indexing
-    [ ] Cache invalidation bằng content hash
-    [ ] repo-map.yaml parser → structured query API
-    [ ] concept-map.yaml parser → structured query API
-    [ ] glossary.md parser
-[ ] Context Engine
-    [ ] Task Analyzer (classify + extract entities)
-    [ ] Concept Resolver (query Knowledge Engine)
-    [ ] Knowledge Retrieval (BM25)
-    [ ] Context Compressor + Assembler (token budget enforcement)
-[ ] Code Index
-    [ ] Tree-sitter parser
-    [ ] SQLite symbols.db (symbols + references)
-[ ] Planning Engine
-    [ ] Task understanding
-    [ ] Impact analysis (AI + Code Index)
-    [ ] Risk scoring (deterministic formula)
-    [ ] Plan generation + validation
-    [ ] Approval gate
-[ ] Runtime Engine
-    [ ] Step execution + checkpoint
-    [ ] Retry manager (per failure type strategy)
-    [ ] Rollback (full + partial)
-    [ ] Scope enforcement
-[ ] Verification Engine
-    [ ] L1 Syntax
-    [ ] L2 Lint
-    [ ] L3 Unit Tests (test impact analysis)
-    [ ] L4 Architecture
-[ ] AI Adapter
-    [ ] Claude Code adapter (MCP)
-    [ ] MCP Server với 5 tools
-[ ] Memory
-    [ ] Session memory
-```
-
-**CLI commands:**
-
-```
-[ ] harness doctor          — check prerequisites
-[ ] harness init            — setup project.yaml + docs/ templates
-[ ] harness task [desc]     — start a task
-[ ] harness plan review     — xem pending plan
-[ ] harness plan approve    — approve plan
-[ ] harness plan reject     — reject với lý do
-[ ] harness verify          — manual verify trigger
-[ ] harness index           — rebuild knowledge + code index
-[ ] harness session status  — xem current session
-[ ] harness cost            — xem cost của session/task
-```
-
-**Out of scope Phase 1:**
-
-```
-✗ Vector search              → dùng BM25
-✗ Failure Learning           → chỉ log, chưa learn
-✗ Project Memory persistent  → chỉ session memory
-✗ Non-Claude Code adapters
-✗ Verification L5–L7
-✗ Web UI
-✗ Multi-repo
-✗ Cross-repo knowledge reference
-✗ Plugin system
-```
-
-**Success Criteria Phase 1:**
-
-```
-[ ] Developer setup xong trong < 30 phút từ README
-[ ] harness doctor pass trên máy mới
-[ ] harness task chạy end-to-end với Claude Code
-[ ] Plan hiển thị và approve trước khi AI code
-[ ] Verification 4 layers chạy tự động
-[ ] Retry tự động khi verification fail
-[ ] Rollback restore files về pre-task state
-[ ] Cost hiển thị sau mỗi task
-[ ] Audit log ghi đầy đủ mọi event
-[ ] Unit test coverage > 70% cho packages/core
-[ ] 1 integration test cho happy path
-```
-
----
-
-### Phase 2 — Intelligence (Tháng 4–6)
-
-**Mục tiêu**: AI hiểu project tốt hơn theo thời gian và giảm lỗi lặp lại.
-
-**Phase 2a — Tháng 4:**
-
-```
-[ ] Project Memory persistent
-[ ] Memory injection vào context
-[ ] Vector search (sqlite-vec)
-[ ] Hybrid retrieval: BM25 + Vector + Reciprocal Rank Fusion
-[ ] Code Index watch mode (auto rebuild khi file thay đổi)
-[ ] External Knowledge Reference (cross-repo, git version-pinned)
-```
-
-**Phase 2b — Tháng 5:**
-
-```
-[ ] Failure Learning — classifier + pattern matching + promotion flow
-[ ] Prevention injection vào context
-[ ] Verification L5 Security
-[ ] Verification L6 AI Self-review
-[ ] Mutation Testing (L7, chỉ CRITICAL)
-```
-
-**Phase 2c — Tháng 6:**
-
-```
-[ ] Plugin System — interface + lifecycle
-[ ] Plugin: dotnet (knowledge + verifiers + templates)
-[ ] Plugin: python
-[ ] Codex CLI adapter
-[ ] Cursor adapter
-```
-
----
-
-### Phase 3 — Ecosystem (Tháng 7–12)
-
-**Mục tiêu**: Nhiều repository và nhiều AI có thể chia sẻ cùng một Harness.
-
-```
-[ ] Central Registry (self-hosted REST API)
-[ ] Knowledge sync: repo → registry → other repos
-[ ] Global Memory tier (cross-repo)
-[ ] Harness Dashboard (web UI)
-[ ] Team collaboration: shared plan reviews
-[ ] Slack/Teams notification cho approval
-[ ] Gemini CLI adapter
-[ ] Plugin: react, nextjs, java, go
-[ ] ADR auto-generation từ decision log
-```
-
----
-
-## 18. Success Metrics
-
-Đo sau mỗi sprint. So sánh với baseline 2 tuần đầu dùng AI trực tiếp không có Harness.
+## 19. Success Metrics
 
 | Metric | Target | Đo bằng |
 |---|---|---|
-| Architecture violation per task | Giảm > 80% | Verification L4 results |
+| Architecture violation per task | Giảm > 80% | L4 results |
 | Scope creep per task | Giảm > 70% | Scope enforcement log |
-| Retry count per task | Giảm từ > 3 xuống < 1 | `metrics.jsonl` |
-| Token per task | Giảm > 25% | Cost log |
-| Developer review time per PR | Giảm > 20% | PR timestamps |
-| AI plan compliance rate | > 90% | Plan compliance check |
-| New repo setup time | < 30 phút | Onboarding test |
-
-**Cách đo baseline:**
-
-2 tuần đầu dùng Claude Code trực tiếp, log thủ công:
-
-- Số lần AI sửa ngoài scope
-- Số lần phải nhắc lại architecture
-- Số lần retry vì test fail
-- Thời gian review PR
-
-Sau đó bật Harness và so sánh cùng metrics.
+| Retry count per task | < 1 average | metrics.jsonl |
+| Plan approval first-try rate | > 70% | Planning Engine stats |
+| Verification pass rate | > 85% | Verification results |
+| New repo setup time | < 5 phút | Onboarding test |
 
 ---
 
-## 19. Pre-code Checklist
-
-Tất cả items phải được tech lead xác nhận trước khi viết dòng code đầu tiên.
+## 20. Pre-code Checklist
 
 ### Design
 
-- [ ] Architecture Constraints (AC-01 đến AC-10) đã được team đọc và không có phản đối
-- [ ] Data Model (Task, Plan, PlanStep, KnowledgeEntry, VerificationResult, FailurePattern) đã được review
-- [ ] `repo-map.yaml` schema finalized — team biết cách viết cho repo thực tế
-- [ ] `concept-map.yaml` schema finalized
-- [ ] `glossary.md` format finalized
-- [ ] `project.yaml` schema finalized với Zod validation spec
-- [ ] Risk Scoring formula đã được thống nhất
-- [ ] Token budget allocation đã được thống nhất
-- [ ] Memory tier boundaries rõ ràng (ai được write tier nào)
-- [ ] Failure promotion threshold đã được thống nhất (>= 3 occurrences, >= 2 tasks, 30 ngày)
+- [ ] Architecture Constraints (AC-01 → AC-08) team đã đọc, không phản đối
+- [ ] Data Model (Task, Plan, PlanStep) đã review
+- [ ] MCP tool schemas (8 tools) đã finalize
+- [ ] Protocol timing constraint (AC-08, ADR-013) đã align
+- [ ] `repo-map.yaml` schema finalized
+- [ ] `project.yaml` schema finalized (Zod validation)
+- [ ] Risk Scoring formula thống nhất
+- [ ] Token budget allocation thống nhất
+- [ ] Approval gate behavior (polling, timeout) thống nhất
 
 ### Technical
 
-- [ ] Tất cả interfaces trong `packages/core/src/types/` viết **TRƯỚC** implementation
-- [ ] `AIAdapter` interface finalized
-- [ ] `KnowledgeEngine` interface finalized — SQLite và future backend cùng interface
-- [ ] `VerificationRunner` interface finalized
-
-> Setup checklist chi tiết (monorepo, tsconfig, CI): xem [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md#12-environment-setup-checklist)
+- [ ] All interfaces trong `src/types/` viết TRƯỚC implementation
+- [ ] MCP Server tool registration tested với ít nhất 1 AI Agent
+- [ ] `harness_submit_plan()` response schema finalized
+- [ ] `harness_report_completion()` retry/escalation logic finalized
+- [ ] Scope enforcement per-step logic documented
 
 ### Environment
 
-- [ ] `harness doctor` là feature **đầu tiên** implement và pass
-- [ ] Ít nhất 1 developer setup thành công từ README trong < 30 phút
-- [ ] `~/.harness/` workspace được tạo tự động khi `harness init`
+- [ ] `harness doctor` pass trên máy mới
+- [ ] `harness init` tạo AGENTS.md + project.yaml + docs/
+- [ ] MCP Server start được qua stdio
 
 ### Knowledge Bootstrap
 
-- [ ] `docs/architecture/` có ít nhất 1 file để test indexing
-- [ ] `docs/conventions/` có ít nhất 1 file
-- [ ] `docs/glossary.md` có ít nhất 3 business terms
-- [ ] `docs/repo-map.yaml` đã được viết cho repo test
-- [ ] BM25 search trả về kết quả đúng với 3 test queries
-- [ ] Knowledge Engine query API trả về đúng kết quả cho concept lookup
-
-### Process
-
-- [ ] Git branching: `main` | `develop` | `feature/*` | `fix/*`
-- [ ] PR template có câu hỏi: "Does this break any adapter / knowledge / verification interface?"
-- [ ] Ai là người approve knowledge changes trong `docs/`?
-- [ ] Cost threshold đã được thống nhất (warn > $0.50, block > $2.00)
-- [ ] Cách đo baseline đã được thống nhất (2 tuần manual log)
+- [ ] `docs/architecture/` có ≥1 file
+- [ ] `docs/conventions/` có ≥1 file
+- [ ] `docs/glossary.md` có ≥3 terms
+- [ ] `docs/repo-map.yaml` viết xong cho test repo
+- [ ] BM25 search trả đúng kết quả cho 3 test queries
 
 ### Definition of Done — Phase 1
 
-- [ ] `harness task "..."` chạy end-to-end với Claude Code
-- [ ] Hard gate hoạt động: không có plan → không execute
-- [ ] Verification 4 layers chạy tự động sau output
-- [ ] Retry tự động ít nhất 1 lần khi fail
-- [ ] Rollback restore tất cả files về pre-task state
-- [ ] Audit log ghi đầy đủ mọi event
-- [ ] Cost hiển thị sau mỗi task
-- [ ] README đủ để onboard developer mới không cần hỏi
-- [ ] Unit test > 70% coverage cho `packages/core`
-- [ ] 1 integration test cho happy path end-to-end
+- [ ] AI Agent gọi 8 MCP tools thành công
+- [ ] Plan validated + approved trước khi code (AC-01 enforced)
+- [ ] Scope enforcement per-step (AC-08 enforced)
+- [ ] Verification L1-L4 chạy tự động sau completion
+- [ ] Retry + escalation hoạt động khi vượt limit
+- [ ] Rollback restore files khi fail
+- [ ] Audit log ghi đầy đủ
+- [ ] 1 end-to-end test với Kiro hoặc tương đương
 
 ---
 
-## Summary
+*Version: 3.1 | Last updated: 2026-07-01*
 
-Universal Coding Harness không thay thế AI.
-
-Harness chuẩn hóa cách AI làm việc với source code.
-
-Repository lưu giữ tri thức.
-
-Harness quản lý runtime.
-
-AI chỉ tập trung vào việc tạo ra code.
-
-Kiến trúc đơn giản ở giai đoạn đầu, nhưng đủ linh hoạt để mở rộng khi dự án phát triển.
-
----
-
-*Version: 2.0 | Last updated: 2026-06-29*
-
-*Mọi thay đổi kiến trúc phải tạo ADR mới hoặc update ADR hiện có với lý do rõ ràng.*
-
-*Chi tiết implementation: xem [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md). ADR-010 và ADR-011 (cross-repo knowledge, adapter fallback policy) nằm trong [TECHNICAL_DESIGN.md#14-architecture-decision-records](./TECHNICAL_DESIGN.md#14-architecture-decision-records).*
+*Chi tiết implementation: xem [TECHNICAL_DESIGN.md](./TECHNICAL_DESIGN.md).*

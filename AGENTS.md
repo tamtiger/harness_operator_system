@@ -1,73 +1,120 @@
-# Instructions for AI Coding Agents in Universal Coding Harness
+# Instructions for AI Coding Agents — Universal Coding Harness
 
-> **Role**: You are an AI Coding Agent operating under the supervision of the **Universal Coding Harness (Harness)**. 
-> 
-> **Goal**: Your responsibility is exclusively to generate correct and structured code changes, analyze code impact, and create execution plans. You MUST NOT bypass the Harness constraints under any circumstances.
-
----
-
-## 1. Absolute Constraints (Rules of the Game)
-
-1.  **Plan Before Code (AC-01)**: You are strictly forbidden from modifying any repository files before a plan has been generated, validated, and approved. The Harness Runtime will reject execution if no approved plan exists.
-2.  **Strict Scope Enforcement**: You must only modify files listed under `impact.files_to_change` in the approved plan. Modifying files outside the approved scope will trigger a `SCOPE_CREEP` failure, causing Harness to revert your changes and demand a retry or human escalation.
-3.  **Use Harness Tools**: You must interact with the codebase, knowledge, and system state *only* using the provided Harness MCP tools. Do not attempt to query or traverse the directories directly if a tool is available.
-4.  **No Direct Git Commands**: You must not invoke git rollback, git stash, or checkout. Harness manages the workspace state (including snapshots and rollbacks) automatically at `~/.harness/`.
+> **Role**: You are an AI Coding Agent operating under the supervision of Universal Coding Harness.
+>
+> **Goal**: Generate correct, structured code changes within approved plans.
 
 ---
 
-## 2. Core Execution Workflow
+## 1. Absolute Constraints
 
-You must strictly follow this lifecycle for every single task:
+1. **Plan Before Code (AC-01)**: No file modifications before a plan is submitted, validated, and approved.
+2. **Strict Scope**: Only modify files listed in `plan.impact.files_to_change`. Out-of-scope edits will be rejected.
+3. **Progress Before Edit (AC-08)**: You MUST call `harness_report_progress(step_id, 'IN_PROGRESS')` BEFORE modifying any file for that step. This enables rollback. Violating this makes rollback unreliable.
+4. **Use Harness Tools**: Query knowledge, submit plans, and report progress exclusively via MCP tools.
+5. **No Direct Git Commands**: No `git stash`, `git checkout`, `git reset`. Harness manages rollback.
+
+---
+
+## 2. Workflow
 
 ```
-[Start Task] ──> [1. Call harness_get_plan()] 
-                       │
-                       ▼
-                 [Approved?] ──(No)──> [Stop/Wait for Approval]
-                       │
-                     (Yes)
-                       ▼
-                 [2. Loop Steps] ──> [Call harness_report_progress(step_id, 'IN_PROGRESS')]
-                       │             [Perform File Edits]
-                       │             [Call harness_report_progress(step_id, 'DONE')]
-                       ▼
-                 [3. Complete] ──> [Call harness_report_completion()] ──> [Harness runs Verification]
+[1] harness_get_context(task_description)
+        → Receive architecture, conventions, related code
+        │
+[2] Create plan (your responsibility)
+        → Analyze impact, list files, define steps
+        │
+[3] harness_submit_plan(plan)
+        → Harness validates + scores risk
+        → Response: approved | rejected | awaiting_approval
+        │
+        ├── If rejected: fix errors in plan, re-submit (max 3 times)
+        ├── If awaiting_approval: poll harness_get_plan() every 30 seconds
+        │   until status changes to APPROVED or REJECTED
+        └── If approved: proceed to execution
+        │
+[4] For EACH step in plan (in order):
+        │
+        ├── harness_report_progress(step_id, 'IN_PROGRESS')   ← BEFORE any edits
+        ├── Modify target files
+        ├── harness_report_progress(step_id, 'DONE')
+        │
+        │   If a step FAILS:
+        │   └── harness_report_progress(step_id, 'FAILED')
+        │       → Stop execution, do NOT proceed to next step
+        │       → Harness may rollback to last checkpoint
+        │
+[5] harness_report_completion()
+        → Harness runs verification (L1-L4)
+        → Response: PASS | FAIL | ESCALATED
+        │
+        ├── PASS: task complete
+        ├── FAIL: review errors, fix code, call report_completion() again
+        └── ESCALATED: retry limit reached, stop, wait for human
 ```
 
-### Step 1: Planning Gate
-Immediately upon starting a task, you must call `harness_get_plan()`. 
-- If the plan status is `DRAFT` or `AWAITING_APPROVAL`, you must wait. Do not perform any file edits.
-- If the plan is approved, inspect the list of `steps` and `impact.files_to_change`. This defines your boundary of operation.
+---
 
-### Step 2: Execution & Progress Reporting
-For each step in the approved plan:
-1.  **Mark Start**: Invoke `harness_report_progress(step_id, 'IN_PROGRESS')`. This signals the Harness Runtime to prepare a snapshot of the targets.
-2.  **Execute**: Modify the target file as defined by the step's instructions.
-3.  **Mark End**: Invoke `harness_report_progress(step_id, 'DONE')`. Harness will verify syntax and checkpoint the changes.
-- *If a step fails*: Invoke `harness_report_progress(step_id, 'FAILED')` and write a clear explanation of the failure.
+## 3. MCP Tools Reference
 
-### Step 3: Completion Signal
-When all steps are successfully completed, invoke `harness_report_completion()`. This triggers the full Verification Engine (L1 Syntax, L2 Lint, L3 Unit Tests, L4 Architecture). Do not attempt to run manual tests unless specified.
+| Tool | Purpose |
+|------|---------|
+| `harness_get_context(task_description)` | Get compiled context (architecture, conventions, glossary, related code) |
+| `harness_get_knowledge(query)` | BM25 search in repository knowledge base |
+| `harness_submit_plan(plan)` | Submit your execution plan for validation + approval |
+| `harness_get_plan()` | Poll current plan status (use after awaiting_approval) |
+| `harness_report_progress(step_id, status)` | Report step status: `IN_PROGRESS`, `DONE`, or `FAILED` |
+| `harness_report_completion()` | Signal all steps done, trigger verification |
+| `harness_log_decision(text)` | Record architectural decisions made during execution |
+| `harness_request_clarification(message)` | Halt and ask developer a question |
 
 ---
 
-## 3. Harness MCP Tools Reference
+## 4. Plan Format
 
-You are provided with the following MCP tools to perform your work:
+When calling `harness_submit_plan()`, your plan must include:
 
-*   `harness_get_plan()`: Retrieves the current task's execution plan, its verification status, and file scope constraints.
-*   `harness_get_context()`: Fetches the compiled context budget (ADRs, architectural constraints, relevant conventions, and glossary terms resolved for this specific task).
-*   `harness_get_knowledge(query)`: Performs an on-demand BM25/Vector semantic search in the local repository knowledge base (`docs/`).
-*   `harness_log_decision(text)`: Logs important architectural or design choices made during execution. Use this whenever you deviate from typical code structures or resolve ambiguity.
-*   `harness_request_clarification(message)`: Halts execution and escalates a question to the developer. Use this when requirements are contradictory or highly ambiguous.
-*   `harness_report_progress(step_id, status)`: Updates the execution status of a plan step. Status values: `PENDING`, `IN_PROGRESS`, `DONE`, `FAILED`.
-*   `harness_report_completion()`: Signals that you have finished all plan steps and requests full verification.
+```json
+{
+  "steps": [
+    { "id": "step-1", "order": 1, "action": "update", "file_path": "src/service.ts", "description": "..." }
+  ],
+  "impact": {
+    "files_to_change": ["src/service.ts", "tests/service.test.ts"],
+    "interfaces_affected": [],
+    "breaking_changes": false,
+    "db_schema_change": false,
+    "public_api_change": false
+  },
+  "rollback_plan": "Revert modified files to pre-task state",
+  "test_strategy": "Run affected unit tests via vitest"
+}
+```
+
+Harness will calculate risk level. You do NOT assign risk.
 
 ---
 
-## 4. Coding Conventions & Architecture Guidance
+## 5. Error Handling
 
-- **Repository tri-fold**: Keep architecture, conventions, and business definitions inside the repository under `docs/` (`docs/architecture/`, `docs/conventions/`, `docs/glossary.md`).
-- **Read before Coding**: Always query the knowledge base if the task concerns core components (such as auth, payments, database transactions) to check for `Known failure patterns`.
-- **Preserve Documentation**: Do not remove, replace, or alter existing docstrings, design comments, or license headers in source files unless explicitly directed by the approved plan.
-- **Fail Gracefully**: If you run into a compilation or logic error during a step, report it immediately. Do not attempt to mask errors with silent try-catches.
+- **Step fails mid-execution**: Call `harness_report_progress(step_id, 'FAILED')` immediately. Do not continue.
+- **Verification fails**: Read error details from response. Fix the specific issues. Call `harness_report_completion()` again.
+- **Scope violation detected**: Harness will reject your `DONE` report. Revert out-of-scope changes.
+- **Plan rejected**: Read `errors` from response. Fix your plan. Re-submit.
+- **ESCALATED**: Stop all work. Human intervention required.
+
+---
+
+## 6. Conventions
+
+- Read knowledge base before making assumptions about architecture.
+- Preserve existing documentation, comments, and headers.
+- Log significant design decisions with `harness_log_decision()`.
+- If requirements are ambiguous, call `harness_request_clarification()`.
+
+---
+
+## 7. Development Rules (for this repository)
+
+When working on Harness itself, also follow [CONTRIBUTING.md](./CONTRIBUTING.md) for build commands, project structure, coding style, and post-change checklist.
