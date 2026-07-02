@@ -17,10 +17,10 @@ Runtime Engine chịu trách nhiệm:
 
 * quản lý trạng thái Task và Plan;
 * quản lý trạng thái từng PlanStep;
-* tạo checkpoint trước khi thay đổi file;
+* tạo Git-native checkpoint thông qua task branch và checkpoint commit;
 * theo dõi tiến trình thực thi;
 * kiểm tra phạm vi thay đổi (scope enforcement);
-* quản lý rollback;
+* quản lý rollback dựa trên Git;
 * ghi audit log;
 * phát hiện vi phạm protocol.
 
@@ -51,7 +51,7 @@ Runtime Engine sinh ra:
 
 * Task State
 * Step State
-* Snapshot
+* Checkpoint
 * Audit Events
 * Scope Violations
 * Rollback Requests
@@ -109,7 +109,7 @@ Runtime Engine
 
         ├──────────────► Step Manager
 
-        ├──────────────► Snapshot Manager
+        ├──────────────► Checkpoint Manager
 
         ├──────────────► Scope Monitor
 
@@ -179,34 +179,23 @@ Không được phép chuyển trực tiếp từ `PENDING` sang `DONE`.
 
 ---
 
-# 151. Checkpoint Strategy
+# 151. Git-native Checkpoint Strategy
 
-Trước khi AI sửa bất kỳ file nào, Runtime Engine tạo một checkpoint.
+Trước khi AI sửa bất kỳ file nào, Runtime Engine tạo một checkpoint thông qua Git.
 
-Checkpoint bao gồm:
+Cơ chế:
+* Tạo branch độc lập (`harness/task-{task_id}`) cho từng task.
+* Ghi lại commit hash hiện tại làm `git_checkpoint_commit` trong session DB.
 
-* danh sách file;
-* hash ban đầu;
-* timestamp;
-* snapshot identifier.
-
-Checkpoint chỉ được tạo một lần cho mỗi PlanStep.
+Checkpoint chỉ được tạo một lần trước khi bắt đầu Task.
 
 ---
 
-# 152. Snapshot Manager
+# 152. Task Branch Isolation
 
-Snapshot Manager lưu bản sao của các file sẽ bị thay đổi.
-
-Snapshot được lưu ngoài repository tại:
-
-```text
-~/.harness/projects/{project-id}/artifacts/snapshots/
-```
-
-Snapshot không phụ thuộc Git.
-
-Điều này tránh xung đột với các thay đổi cục bộ của Developer.
+Mọi thay đổi do AI thực hiện được cô lập hoàn toàn trên Task Branch. Điều này giúp:
+* Tránh xung đột trực tiếp với các thay đổi chưa commit của Developer trên nhánh chính.
+* Developer dễ dàng review diff qua lệnh `git diff main...harness/task-{task_id}` trước khi tích hợp.
 
 ---
 
@@ -219,7 +208,7 @@ Các kiểm tra bao gồm:
 * file có nằm trong Plan không;
 * file mới có được khai báo không;
 * file bị xóa có hợp lệ không;
-* locked region có bị thay đổi không.
+* Protected Region có bị thay đổi không.
 
 Nếu phát hiện vi phạm, Step bị từ chối ngay lập tức.
 
@@ -250,7 +239,7 @@ Ví dụ:
 * Task Started
 * Step Started
 * Checkpoint Created
-* Snapshot Created
+* Git Checkpoint Created
 * Scope Violation
 * Rollback Executed
 * Verification Started
@@ -314,8 +303,8 @@ Quá trình khôi phục bao gồm:
 
 * đọc trạng thái Task;
 * đọc trạng thái các Step;
-* kiểm tra snapshot còn tồn tại;
-* tiếp tục từ checkpoint gần nhất hoặc chuyển sang trạng thái yêu cầu can thiệp.
+* kiểm tra tính hợp lệ của Git task branch;
+* tiếp tục từ trạng thái đã ghi nhận hoặc reset về git_checkpoint_commit.
 
 Recovery không được tự động thực hiện rollback nếu chưa xác định được trạng thái nhất quán của workspace.
 
@@ -328,9 +317,9 @@ Runtime Engine cung cấp các chức năng:
 * Initialize Task
 * Start Step
 * Complete Step
-* Create Checkpoint
-* Create Snapshot
-* Rollback Step
+* Record Checkpoint Commit
+* Switch Git Branch
+* Rollback Task
 * Get Runtime State
 * Resume Session
 
@@ -340,14 +329,14 @@ Các subsystem khác không được sửa trực tiếp Runtime State.
 
 # 159. Performance Targets
 
-| Operation         |   Target |
-| ----------------- | -------: |
-| Initialize Task   |  < 20 ms |
-| Create Checkpoint |  < 50 ms |
-| Create Snapshot   | < 100 ms |
-| Scope Enforcement |  < 50 ms |
-| Rollback          | < 200 ms |
-| Resume Session    | < 100 ms |
+| Operation           |   Target |
+| ------------------- | -------: |
+| Initialize Task     |  < 20 ms |
+| Create Git Branch   | < 100 ms |
+| Record Checkpoint   |  < 10 ms |
+| Scope Enforcement   |  < 50 ms |
+| Rollback            | < 200 ms |
+| Resume Session      | < 100 ms |
 
 ---
 
@@ -359,7 +348,7 @@ Runtime Engine cần các nhóm kiểm thử sau:
 
 * State transition validation
 * Scope enforcement
-* Snapshot lifecycle
+* Checkpoint lifecycle
 * Rollback logic
 
 ### Integration Tests
@@ -372,7 +361,7 @@ Runtime Engine cần các nhóm kiểm thử sau:
 
 * Mất điện hoặc dừng tiến trình giữa chừng
 * Khởi động lại khi đang thực thi
-* Snapshot bị thiếu hoặc hỏng
+* Git Checkpoint bị thiếu hoặc hỏng
 
 ### Concurrency Tests
 
@@ -417,7 +406,7 @@ Runtime Engine là thành phần chịu trách nhiệm **thực thi Plan trong m
 * checkpoint được tạo
 * rollback xảy ra
 * scope được enforce
-* scaffold được bảo vệ (locked region)
+* scaffold được bảo vệ (Protected Region)
 
 Runtime Engine là “execution authority” của Harness.
 
@@ -440,12 +429,12 @@ Runtime Engine được thiết kế để:
 
 Runtime Engine chịu trách nhiệm:
 
-* tạo snapshot trước khi sửa file;
+* tạo Git-native checkpoint trước khi sửa file;
 * áp dụng plan step;
 * track file mutation;
 * enforce scope boundaries;
 * validate locked regions (AC-09);
-* hỗ trợ rollback;
+* hỗ trợ rollback qua Git;
 * emit execution state.
 
 Không chịu trách nhiệm:
@@ -464,7 +453,7 @@ Approved Plan
 
 ↓
 
-Runtime Engine Start
+Runtime Engine Start (Git Branch creation)
 
 ↓
 
@@ -472,7 +461,7 @@ Step Execution Loop
 
 ↓
 
-Checkpoint Creation
+Checkpoint Creation (git_checkpoint_commit recorded)
 
 ↓
 
@@ -500,7 +489,7 @@ IDLE
  ↓
 EXECUTING
  ↓
-CHECKPOINTING
+CHECKPOINTING (git checkpoint)
  ↓
 APPLYING_CHANGES
  ↓
@@ -526,7 +515,9 @@ interface RuntimeState {
 
     status: 'EXECUTING' | 'FAILED' | 'ROLLED_BACK' | 'DONE'
 
-    checkpoints: Checkpoint[]
+    git_branch: string
+
+    git_checkpoint_commit: string
 
 }
 ```
@@ -535,34 +526,14 @@ interface RuntimeState {
 
 ## 7. Checkpoint System
 
-Checkpoint là snapshot trước khi file bị thay đổi.
+Checkpoint được thực hiện qua Git:
 
 ```typescript id="checkpoint"
 interface Checkpoint {
 
-    id: string
+    git_checkpoint_commit: string
 
-    step_id: string
-
-    files: FileSnapshot[]
-
-    created_at: string
-
-}
-```
-
----
-
-## 8. File Snapshot
-
-```typescript id="file_snapshot"
-interface FileSnapshot {
-
-    path: string
-
-    content: string
-
-    hash: string
+    git_branch: string
 
 }
 ```
@@ -616,12 +587,12 @@ Nếu vi phạm:
 
 ---
 
-## 11. Locked Region Enforcement (AC-09)
+## 11. Protected Region Enforcement (AC-09)
 
 Runtime Engine kiểm tra:
 
 ```text id="locked"
-// LOCKED REGION (Generation Engine)
+// Protected Region (Generation Engine)
 ```
 
 Quy tắc:
@@ -632,22 +603,21 @@ Quy tắc:
 
 ---
 
-## 12. Rollback System
+## 12. Git-native Rollback System
 
 ```text id="rollback"
 Trigger:
 
 - step failure
 - verification failure
-- locked region violation
+- Protected Region violation
 ```
 
 Rollback process:
 
-1. load checkpoint
-2. restore file content
-3. reset runtime state
-4. mark step FAILED
+1. Thực hiện lệnh `git reset --hard <git_checkpoint_commit>` trên task branch.
+2. Chạy `git clean -fd` để dọn dẹp các file rác phát sinh.
+3. Reset runtime state về trạng thái FAILED.
 
 ---
 
@@ -696,7 +666,7 @@ Runtime Engine MUST:
 * always checkpoint before mutation
 * never allow unplanned file creation
 * never skip scope validation
-* never bypass locked region check
+* never bypass Protected Region check
 
 ---
 
@@ -718,7 +688,7 @@ Runtime failure nếu:
 * checkpoint missing
 * file corruption detected
 * scope violation
-* locked region modified
+* Protected Region modified
 * inconsistent plan step state
 
 ---
@@ -728,7 +698,7 @@ Runtime failure nếu:
 * checkpoint correctness test
 * rollback accuracy test
 * scope violation detection test
-* locked region enforcement test
+* Protected Region enforcement test
 * multi-step execution test
 
 ---
@@ -740,7 +710,7 @@ Runtime Engine hoàn thành khi:
 * mọi file change đều qua checkpoint;
 * rollback luôn khôi phục đúng trạng thái;
 * scope enforcement không bị bypass;
-* locked region được bảo vệ tuyệt đối;
+* Protected Region được bảo vệ tuyệt đối;
 * execution deterministic theo plan;
 * audit log đầy đủ.
 

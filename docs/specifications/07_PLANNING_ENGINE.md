@@ -161,7 +161,7 @@ Planning Engine gọi Risk Evaluator để xác định:
 * HIGH
 * CRITICAL
 
-Chi tiết thuật toán được mô tả trong tài liệu Risk Engine.
+Chi tiết thuật toán được mô tả trong tài liệu Policy Engine.
 
 ---
 
@@ -514,8 +514,8 @@ Mỗi Plan phải có rollback strategy:
 Ví dụ:
 
 ```text id="rollback"
-- restore snapshot from Runtime Engine
-- revert affected files
+- request rollback via Runtime Engine
+- git reset --hard to git_checkpoint_commit
 - re-run verification
 ```
 

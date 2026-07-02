@@ -386,7 +386,7 @@ Harness Gateway
 
 ↓
 
-Governance Services
+Governance Layer
 
 ↓
 
@@ -412,7 +412,7 @@ Gateway chỉ:
 - protocol
 - routing
 
-**Governance Services**
+**Governance Layer**
 
 là nơi chứa toàn bộ intelligence của Harness.
 
@@ -490,14 +490,14 @@ Harness Gateway
 
 Governance Layer
 
-* Context Service
-* Planning Service
+* Context Engine
+* Planning Engine
 * Policy Engine
 * Execution Runtime
-* Verification Service
-* Knowledge Service
+* Verification Engine
+* Knowledge Engine
 * Repository Analyzer
-* Code Intelligence
+* Code Index
 
 ──────────────────────────────────────────────
 
@@ -516,7 +516,7 @@ Workspace
 * Knowledge
 * Audit
 * Cache
-* Snapshots
+* Git Checkpoints
 
 ↓
 
@@ -559,14 +559,14 @@ Gateway chỉ chuyển request tới Service tương ứng.
 
 ---
 
-## Layer 2 — Governance Services
+## Layer 2 — Governance Layer
 
 Đây là trái tim của Harness.
 
 Bao gồm:
 
-- Context Service
-- Planning Service
+- Context Engine
+- Planning Engine
 - Policy Engine
 - Runtime
 - Verification
@@ -629,7 +629,7 @@ Workspace bao gồm:
 - audit log
 - indexes
 - cache
-- snapshots
+- git checkpoints
 - templates
 
 ---
@@ -671,7 +671,7 @@ Gateway không được chứa:
 
 ---
 
-## 12.2 Context Service
+## 12.2 Context Engine
 
 Nhiệm vụ:
 
@@ -687,17 +687,17 @@ Output:
 
 Context Pack.
 
-Context Service không index.
+Context Engine không index.
 
-Context Service không search.
+Context Engine không search.
 
 Nó chỉ tổng hợp.
 
 ---
 
-## 12.3 Planning Service
+## 12.3 Planning Engine
 
-Planning Service chịu trách nhiệm:
+Planning Engine chịu trách nhiệm:
 
 - validate plan
 - chuẩn hóa plan
@@ -705,7 +705,7 @@ Planning Service chịu trách nhiệm:
 - rollback validation
 - execution order
 
-Planning Service không quyết định approve.
+Planning Engine không quyết định approve.
 
 Approve thuộc Policy Engine.
 
@@ -729,7 +729,7 @@ Các Service khác không được tự ý quyết định policy.
 
 Ví dụ:
 
-Planning Service
+Planning Engine
 
 ↓
 
@@ -743,17 +743,16 @@ Policy Engine
 
 Require Human Approval
 
-Planning Service không được phép tự approve.
+Planning Engine không được phép tự approve.
 
 ---
 
-## 12.5 Runtime Service
+## 12.5 Runtime Engine
 
 Runtime chịu trách nhiệm:
 
 - execution state
 - checkpoints
-- snapshots
 - rollback
 - progress
 - metrics
@@ -764,7 +763,7 @@ Runtime không verify.
 
 ---
 
-## 12.6 Verification Service
+## 12.6 Verification Engine
 
 Verification chỉ chịu trách nhiệm:
 
@@ -782,9 +781,9 @@ Verification không sửa code.
 
 ---
 
-## 12.7 Knowledge Service
+## 12.7 Knowledge Engine
 
-Knowledge Service là nguồn duy nhất đọc:
+Knowledge Engine là nguồn duy nhất đọc:
 
 docs/
 
@@ -816,11 +815,11 @@ Analyzer không được phép sửa documentation chính thức.
 
 ---
 
-## 12.9 Code Intelligence
+## 12.9 Code Index
 
 Đây là module mới.
 
-Code Intelligence quản lý:
+Code Index quản lý:
 
 - Symbol Index
 - Call Graph
@@ -863,12 +862,12 @@ Verification
 
 ```
 
-Knowledge Service độc lập.
+Knowledge Engine độc lập.
 
-Context Service có thể query:
+Context Engine có thể query:
 
 - Knowledge
-- Code Intelligence
+- Code Index
 
 Verification có thể query:
 
@@ -876,7 +875,7 @@ Verification có thể query:
 
 Planning có thể query:
 
-- Code Intelligence
+- Code Index
 
 Runtime không được query Knowledge.
 
@@ -920,7 +919,7 @@ Core không biết implementation.
 
 Ví dụ:
 
-Verification Service
+Verification Engine
 
 ↓
 
@@ -980,8 +979,6 @@ audit/
 
 cache/
 
-snapshots/
-
 indexes/
 
 templates/
@@ -1005,10 +1002,6 @@ chứa:
 - BM25
 - Symbols
 - Dependency Graph
-
-snapshots/
-
-chứa rollback.
 
 audit/
 
@@ -1054,7 +1047,7 @@ Policy chỉ tồn tại trong Policy Engine.
 
 ## DC-04
 
-Knowledge chỉ được đọc qua Knowledge Service.
+Knowledge chỉ được đọc qua Knowledge Engine.
 
 ---
 
@@ -1159,16 +1152,16 @@ Knowledge là tập hợp thông tin đã được chuẩn hóa từ nhiều ngu
                        │
          ┌─────────────┴─────────────┐
          ▼                           ▼
- Generated Knowledge          Code Intelligence
+ Generated Knowledge          Code Index
          │                           │
          └─────────────┬─────────────┘
                        ▼
-              Knowledge Service
+              Knowledge Engine
                        │
           Search → Ranking → Context
                        │
                        ▼
-                 Context Service
+                 Context Engine
                        │
                        ▼
                    AI Agent
@@ -1323,7 +1316,7 @@ CQRS Detection
 88%
 ```
 
-Confidence giúp Context Service biết nên ưu tiên nguồn nào.
+Confidence giúp Context Engine biết nên ưu tiên nguồn nào.
 
 ---
 
@@ -1445,7 +1438,7 @@ Developer xác nhận.
 
 ## Publish
 
-Knowledge được đưa vào Knowledge Service.
+Knowledge được đưa vào Knowledge Engine.
 
 ---
 
@@ -1457,16 +1450,16 @@ Knowledge phải được cập nhật.
 
 ---
 
-# 25. Knowledge Service
+# 25. Knowledge Engine
 
-Knowledge Service là API duy nhất cung cấp Knowledge.
+Knowledge Engine là API duy nhất cung cấp Knowledge.
 
 Các Service khác không đọc file.
 
 Ví dụ:
 
 ```
-Knowledge Service
+Knowledge Engine
 
 ↓
 
@@ -1601,9 +1594,9 @@ Semantic Similarity.
 
 ---
 
-# 28. Context Service
+# 28. Context Engine
 
-Context Service không tìm kiếm.
+Context Engine không tìm kiếm.
 
 Nó chỉ tổng hợp.
 
@@ -1619,7 +1612,7 @@ Query Knowledge
 
 ↓
 
-Query Code Intelligence
+Query Code Index
 
 ↓
 
@@ -1687,19 +1680,19 @@ Examples
 History
 ```
 
-Context Service phải tối ưu theo token budget.
+Context Engine phải tối ưu theo token budget.
 
 ---
 
-# 30. Code Intelligence
+# 30. Code Index
 
-Code Intelligence khác Knowledge.
+Code Index khác Knowledge.
 
 Knowledge trả lời:
 
 "What"
 
-Code Intelligence trả lời:
+Code Index trả lời:
 
 "How connected"
 
@@ -1739,7 +1732,7 @@ Repository
 DbContext
 ```
 
-Context Service dùng Graph để:
+Context Engine dùng Graph để:
 
 - impact analysis
 - regression prediction
@@ -1902,7 +1895,7 @@ Knowledge luôn rebuild được.
 
 KC-03
 
-Knowledge Service là reader duy nhất.
+Knowledge Engine là reader duy nhất.
 
 ---
 
@@ -1914,7 +1907,7 @@ Analyzer chỉ sinh Draft.
 
 KC-05
 
-Context Service không search.
+Context Engine không search.
 
 ---
 
@@ -2007,11 +2000,11 @@ Execution
 
 ---
 
-# 40. Planning Service
+# 40. Planning Engine
 
-Planning Service chịu trách nhiệm chuẩn hóa kế hoạch thực hiện trước khi AI bắt đầu sửa code.
+Planning Engine chịu trách nhiệm chuẩn hóa kế hoạch thực hiện trước khi AI bắt đầu sửa code.
 
-Planning Service KHÔNG:
+Planning Engine KHÔNG:
 
 - approve
 - reject
@@ -2019,7 +2012,7 @@ Planning Service KHÔNG:
 - rollback
 - chạy build
 
-Planning Service chỉ trả lời:
+Planning Engine chỉ trả lời:
 
 > "Kế hoạch này có hợp lệ về mặt kỹ thuật hay không?"
 
@@ -2027,7 +2020,7 @@ Planning Service chỉ trả lời:
 
 ## Responsibilities
 
-Planning Service gồm các bước:
+Planning Engine gồm các bước:
 
 ```
 Parse
@@ -2286,11 +2279,11 @@ Security Area
 Estimated Impact
 ```
 
-Đây là input của Risk Engine.
+Đây là input của Policy Engine.
 
 ---
 
-# 43. Risk Engine
+# 43. Policy Engine
 
 Risk không do AI quyết định.
 
@@ -2432,7 +2425,7 @@ Policy Engine quyết định:
 - Escalation
 - Timeout
 - Scope
-- Locked Region
+- Protected Region
 - Human Intervention
 - Rule Evaluation
 
@@ -2544,7 +2537,7 @@ Reject.
 
 ---
 
-## Locked Region Policy
+## Protected Region Policy
 
 Định nghĩa vùng AI không được sửa.
 
@@ -2674,7 +2667,7 @@ Approval Rule hoàn toàn do Policy Engine quyết định.
 
 Sau khi Plan được approve.
 
-Planning Service sinh Execution Contract.
+Planning Engine sinh Execution Contract.
 
 Bao gồm:
 
@@ -2784,13 +2777,13 @@ Decision luôn audit được.
 
 # 54. Summary
 
-Planning Service và Policy Engine tạo thành lớp Governance của Universal Coding Harness.
+Planning Engine và Policy Engine tạo thành lớp Governance của Universal Coding Harness.
 
 Planning trả lời:
 
 > "Plan có hợp lệ không?"
 
-Risk Engine trả lời:
+Policy Engine trả lời:
 
 > "Plan nguy hiểm đến mức nào?"
 
@@ -2823,7 +2816,7 @@ Execution Runtime **không được phép**:
 - tự quyết định Policy
 - tự bỏ qua Verification
 
-Execution Runtime chỉ thực hiện đúng **Execution Contract** đã được Planning Service và Policy Engine phát hành.
+Execution Runtime chỉ thực hiện đúng **Execution Contract** đã được Planning Engine và Policy Engine phát hành.
 
 ```
 Execution Contract
@@ -2873,13 +2866,13 @@ DONE
 
 ---
 
-## 56.2 Checkpoint Management
+## 56.2 Git-native Checkpoint Management
 
-Trước mỗi thay đổi source code.
+Trước mỗi thay đổi source code, Runtime Engine thực hiện checkpoint thông qua Git.
 
-Runtime tạo checkpoint.
-
-Checkpoint là nền tảng của rollback.
+Cơ chế:
+- Tạo branch phụ độc lập (task branch) cho task đang thực hiện để cô lập các thay đổi.
+- Ghi nhận commit hash hiện tại làm điểm phục hồi (checkpoint commit).
 
 ---
 
@@ -3022,27 +3015,13 @@ Task State và Step State độc lập.
 
 ---
 
-# 59. Checkpoint Model
+# 59. Git-native Checkpoint Model
 
-Checkpoint không chỉ lưu nội dung file.
+Hệ thống không tự sao lưu các tệp tin thủ công qua database. Thay vào đó, nó dựa hoàn toàn vào Git:
 
-Checkpoint bao gồm:
-
-```
-File Snapshot
-
-Operation Log
-
-Hash
-
-Timestamp
-
-Affected Paths
-
-Execution Contract Version
-```
-
-Điều này giúp rollback chính xác hơn.
+- **Git Branch**: Nhánh làm việc được tách riêng cho từng Task (`harness/task-{task_id}`).
+- **Git Commit Hash**: Commit hash tại nhánh chính trước khi thực hiện thay đổi được ghi nhận trong `sessions.git_checkpoint_commit`.
+- **Git Stash**: Sử dụng để lưu trữ tạm thời các thay đổi chưa hoàn thành nếu cần đổi ngữ cảnh.
 
 ---
 
@@ -3154,7 +3133,7 @@ Allowed Regions
 
 Ví dụ:
 
-Locked Region.
+Protected Region.
 
 AI sửa.
 
@@ -3224,59 +3203,17 @@ Các Event này được Audit Service lưu lại.
 
 ---
 
-# 64. Rollback Strategy
+# 64. Git-native Rollback Strategy
 
-Rollback luôn theo nhiều cấp.
+Rollback được thực hiện tự động thông qua các lệnh Git native để đảm bảo tính an toàn và nhất quán:
 
----
-
-## Level 1
-
-Single File
-
-Khôi phục một file.
-
----
-
-## Level 2
-
-Multiple Files
-
-Khôi phục nhiều file.
-
----
-
-## Level 3
-
-Operation Rollback
-
-Undo:
-
-- rename
-- move
-- delete
-
----
-
-## Level 4
-
-Execution Rollback
-
-Khôi phục toàn bộ Task.
-
----
+- **Khôi phục File**: Sử dụng `git checkout -- <filepath>` hoặc `git restore <filepath>` đối với các file cụ thể.
+- **Hủy bỏ toàn bộ thay đổi (Task Rollback)**: Thực hiện `git reset --hard <git_checkpoint_commit>` trên task branch để đưa trạng thái workspace về điểm checkpoint trước đó.
+- **Dọn dẹp tệp tin rác**: Sử dụng `git clean -fd` để xóa sạch các tệp tin mới phát sinh không nằm trong Git.
 
 # 65. Rollback Rules
 
-Rollback KHÔNG được:
-
-- ghi đè file ngoài Scope
-- xóa file của Developer
-- rollback thay đổi không thuộc Task
-
-Rollback luôn dựa trên:
-
-Execution Contract.
+Rollback KHÔNG được phép làm ảnh hưởng đến các nhánh làm việc khác hoặc lịch sử commit chung. Mọi hành động rollback chỉ xảy ra trong phạm vi Task Branch cô lập của Runtime Engine.
 
 ---
 
@@ -3947,7 +3884,7 @@ Generator thêm License.
 
 # 86. Protected Regions
 
-Thay vì "Locked Region" đơn giản.
+Thay vì "Protected Region" đơn giản.
 
 v5 sử dụng khái niệm:
 

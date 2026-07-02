@@ -1,6 +1,6 @@
-# 36. Milestone M1 — Core Infrastructure
+# Milestone M1 — Core Infrastructure
 
-## Goal
+## 1. Goal
 
 M1 xây dựng toàn bộ **Core Infrastructure** của Harness.
 
@@ -16,7 +16,7 @@ M1 tạo ra nền tảng để toàn bộ hệ thống có thể mở rộng.
 
 ---
 
-# 37. Objectives
+## 2. Objectives
 
 Sau M1.
 
@@ -34,7 +34,7 @@ Tất cả đều chưa cần business logic.
 
 ---
 
-# 38. Deliverables
+## 3. Deliverables
 
 Sau khi hoàn thành.
 
@@ -72,7 +72,7 @@ Service Registry
 
 ---
 
-# 39. Architecture
+## 4. Architecture
 
 ```
 Harness Host
@@ -92,7 +92,7 @@ Host là entrypoint duy nhất.
 
 ---
 
-# 40. Application Host
+## 5. Application Host
 
 Application Host chịu trách nhiệm:
 
@@ -107,7 +107,7 @@ Không chứa business logic.
 
 ---
 
-# 41. Dependency Injection
+## 6. Dependency Injection
 
 Chỉ sử dụng một DI container.
 
@@ -119,7 +119,7 @@ Mọi dependency đều constructor injection.
 
 ---
 
-# 42. Service Registry
+## 7. Service Registry
 
 Service Registry quản lý toàn bộ service nội bộ.
 
@@ -143,7 +143,7 @@ Không tự quản lý singleton.
 
 ---
 
-# 43. Lifecycle
+## 8. Lifecycle
 
 Mọi service đều có lifecycle thống nhất.
 
@@ -171,7 +171,7 @@ Không module nào tự tạo thread nền mà không đăng ký lifecycle.
 
 ---
 
-# 44. Configuration Provider
+## 9. Configuration Provider
 
 Configuration được load theo thứ tự:
 
@@ -203,7 +203,7 @@ Configuration trở thành immutable.
 
 ---
 
-# 45. Logger
+## 10. Logger
 
 Logger hỗ trợ:
 
@@ -220,7 +220,7 @@ Không log bằng string nối thủ công.
 
 ---
 
-# 46. Event Bus
+## 11. Event Bus
 
 Event Bus là Internal Event Bus.
 
@@ -248,7 +248,7 @@ Không gọi trực tiếp.
 
 ---
 
-# 47. Event Rules
+## 12. Event Rules
 
 Event phải:
 
@@ -261,7 +261,7 @@ Không event nào được sửa sau khi publish.
 
 ---
 
-# 48. Workspace Manager
+## 13. Workspace Manager
 
 Workspace Manager quản lý:
 
@@ -281,7 +281,7 @@ Các module khác không truy cập filesystem trực tiếp nếu dữ liệu t
 
 ---
 
-# 49. File System Abstraction
+## 14. File System Abstraction
 
 Core không gọi API filesystem trực tiếp.
 
@@ -299,7 +299,7 @@ Lợi ích:
 
 ---
 
-# 50. Clock Abstraction
+## 15. Clock Abstraction
 
 Không gọi:
 
@@ -323,7 +323,7 @@ IClock
 
 ---
 
-# 51. Identifier Generator
+## 16. Identifier Generator
 
 Không tạo Guid trực tiếp.
 
@@ -343,7 +343,7 @@ mà không sửa Core.
 
 ---
 
-# 52. Serialization
+## 17. Serialization
 
 Thống nhất serializer.
 
@@ -357,7 +357,7 @@ Mọi serialization phải:
 
 ---
 
-# 53. Package Dependency Rules
+## 18. Package Dependency Rules
 
 Dependency được phép:
 
@@ -391,7 +391,7 @@ Core không phụ thuộc Plugin.
 
 ---
 
-# 54. Internal Contracts
+## 19. Internal Contracts
 
 M1 định nghĩa các interface cốt lõi.
 
@@ -419,7 +419,7 @@ Chưa implement business logic.
 
 ---
 
-# 55. Testing Strategy
+## 20. Testing Strategy
 
 M1 tập trung:
 
@@ -437,7 +437,7 @@ Chưa cần Integration Test.
 
 ---
 
-# 56. Performance Goals
+## 21. Performance Goals
 
 M1 đặt mục tiêu:
 
@@ -453,7 +453,7 @@ M1 đặt mục tiêu:
 
 ---
 
-# 57. Acceptance Criteria
+## 22. Acceptance Criteria
 
 M1 hoàn thành khi:
 
@@ -468,7 +468,7 @@ M1 hoàn thành khi:
 
 ---
 
-# 58. Out of Scope
+## 23. Out of Scope
 
 Không implement:
 
@@ -484,7 +484,7 @@ Chỉ tạo hạ tầng.
 
 ---
 
-# 59. Risks
+## 24. Risks
 
 Rủi ro lớn nhất:
 
@@ -498,7 +498,7 @@ Mọi dependency mới phải được kiểm tra để đảm bảo không tạ
 
 ---
 
-# 60. Exit Criteria
+## 25. Exit Criteria
 
 M1 chỉ hoàn thành khi:
 

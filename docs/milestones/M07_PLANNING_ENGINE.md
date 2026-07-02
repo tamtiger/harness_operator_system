@@ -1,6 +1,6 @@
-# 197. Milestone M7 — Planning Engine
+# Milestone M7 — Planning Engine
 
-## Goal
+## 1. Goal
 
 Planning Engine chịu trách nhiệm:
 
@@ -18,7 +18,7 @@ Planning Engine là bộ phận kiểm duyệt.
 
 ---
 
-# 198. Responsibilities
+## 2. Responsibilities
 
 Planning Engine chịu trách nhiệm:
 
@@ -37,7 +37,7 @@ Không chịu trách nhiệm:
 
 ---
 
-# 199. High-Level Workflow
+## 3. High-Level Workflow
 
 ```
 AI
@@ -73,7 +73,7 @@ Approved Plan
 
 ---
 
-# 200. Inputs
+## 4. Inputs
 
 Planning Engine nhận:
 
@@ -87,7 +87,7 @@ Không đọc source code trực tiếp.
 
 ---
 
-# 201. Outputs
+## 5. Outputs
 
 Planning Engine chỉ trả về:
 
@@ -107,7 +107,7 @@ kèm theo:
 
 ---
 
-# 202. Plan Schema
+## 6. Plan Schema
 
 Phase 1.
 
@@ -123,7 +123,7 @@ Không chấp nhận Plan thiếu bất kỳ trường bắt buộc nào.
 
 ---
 
-# 203. Validation Pipeline
+## 7. Validation Pipeline
 
 ```
 JSON Schema
@@ -149,7 +149,7 @@ Mỗi bước fail sẽ dừng pipeline.
 
 ---
 
-# 204. Schema Validation
+## 8. Schema Validation
 
 Kiểm tra:
 
@@ -163,7 +163,7 @@ Hoàn toàn deterministic.
 
 ---
 
-# 205. Semantic Validation
+## 9. Semantic Validation
 
 Kiểm tra:
 
@@ -189,7 +189,7 @@ cùng một file.
 
 ---
 
-# 206. Scope Validation
+## 10. Scope Validation
 
 So sánh:
 
@@ -223,7 +223,7 @@ Reject.
 
 ---
 
-# 207. Impact Analysis
+## 11. Impact Analysis
 
 Planning Engine hỏi Code Index.
 
@@ -249,7 +249,7 @@ Kết quả dùng để tính Risk.
 
 ---
 
-# 208. Risk Assessment
+## 12. Risk Assessment
 
 Risk không chỉ dựa trên số file.
 
@@ -278,7 +278,7 @@ CRITICAL
 
 ---
 
-# 209. Approval Workflow
+## 13. Approval Workflow
 
 ```
 LOW
@@ -310,7 +310,7 @@ Không AI nào tự approve.
 
 ---
 
-# 210. Plan Versioning
+## 14. Plan Versioning
 
 Mỗi lần AI sửa Plan.
 
@@ -340,7 +340,7 @@ Không ghi đè.
 
 ---
 
-# 211. Diagnostics
+## 15. Diagnostics
 
 Planning Engine phải trả lỗi rõ ràng.
 
@@ -366,7 +366,7 @@ Invalid Plan
 
 ---
 
-# 212. Warnings
+## 16. Warnings
 
 Warning không block.
 
@@ -383,7 +383,7 @@ AI vẫn có thể tiếp tục nếu Approval cho phép.
 
 ---
 
-# 213. Plan Graph
+## 17. Plan Graph
 
 Planning Engine chuyển Plan thành DAG.
 
@@ -403,7 +403,7 @@ Execution Graph
 
 ---
 
-# 214. Parallelism
+## 18. Parallelism
 
 Phase 1.
 
@@ -425,7 +425,7 @@ Parallel Step
 
 ---
 
-# 215. Rollback Validation
+## 19. Rollback Validation
 
 Rollback phải kiểm tra:
 
@@ -443,7 +443,7 @@ Undo changes
 
 ---
 
-# 216. Public APIs
+## 20. Public APIs
 
 ```
 Validate()
@@ -461,7 +461,7 @@ GetPlan()
 
 ---
 
-# 217. Storage
+## 21. Storage
 
 Plan Store:
 
@@ -478,7 +478,7 @@ Lưu:
 
 ---
 
-# 218. Metrics
+## 22. Metrics
 
 Theo dõi:
 
@@ -490,7 +490,7 @@ Theo dõi:
 
 ---
 
-# 219. Testing
+## 23. Testing
 
 Unit Test.
 
@@ -511,7 +511,7 @@ Golden Test.
 
 ---
 
-# 220. Acceptance Criteria
+## 24. Acceptance Criteria
 
 Hoàn thành khi:
 
@@ -524,7 +524,7 @@ Hoàn thành khi:
 
 ---
 
-# 221. Out of Scope
+## 25. Out of Scope
 
 Không implement.
 
@@ -535,7 +535,7 @@ Không implement.
 
 ---
 
-# 222. Risks
+## 26. Risks
 
 Sai lầm phổ biến:
 
@@ -557,7 +557,7 @@ Creative
 
 ---
 
-# 223. Exit Criteria
+## 27. Exit Criteria
 
 Sau M7.
 
@@ -583,9 +583,9 @@ Approved Plan
 
 ---
 
-# 224. Architectural Refinement
+## 28. Architectural Refinement
 
-## Tách Validation thành Rule Pipeline
+## 29. Tách Validation thành Rule Pipeline
 
 Thay vì:
 
@@ -633,7 +633,7 @@ Mỗi Rule độc lập và có thể mở rộng.
 
 ---
 
-# 225. Future Extension Points
+## 30. Future Extension Points
 
 Phase 2 có thể thêm:
 
@@ -649,7 +649,7 @@ Không thay đổi kiến trúc.
 
 ---
 
-# 226. Definition of Success
+## 31. Definition of Success
 
 Một Planning Engine tốt không phải là Engine reject nhiều nhất.
 

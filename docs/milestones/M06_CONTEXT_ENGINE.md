@@ -1,6 +1,6 @@
-# 166. Milestone M6 — Context Engine
+# Milestone M6 — Context Engine
 
-## Goal
+## 1. Goal
 
 Context Engine chịu trách nhiệm xây dựng **Context Pack** tối ưu cho một nhiệm vụ cụ thể.
 
@@ -39,7 +39,7 @@ Context Pack
 
 ---
 
-# 167. Responsibilities
+## 2. Responsibilities
 
 Context Engine chịu trách nhiệm:
 
@@ -60,7 +60,7 @@ Không chịu trách nhiệm:
 
 ---
 
-# 168. High-Level Architecture
+## 3. High-Level Architecture
 
 ```
 Task
@@ -100,7 +100,7 @@ Context Pack
 
 ---
 
-# 169. Inputs
+## 4. Inputs
 
 Context Engine nhận:
 
@@ -124,7 +124,7 @@ Không đọc source code trực tiếp.
 
 ---
 
-# 170. Outputs
+## 5. Outputs
 
 Output duy nhất:
 
@@ -156,7 +156,7 @@ Scaffold Preview
 
 ---
 
-# 171. Context Planner
+## 6. Context Planner
 
 Planner xác định:
 
@@ -186,7 +186,7 @@ Có Scaffold.
 
 ---
 
-# 172. Collector Model
+## 7. Collector Model
 
 Collector độc lập.
 
@@ -206,7 +206,7 @@ Mỗi Collector chỉ làm một việc.
 
 ---
 
-# 173. Assembly Pipeline
+## 8. Assembly Pipeline
 
 ```
 Task
@@ -242,7 +242,7 @@ Package
 
 ---
 
-# 174. Budget Allocation
+## 9. Budget Allocation
 
 Phase 1.
 
@@ -257,7 +257,7 @@ Theo Risk.
 
 ---
 
-# 175. Dynamic Allocation
+## 10. Dynamic Allocation
 
 Không chia cố định.
 
@@ -309,7 +309,7 @@ Không chỉ Risk.
 
 ---
 
-# 176. Context Priorities
+## 11. Context Priorities
 
 Ưu tiên.
 
@@ -345,7 +345,7 @@ Không bao giờ đưa Code lên trước Task.
 
 ---
 
-# 177. Deduplication
+## 12. Deduplication
 
 Nếu nhiều Collector trả:
 
@@ -361,7 +361,7 @@ Không gửi lặp.
 
 ---
 
-# 178. Compression
+## 13. Compression
 
 Compression không dùng AI.
 
@@ -383,7 +383,7 @@ Không rewrite.
 
 ---
 
-# 179. Context Sections
+## 14. Context Sections
 
 Mỗi Section có:
 
@@ -405,7 +405,7 @@ interface ContextSection {
 
 ---
 
-# 180. Context Pack
+## 15. Context Pack
 
 ```typescript
 interface ContextPack {
@@ -423,7 +423,7 @@ interface ContextPack {
 
 ---
 
-# 181. Stable Ordering
+## 16. Stable Ordering
 
 Context Pack phải deterministic.
 
@@ -439,7 +439,7 @@ Không random.
 
 ---
 
-# 182. Context Cache
+## 17. Context Cache
 
 Nếu:
 
@@ -455,7 +455,7 @@ Không build lại.
 
 ---
 
-# 183. Cache Key
+## 18. Cache Key
 
 Hash từ:
 
@@ -481,7 +481,7 @@ Plugin Version
 
 ---
 
-# 184. Invalidations
+## 19. Invalidations
 
 Rebuild nếu:
 
@@ -492,7 +492,7 @@ Rebuild nếu:
 
 ---
 
-# 185. Example Selection
+## 20. Example Selection
 
 Không lấy:
 
@@ -510,7 +510,7 @@ Chỉ lấy:
 
 ---
 
-# 186. Code Snippet
+## 21. Code Snippet
 
 Không gửi:
 
@@ -534,7 +534,7 @@ Relevant Block
 
 ---
 
-# 187. Context Quality Metrics
+## 22. Context Quality Metrics
 
 Mỗi Pack có:
 
@@ -547,7 +547,7 @@ Dùng để theo dõi chất lượng.
 
 ---
 
-# 188. Public APIs
+## 23. Public APIs
 
 Phase 1.
 
@@ -565,7 +565,7 @@ Preview()
 
 ---
 
-# 189. Testing
+## 24. Testing
 
 Unit Test.
 
@@ -585,7 +585,7 @@ Golden Test.
 
 ---
 
-# 190. Acceptance Criteria
+## 25. Acceptance Criteria
 
 Hoàn thành khi:
 
@@ -598,7 +598,7 @@ Hoàn thành khi:
 
 ---
 
-# 191. Out of Scope
+## 26. Out of Scope
 
 Không implement.
 
@@ -609,7 +609,7 @@ Không implement.
 
 ---
 
-# 192. Risks
+## 27. Risks
 
 Sai lầm lớn nhất:
 
@@ -631,7 +631,7 @@ Add
 
 ---
 
-# 193. Exit Criteria
+## 28. Exit Criteria
 
 Sau M6.
 
@@ -655,9 +655,9 @@ mà không cần AI tham gia xây dựng Context.
 
 ---
 
-# 194. Architectural Refinement
+## 29. Architectural Refinement
 
-## Tách Context Planner khỏi Context Builder
+## 30. Tách Context Planner khỏi Context Builder
 
 Kiến trúc đề xuất:
 
@@ -707,7 +707,7 @@ mà không cần sửa Planner.
 
 ---
 
-# 195. Future Extension Points
+## 31. Future Extension Points
 
 Phase 2 có thể bổ sung:
 
@@ -723,7 +723,7 @@ Không phải sửa Context Engine.
 
 ---
 
-# 196. Definition of Success
+## 32. Definition of Success
 
 Một Context Engine tốt không phải là Engine tạo Context lớn nhất.
 

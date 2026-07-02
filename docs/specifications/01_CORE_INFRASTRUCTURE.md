@@ -75,7 +75,7 @@ Scaffold
 
 ↓
 
-Locked Region
+Protected Region
 
 ↓
 
@@ -1489,7 +1489,6 @@ Không lưu:
 
 * source code
 * generated scaffold
-* snapshots
 * BM25 index
 
 Các dữ liệu lớn tiếp tục nằm trên filesystem.
@@ -1619,7 +1618,7 @@ Persistence Layer hỗ trợ:
 * sao lưu logs;
 * sao lưu artifacts metadata.
 
-Snapshots của source code được quản lý riêng bởi Runtime Engine.
+Mọi trạng thái code được quản lý qua các nhánh Git (Git task branches).
 
 ---
 

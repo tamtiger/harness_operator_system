@@ -26,7 +26,7 @@
 |-----------------|----------|--------------------------|-----------|
 | **Harness** | — | Universal Coding Harness, UCH | Toàn bộ hệ thống |
 | **Gateway** | — | Harness Gateway, MCP Server | Điểm vào duy nhất cho AI Agent |
-| **Governance Layer** | — | Governance Services | Tập hợp các Engine chịu trách nhiệm kiểm soát |
+| **Governance Layer** | — | Governance Layer | Tập hợp các Engine chịu trách nhiệm kiểm soát |
 | **Plugin Layer** | — | Plugin System | Tập hợp các plugin ngôn ngữ/framework |
 | **Workspace** | — | — | Toàn bộ runtime state tại `~/.harness/` |
 
@@ -36,15 +36,15 @@
 
 | Thuật ngữ Chuẩn | Viết tắt | Thuật ngữ Cũ / Đồng nghĩa | Định nghĩa |
 |-----------------|----------|--------------------------|-----------|
-| **Context Engine** | CE | Context Service, Context Builder | Xây dựng Context Pack cho AI |
-| **Planning Engine** | PE | Planning Service | Validate, đánh giá risk, phê duyệt Plan |
+| **Context Engine** | CE | Context Engine, Context Builder | Xây dựng Context Pack cho AI |
+| **Planning Engine** | PE | Planning Engine | Validate, đánh giá risk, phê duyệt Plan |
 | **Policy Engine** | — | — | Sub-module của Planning Engine, chịu trách nhiệm quyết định Governance (approve/reject/retry/escalate). Phase 1: nằm trong Planning Engine. Phase 2: có thể tách riêng. |
-| **Generation Engine** | GE | ~~Scaffold Engine~~, Generation System | Sinh mọi artifact có cấu trúc (code skeleton, config, migration, test, docs). **Scaffold Engine là tên cũ v4, KHÔNG dùng nữa.** |
-| **Runtime Engine** | RE | Runtime Service, Execution Runtime | Điều phối thực thi, checkpoint, rollback |
-| **Verification Engine** | VE | Verification Service, Verification System | Xác minh kết quả thực thi |
-| **Knowledge Engine** | KE | Knowledge Service | Lưu trữ, index, search, ranking tri thức |
+| **Generation Engine** | GE | ~~Generation Engine~~, Generation System | Sinh mọi artifact có cấu trúc (code skeleton, config, migration, test, docs). **Generation Engine là tên cũ v4, KHÔNG dùng nữa.** |
+| **Runtime Engine** | RE | Runtime Engine, Execution Runtime | Điều phối thực thi, checkpoint, rollback |
+| **Verification Engine** | VE | Verification Engine, Verification System | Xác minh kết quả thực thi |
+| **Knowledge Engine** | KE | Knowledge Engine | Lưu trữ, index, search, ranking tri thức |
 | **Repository Analyzer** | RA | — | Phân tích source code, sinh metadata & draft docs |
-| **Code Index** | CI | Code Intelligence | Parse source code, xây dựng Symbol Graph & Reference Graph |
+| **Code Index** | CI | Code Index | Parse source code, xây dựng Symbol Graph & Reference Graph |
 
 ---
 
@@ -60,7 +60,7 @@
 | **Verification Report** | — | Kết quả tổng hợp từ tất cả Verification Layers |
 | **Checkpoint** | Snapshot | Bản sao trạng thái file trước khi mutation |
 | **Convention Profile** | — | Bộ conventions phát hiện từ repository |
-| **Protected Region** | Locked Region | Vùng code AI không được sửa trong generated artifact |
+| **Protected Region** | Protected Region | Vùng code AI không được sửa trong generated artifact |
 
 ---
 
@@ -112,14 +112,14 @@
 
 | ❌ Không dùng | ✅ Thay bằng | Lý do |
 |--------------|-------------|-------|
-| Scaffold Engine | Generation Engine | Tên cũ v4, Generation bao quát hơn |
-| Knowledge Service | Knowledge Engine | Thống nhất suffix "-Engine" |
-| Context Service | Context Engine | Thống nhất suffix "-Engine" |
-| Planning Service | Planning Engine | Thống nhất suffix "-Engine" |
-| Runtime Service | Runtime Engine | Thống nhất suffix "-Engine" |
-| Verification Service | Verification Engine | Thống nhất suffix "-Engine" |
-| Code Intelligence | Code Index | Tránh nhầm với AI intelligence |
-| Locked Region | Protected Region | v5 hỗ trợ nhiều loại (immutable, append-only, replaceable, managed) |
+| Generation Engine | Generation Engine | Tên cũ v4, Generation bao quát hơn |
+| Knowledge Engine | Knowledge Engine | Thống nhất suffix "-Engine" |
+| Context Engine | Context Engine | Thống nhất suffix "-Engine" |
+| Planning Engine | Planning Engine | Thống nhất suffix "-Engine" |
+| Runtime Engine | Runtime Engine | Thống nhất suffix "-Engine" |
+| Verification Engine | Verification Engine | Thống nhất suffix "-Engine" |
+| Code Index | Code Index | Tránh nhầm với AI intelligence |
+| Protected Region | Protected Region | v5 hỗ trợ nhiều loại (immutable, append-only, replaceable, managed) |
 
 ---
 

@@ -269,7 +269,7 @@ Ví dụ:
 | Syntax        |     3 |
 | Test          |     3 |
 | Architecture  |     2 |
-| Locked Region |     1 |
+| Protected Region |     1 |
 
 Policy này được Runtime Engine sử dụng để quyết định retry hay escalate.
 
@@ -411,7 +411,7 @@ VE chịu trách nhiệm:
 * chạy test;
 * chạy lint;
 * validate architecture rules;
-* detect locked region violation (AC-09);
+* detect Protected Region violation (AC-09);
 * run security checks (Phase 2+);
 * aggregate results thành verdict.
 
@@ -544,7 +544,7 @@ Controller must NOT call DbContext directly
 
 ---
 
-## 10. Locked Region Enforcement (AC-09)
+## 10. Protected Region Enforcement (AC-09)
 
 VE kiểm tra:
 
@@ -618,7 +618,7 @@ VE failure nếu:
 * missing test runner
 * inconsistent build state
 * rule engine mismatch
-* corrupted runtime snapshot
+* corrupted git checkpoint
 
 ---
 
@@ -635,7 +635,7 @@ Escalation xảy ra khi:
 * repeated failure
 * security violation
 * architecture breach
-* locked region tampering
+* Protected Region tampering
 
 ---
 
@@ -697,7 +697,7 @@ Finalize Task
 * build success/fail cases
 * flaky test detection
 * rule engine correctness test
-* locked region violation test
+* Protected Region violation test
 * plugin failure simulation
 * deterministic output test
 
@@ -710,7 +710,7 @@ VE hoàn thành khi:
 * không có AI involvement trong verification;
 * tất cả layer hoạt động độc lập;
 * architecture rules enforce được real constraints;
-* locked region violation luôn detect;
+* Protected Region violation luôn detect;
 * retry vs escalate logic ổn định;
 * deterministic across runs;
 * plugin-based execution fully working.

@@ -71,30 +71,22 @@ Các output này trở thành đầu vào của:
 
 ```text
 Repository
-
 ↓
-
-Discovery
-
+Discover Files
 ↓
-
-Classification
-
+Detect Technologies
 ↓
-
-Analysis
-
+Parse Project Structure
 ↓
-
-Metadata Generation
-
+Extract Symbols
 ↓
-
-Documentation Draft
-
+Detect Patterns
 ↓
-
-Persist
+Generate Metadata
+↓
+Generate Draft Docs
+↓
+Persist Artifacts
 ```
 
 Analyzer luôn chạy theo pipeline cố định.

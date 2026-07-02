@@ -1,6 +1,6 @@
-# 91. Milestone M3 — Repository Analyzer
+# Milestone M3 — Repository Analyzer
 
-## Goal
+## 1. Goal
 
 Repository Analyzer là thành phần đầu tiên đọc source code của project.
 
@@ -17,7 +17,7 @@ Repository Analyzer tuyệt đối không sửa source code.
 
 ---
 
-# 92. Responsibilities
+## 2. Responsibilities
 
 Repository Analyzer chịu trách nhiệm:
 
@@ -38,7 +38,7 @@ Không chịu trách nhiệm:
 
 ---
 
-# 93. High-Level Workflow
+## 3. High-Level Workflow
 
 ```text
 Repository
@@ -78,7 +78,7 @@ Persist Artifacts
 
 ---
 
-# 94. Inputs
+## 4. Inputs
 
 Analyzer chỉ đọc:
 
@@ -100,7 +100,7 @@ Không đọc:
 
 ---
 
-# 95. Outputs
+## 5. Outputs
 
 Repository Analyzer sinh:
 
@@ -140,7 +140,7 @@ docs/_generated/
 
 ---
 
-# 96. Discovery Phase
+## 6. Discovery Phase
 
 Analyzer bắt đầu bằng việc khám phá repository.
 
@@ -168,7 +168,7 @@ Discovery phải extensible thông qua Capability.
 
 ---
 
-# 97. Technology Detection
+## 7. Technology Detection
 
 Analyzer phải xác định:
 
@@ -214,7 +214,7 @@ EF Core
 
 ---
 
-# 98. Repository Map
+## 8. Repository Map
 
 Repository Map mô tả:
 
@@ -246,7 +246,7 @@ Shared
 
 ---
 
-# 99. Symbol Extraction
+## 9. Symbol Extraction
 
 Analyzer thu thập:
 
@@ -263,7 +263,7 @@ Repository Analyzer không xây dựng semantic search.
 
 ---
 
-# 100. Dependency Analysis
+## 10. Dependency Analysis
 
 Dependency Graph phải xác định:
 
@@ -293,7 +293,7 @@ Không đánh giá đúng sai.
 
 ---
 
-# 101. Pattern Detection
+## 11. Pattern Detection
 
 Pattern Detection chỉ phát hiện.
 
@@ -329,7 +329,7 @@ Chỉ pattern có confidence vượt ngưỡng mới được đưa vào draft.
 
 ---
 
-# 102. Documentation Draft
+## 12. Documentation Draft
 
 Analyzer sinh:
 
@@ -359,7 +359,7 @@ Không được ghi đè tài liệu đã được xác nhận.
 
 ---
 
-# 103. Human Review Workflow
+## 13. Human Review Workflow
 
 ```text
 Analyzer
@@ -391,7 +391,7 @@ Không đọc draft.
 
 ---
 
-# 104. Confidence Model
+## 14. Confidence Model
 
 Mỗi kết quả phải có:
 
@@ -424,7 +424,7 @@ architecture:
 
 ---
 
-# 105. Analyzer Rules
+## 15. Analyzer Rules
 
 Repository Analyzer phải:
 
@@ -438,7 +438,7 @@ Không dùng LLM.
 
 ---
 
-# 106. Incremental Scan
+## 16. Incremental Scan
 
 Lần đầu:
 
@@ -464,7 +464,7 @@ Không quét toàn bộ repository nếu không cần.
 
 ---
 
-# 107. Artifact Storage
+## 17. Artifact Storage
 
 Workspace:
 
@@ -493,7 +493,7 @@ Không chỉnh sửa thủ công.
 
 ---
 
-# 108. Rule Engine
+## 18. Rule Engine
 
 Analyzer hoạt động dựa trên Rule.
 
@@ -517,7 +517,7 @@ Rule cũng là Capability.
 
 ---
 
-# 109. Plugin Responsibility
+## 19. Plugin Responsibility
 
 Plugin chịu trách nhiệm:
 
@@ -538,7 +538,7 @@ package.json
 
 ---
 
-# 110. Performance Targets
+## 20. Performance Targets
 
 Repository:
 
@@ -568,7 +568,7 @@ Không phải hard requirement.
 
 ---
 
-# 111. Testing
+## 21. Testing
 
 Unit Test:
 
@@ -588,7 +588,7 @@ So sánh output với snapshot đã xác nhận.
 
 ---
 
-# 112. Acceptance Criteria
+## 22. Acceptance Criteria
 
 M3 hoàn thành khi:
 
@@ -603,7 +603,7 @@ M3 hoàn thành khi:
 
 ---
 
-# 113. Out of Scope
+## 23. Out of Scope
 
 Không implement:
 
@@ -618,7 +618,7 @@ Repository Analyzer chỉ tạo dữ liệu.
 
 ---
 
-# 114. Risks
+## 24. Risks
 
 Rủi ro lớn nhất:
 
@@ -642,7 +642,7 @@ Việc suy luận thuộc về các milestone sau.
 
 ---
 
-# 115. Exit Criteria
+## 25. Exit Criteria
 
 Sau M3.
 

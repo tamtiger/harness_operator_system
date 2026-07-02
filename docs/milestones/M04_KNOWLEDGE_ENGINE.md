@@ -1,6 +1,6 @@
-# 116. Milestone M4 — Knowledge Engine
+# Milestone M4 — Knowledge Engine
 
-## Goal
+## 1. Goal
 
 Knowledge Engine chịu trách nhiệm biến toàn bộ thông tin của repository thành tri thức có thể truy xuất một cách ổn định và có thể dự đoán.
 
@@ -25,7 +25,7 @@ Knowledge Engine là tầng truy vấn (Query Layer), không phải tầng tạo
 
 ---
 
-# 117. Responsibilities
+## 2. Responsibilities
 
 Knowledge Engine chịu trách nhiệm:
 
@@ -46,7 +46,7 @@ Knowledge Engine không chịu trách nhiệm:
 
 ---
 
-# 118. Architecture
+## 3. Architecture
 
 ```
 Repository Analyzer
@@ -74,7 +74,7 @@ Không ghi.
 
 ---
 
-# 119. Knowledge Sources
+## 4. Knowledge Sources
 
 Phase 1 hỗ trợ:
 
@@ -105,7 +105,7 @@ Không hỗ trợ:
 
 ---
 
-# 120. Knowledge Model
+## 5. Knowledge Model
 
 Mọi Knowledge đều được chuẩn hóa.
 
@@ -132,7 +132,7 @@ Knowledge Engine không quan tâm dữ liệu đến từ đâu.
 
 ---
 
-# 121. Parsing Pipeline
+## 6. Parsing Pipeline
 
 ```
 Markdown
@@ -162,7 +162,7 @@ Không index cả file như một document duy nhất.
 
 ---
 
-# 122. Section Granularity
+## 7. Section Granularity
 
 Đơn vị nhỏ nhất của Knowledge là:
 
@@ -195,7 +195,7 @@ thành bốn Knowledge Item.
 
 ---
 
-# 123. Metadata Enrichment
+## 8. Metadata Enrichment
 
 Knowledge Item sẽ được bổ sung:
 
@@ -210,7 +210,7 @@ Knowledge Item sẽ được bổ sung:
 
 ---
 
-# 124. Search Strategy
+## 9. Search Strategy
 
 Phase 1 chỉ sử dụng:
 
@@ -228,7 +228,7 @@ Không sử dụng:
 
 ---
 
-# 125. Search Pipeline
+## 10. Search Pipeline
 
 ```
 Query
@@ -264,7 +264,7 @@ Search chỉ trả Candidate.
 
 ---
 
-# 126. Ranking Pipeline
+## 11. Ranking Pipeline
 
 Ranking chịu trách nhiệm sắp xếp Candidate.
 
@@ -284,7 +284,7 @@ Không dùng semantic model.
 
 ---
 
-# 127. Ranking Formula
+## 12. Ranking Formula
 
 Ví dụ.
 
@@ -320,7 +320,7 @@ Công thức phải deterministic.
 
 ---
 
-# 128. Knowledge Priority
+## 13. Knowledge Priority
 
 Ưu tiên:
 
@@ -362,7 +362,7 @@ Generated Metadata
 
 ---
 
-# 129. Conflict Resolution
+## 14. Conflict Resolution
 
 Nếu hai Knowledge Item mâu thuẫn.
 
@@ -380,7 +380,7 @@ Planning Engine sẽ quyết định xử lý tiếp.
 
 ---
 
-# 130. Cache Strategy
+## 15. Cache Strategy
 
 Knowledge Engine có:
 
@@ -398,7 +398,7 @@ Không cache vô thời hạn.
 
 ---
 
-# 131. Invalidation
+## 16. Invalidation
 
 Cache bị xóa khi:
 
@@ -412,7 +412,7 @@ Sử dụng content hash.
 
 ---
 
-# 132. Context Assembly
+## 17. Context Assembly
 
 Knowledge Engine chưa build Context Pack hoàn chỉnh.
 
@@ -440,7 +440,7 @@ Context Engine (M6) mới quyết định cắt theo token budget.
 
 ---
 
-# 133. Query API
+## 18. Query API
 
 Phase 1 cung cấp:
 
@@ -462,7 +462,7 @@ Không thêm API đặc thù cho từng framework.
 
 ---
 
-# 134. Storage
+## 19. Storage
 
 Knowledge Store:
 
@@ -480,7 +480,7 @@ Không cần PostgreSQL.
 
 ---
 
-# 135. Performance Targets
+## 20. Performance Targets
 
 | Operation | Target |
 |-----------|---------|
@@ -491,7 +491,7 @@ Không cần PostgreSQL.
 
 ---
 
-# 136. Testing
+## 21. Testing
 
 Unit Test:
 
@@ -511,7 +511,7 @@ Golden Test:
 
 ---
 
-# 137. Acceptance Criteria
+## 22. Acceptance Criteria
 
 Knowledge Engine hoàn thành khi:
 
@@ -525,7 +525,7 @@ Knowledge Engine hoàn thành khi:
 
 ---
 
-# 138. Out of Scope
+## 23. Out of Scope
 
 Không implement:
 
@@ -539,7 +539,7 @@ Không implement:
 
 ---
 
-# 139. Risks
+## 24. Risks
 
 Sai lầm phổ biến:
 
@@ -557,7 +557,7 @@ Mọi AI reasoning diễn ra sau.
 
 ---
 
-# 140. Exit Criteria
+## 25. Exit Criteria
 
 Sau M4.
 
@@ -583,7 +583,7 @@ Không phụ thuộc AI.
 
 ---
 
-## Architectural Notes
+## 26. Architectural Notes
 
 ### Tách Knowledge Store khỏi Knowledge Engine
 

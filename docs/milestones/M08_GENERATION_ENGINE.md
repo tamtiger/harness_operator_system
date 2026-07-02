@@ -1,6 +1,6 @@
-# 227. Milestone M8 — Generation Engine
+# Milestone M8 — Generation Engine
 
-## Goal
+## 1. Goal
 
 Generation Engine chịu trách nhiệm sinh tất cả artifact có cấu trúc trước khi AI bắt đầu viết business logic.
 
@@ -16,7 +16,7 @@ Generation Engine sinh:
 
 ---
 
-# 228. Responsibilities
+## 2. Responsibilities
 
 Generation Engine chịu trách nhiệm:
 
@@ -35,7 +35,7 @@ Không chịu trách nhiệm:
 
 ---
 
-# 229. High-Level Workflow
+## 3. High-Level Workflow
 
 ```
 Approved Plan
@@ -67,7 +67,7 @@ Generated Artifact
 
 ---
 
-# 230. Inputs
+## 4. Inputs
 
 Generation Engine nhận:
 
@@ -80,7 +80,7 @@ Không đọc source code trực tiếp.
 
 ---
 
-# 231. Outputs
+## 5. Outputs
 
 Output duy nhất:
 
@@ -97,7 +97,7 @@ Bao gồm:
 
 ---
 
-# 232. Convention Detection
+## 6. Convention Detection
 
 Trước khi sinh artifact, Generation Engine hỏi Repository Analyzer:
 
@@ -112,7 +112,7 @@ Generation phải khớp với convention hiện có, không áp đặt conventi
 
 ---
 
-# 233. Template Resolution
+## 7. Template Resolution
 
 Template được chọn theo thứ tự ưu tiên:
 
@@ -150,7 +150,7 @@ interface TemplateMetadata {
 
 ---
 
-# 234. Protected Region Types
+## 8. Protected Region Types
 
 Generation Engine đánh dấu bốn loại region:
 
@@ -165,7 +165,7 @@ Region phải machine-readable, không chỉ comment.
 
 ---
 
-# 235. Policy Injection
+## 9. Policy Injection
 
 Generation chịu ảnh hưởng trực tiếp của Policy:
 
@@ -175,7 +175,7 @@ Generation chịu ảnh hưởng trực tiếp của Policy:
 
 ---
 
-# 236. Generation Validation
+## 10. Generation Validation
 
 Sau khi sinh, Generation Engine tự kiểm tra:
 
@@ -188,7 +188,7 @@ AI chỉ nhận artifact hợp lệ.
 
 ---
 
-# 237. Plugin Integration
+## 11. Plugin Integration
 
 Generation Engine không biết framework.
 
@@ -218,7 +218,7 @@ Migration Generator
 
 ---
 
-# 238. Public APIs
+## 12. Public APIs
 
 ```
 Generate()
@@ -234,7 +234,7 @@ ValidateArtifact()
 
 ---
 
-# 239. Testing Strategy
+## 13. Testing Strategy
 
 Unit Test:
 
@@ -254,7 +254,7 @@ Golden Test:
 
 ---
 
-# 240. Acceptance Criteria
+## 14. Acceptance Criteria
 
 Hoàn thành khi:
 
@@ -267,7 +267,7 @@ Hoàn thành khi:
 
 ---
 
-# 241. Out of Scope
+## 15. Out of Scope
 
 Không implement:
 
@@ -278,7 +278,7 @@ Không implement:
 
 ---
 
-# 242. Risks
+## 16. Risks
 
 Sai lầm phổ biến:
 
@@ -300,7 +300,7 @@ Creative
 
 ---
 
-# 243. Exit Criteria
+## 17. Exit Criteria
 
 Sau M8.
 

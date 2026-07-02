@@ -1,6 +1,6 @@
-# 141. Milestone M5 — Code Index
+# Milestone M5 — Code Index
 
-## Goal
+## 1. Goal
 
 Code Index xây dựng một biểu diễn có cấu trúc của source code để phục vụ:
 
@@ -18,7 +18,7 @@ Code Index hiểu source code.
 
 ---
 
-# 142. Responsibilities
+## 2. Responsibilities
 
 Code Index chịu trách nhiệm:
 
@@ -38,7 +38,7 @@ Không chịu trách nhiệm:
 
 ---
 
-# 143. Why Separate from Repository Analyzer?
+## 3. Why Separate from Repository Analyzer?
 
 Repository Analyzer chạy:
 
@@ -72,7 +72,7 @@ Hai workload hoàn toàn khác nhau.
 
 ---
 
-# 144. Architecture
+## 4. Architecture
 
 ```
 Repository
@@ -104,7 +104,7 @@ Index Store
 
 ---
 
-# 145. Parsing Strategy
+## 5. Parsing Strategy
 
 Phase 1 sử dụng:
 
@@ -123,7 +123,7 @@ Không tự viết parser.
 
 ---
 
-# 146. Index Pipeline
+## 6. Index Pipeline
 
 ```
 Changed File
@@ -155,7 +155,7 @@ Persist
 
 ---
 
-# 147. Symbol Types
+## 7. Symbol Types
 
 Phase 1 hỗ trợ:
 
@@ -172,7 +172,7 @@ Không index local variable.
 
 ---
 
-# 148. Relationship Types
+## 8. Relationship Types
 
 Theo dõi:
 
@@ -187,7 +187,7 @@ Không phân tích runtime dispatch.
 
 ---
 
-# 149. Symbol Identity
+## 9. Symbol Identity
 
 Mỗi Symbol có:
 
@@ -211,7 +211,7 @@ Không dùng line number làm identity.
 
 ---
 
-# 150. Symbol Metadata
+## 10. Symbol Metadata
 
 Mỗi Symbol lưu:
 
@@ -224,7 +224,7 @@ Mỗi Symbol lưu:
 
 ---
 
-# 151. Reference Graph
+## 11. Reference Graph
 
 Reference Graph phải trả lời được:
 
@@ -250,7 +250,7 @@ Job C
 
 ---
 
-# 152. Dependency Graph
+## 12. Dependency Graph
 
 Code Index xây dựng:
 
@@ -274,7 +274,7 @@ Graph này khác Dependency Graph của Repository Analyzer.
 
 ---
 
-# 153. Index Store
+## 13. Index Store
 
 Store gồm:
 
@@ -290,7 +290,7 @@ Không nhúng vào project.db.
 
 ---
 
-# 154. Incremental Update
+## 14. Incremental Update
 
 Khi file thay đổi:
 
@@ -318,7 +318,7 @@ Không rebuild toàn bộ.
 
 ---
 
-# 155. Consistency Rules
+## 15. Consistency Rules
 
 Index phải luôn:
 
@@ -334,7 +334,7 @@ Full rebuild.
 
 ---
 
-# 156. Public APIs
+## 16. Public APIs
 
 Phase 1:
 
@@ -354,7 +354,7 @@ FindModuleSymbols()
 
 ---
 
-# 157. Future APIs
+## 17. Future APIs
 
 Phase 2:
 
@@ -374,7 +374,7 @@ Chưa implement.
 
 ---
 
-# 158. Performance Targets
+## 18. Performance Targets
 
 | Operation | Target |
 |-----------|---------|
@@ -386,7 +386,7 @@ Chưa implement.
 
 ---
 
-# 159. Storage Strategy
+## 19. Storage Strategy
 
 SQLite.
 
@@ -398,7 +398,7 @@ Graph được biểu diễn bằng bảng quan hệ.
 
 ---
 
-# 160. Testing
+## 20. Testing
 
 Unit Test:
 
@@ -418,7 +418,7 @@ Golden Test:
 
 ---
 
-# 161. Acceptance Criteria
+## 21. Acceptance Criteria
 
 Hoàn thành khi:
 
@@ -431,7 +431,7 @@ Hoàn thành khi:
 
 ---
 
-# 162. Out of Scope
+## 22. Out of Scope
 
 Không implement:
 
@@ -442,7 +442,7 @@ Không implement:
 
 ---
 
-# 163. Risks
+## 23. Risks
 
 Sai lầm phổ biến:
 
@@ -460,7 +460,7 @@ Compiler vẫn là source of truth.
 
 ---
 
-# 164. Exit Criteria
+## 24. Exit Criteria
 
 Sau M5.
 
@@ -488,9 +488,9 @@ mà không cần AI.
 
 ---
 
-# 165. Architectural Refinement
+## 25. Architectural Refinement
 
-## Tách Code Graph khỏi Symbol Store
+## 26. Tách Code Graph khỏi Symbol Store
 
 Kiến trúc đề xuất:
 

@@ -1,4 +1,4 @@
-# IMPLEMENTATION_PLAN.md
+# MILESTONES OVERVIEW
 
 > Universal Coding Harness
 >
@@ -368,10 +368,12 @@ Toàn bộ dự án được chia thành các milestone sau.
 | M8 | Generation Engine |
 | M9 | Runtime Engine |
 | M10 | Verification Engine |
-| M11 | Integration Layer (MCP + CLI) |
-| M12 | End-to-End Integration |
-| M13 | Hardening |
-| M14 | Release Candidate |
+| M11 | Policy Engine (Future) |
+| M12 | Integration Layer (MCP + CLI) |
+| M13 | Plugin System (Future) |
+| M14 | End-to-End Integration |
+| M15 | Hardening |
+| M16 | Release Candidate |
 
 Mỗi milestone đều có:
 
@@ -580,6 +582,12 @@ dù Planning chỉ hỗ trợ một trường hợp.
           │
           ▼
          M14
+          │
+          ▼
+         M15
+          │
+          ▼
+         M16
 ```
 
 Không milestone nào được phép bỏ qua dependency.
@@ -662,23 +670,35 @@ Verification Engine.
 
 ## M11
 
-MCP Server.
+Policy Engine.
 
 ---
 
 ## M12
 
-End-to-End.
+Integration Layer.
 
 ---
 
 ## M13
 
-Hardening.
+Plugin System.
 
 ---
 
 ## M14
+
+End-to-End.
+
+---
+
+## M15
+
+Hardening.
+
+---
+
+## M16
 
 Release Candidate.
 

@@ -306,18 +306,12 @@ CREATE TABLE sessions (
   plan_id TEXT NOT NULL,
   state TEXT NOT NULL,        -- CREATED, READY, RUNNING, VERIFYING, DONE, FAILED
   current_step TEXT,
+  git_branch TEXT NOT NULL,   -- Git branch for task isolation
+  git_checkpoint_commit TEXT, -- Git commit hash before mutation
   started_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
 
-CREATE TABLE checkpoints (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  step_id TEXT NOT NULL,
-  files TEXT NOT NULL,        -- JSON: [{path, content, hash}]
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
-);
 
 -- Verification Store
 CREATE TABLE verification_reports (

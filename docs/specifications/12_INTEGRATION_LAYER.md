@@ -467,7 +467,7 @@ Ví dụ:
 | ------------------- | --------------------- |
 | PLAN_NOT_APPROVED   | Plan chưa được duyệt  |
 | INVALID_SCOPE       | Scope không hợp lệ    |
-| LOCKED_REGION       | Locked region bị sửa  |
+| LOCKED_REGION       | Protected Region bị sửa  |
 | VERIFICATION_FAILED | Verification thất bại |
 | UNKNOWN_TASK        | Không tìm thấy Task   |
 | INTERNAL_ERROR      | Lỗi hệ thống          |

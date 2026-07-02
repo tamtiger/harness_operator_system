@@ -81,7 +81,7 @@ interface GenerationOutput {
 
 ---
 
-## 6. Locked Region Model
+## 6. Protected Region Model
 
 ```typescript id="locked"
 interface LockedRegion {
@@ -132,7 +132,7 @@ Scaffold Generator
 
 ↓
 
-Locked Region Injection
+Protected Region Injection
 
 ↓
 
@@ -186,7 +186,7 @@ AI is NOT allowed to modify these parts.
 ## 12. Scaffold Example
 
 ```text id="example"
-// ===== LOCKED REGION (Generation Engine) =====
+// ===== Protected Region (Generation Engine) =====
 
 public class CreateUserHandler
 {
@@ -277,7 +277,7 @@ Plugin is source of truth for scaffold style.
 
 Scaffold is rejected if:
 
-* missing locked region
+* missing Protected Region
 * missing TODO region
 * incorrect pattern mapping
 * invalid dependency injection structure
@@ -308,7 +308,7 @@ Scaffold is rejected if:
 ## 21. Testing Strategy
 
 * deterministic scaffold test
-* locked region integrity test
+* Protected Region integrity test
 * plugin variation test
 * template fallback test
 * pattern mapping correctness test
@@ -320,7 +320,7 @@ Scaffold is rejected if:
 Generation Engine hoàn thành khi:
 
 * tạo đúng structure theo plugin;
-* locked region không thể bị AI sửa mà không bị detect;
+* Protected Region không thể bị AI sửa mà không bị detect;
 * deterministic output;
 * mapping plan → code structure ổn định;
 * fallback hoạt động khi thiếu context;

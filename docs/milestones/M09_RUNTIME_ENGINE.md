@@ -182,60 +182,37 @@ Không module nào được tự sửa state.
 
 ---
 
-# 234. Checkpoint
+# 234. Git-native Checkpoint
 
-Checkpoint được tạo:
-
-- trước khi AI sửa file;
-- trước rollback;
-- trước verification.
-
-Checkpoint không chỉ lưu file.
-
-Checkpoint còn lưu:
-
-- step
-- timestamp
-- hash
-- scope
+Checkpoint được thực hiện qua Git:
+- Trước khi AI thực hiện bất kỳ thay đổi nào, tạo một task branch và commit checkpoint (`sessions.git_checkpoint_commit`).
 
 ---
 
-# 235. Snapshot Strategy
+# 235. Task Branch Isolation Strategy
 
-Snapshot gồm:
-
-```
-Changed Files
-
-+
-
-Metadata
-```
-
-Không snapshot toàn repository.
+Hệ thống sử dụng nhánh Git độc lập để cô lập thay đổi của AI:
+- Nhánh `harness/task-{task_id}` được tách từ nhánh làm việc chính.
+- Toàn bộ thay đổi của AI được commit và thực thi trên nhánh này.
 
 ---
 
-# 236. Rollback Workflow
+# 236. Git-native Rollback Workflow
 
 ```
-Checkpoint
+Git Reset --hard <commit>
 
 ↓
-
-Restore Files
-
-↓
-
-Restore Metadata
+Git Clean -fd
 
 ↓
+Update State (FAILED)
 
-Resume
+↓
+Resume / Awaiting Action
 ```
 
-Rollback không được dùng Git.
+Rollback dựa hoàn toàn vào các lệnh Git native.
 
 ---
 
@@ -245,7 +222,7 @@ Theo dõi:
 
 - file được sửa
 - file ngoài scope
-- locked region
+- Protected Region
 - delete
 - create
 - rename
@@ -529,19 +506,16 @@ Harness có khả năng:
 Approved Plan
 
 ↓
-
-Safe Execution
-
-↓
-
-Rollback
+Safe Execution (Git branch)
 
 ↓
+Rollback (Git reset)
 
+↓
 Resume
 ```
 
-mà không phụ thuộc Git.
+dựa hoàn toàn trên Git native.
 
 ---
 

@@ -1,6 +1,6 @@
-# 61. Milestone M2 — Capability Registry
+# Milestone M2 — Capability Registry
 
-## Goal
+## 1. Goal
 
 M2 xây dựng Capability Registry.
 
@@ -30,7 +30,7 @@ Capability
 
 ---
 
-# 62. Why Capability Registry?
+## 2. Why Capability Registry?
 
 Một sai lầm phổ biến của các hệ thống plugin là:
 
@@ -62,7 +62,7 @@ Mọi thay đổi plugin đều làm Core thay đổi.
 
 ---
 
-# 63. Design Philosophy
+## 3. Design Philosophy
 
 Core không quan tâm:
 
@@ -94,7 +94,7 @@ Một Plugin có thể cung cấp nhiều Capability.
 
 ---
 
-# 64. Architecture
+## 4. Architecture
 
 ```text
 Core
@@ -123,7 +123,7 @@ Core gọi Capability.
 
 ---
 
-# 65. Capability Types
+## 5. Capability Types
 
 Phase 1 chỉ hỗ trợ:
 
@@ -145,7 +145,7 @@ Không thêm loại khác.
 
 ---
 
-# 66. Capability Contract
+## 6. Capability Contract
 
 Mọi Capability phải khai báo:
 
@@ -161,7 +161,7 @@ interface CapabilityDescriptor {
 
 ---
 
-# 67. Capability Resolution
+## 7. Capability Resolution
 
 Ví dụ.
 
@@ -191,7 +191,7 @@ Core không biết implementation nào được chọn.
 
 ---
 
-# 68. Provider Model
+## 8. Provider Model
 
 Plugin không đăng ký service.
 
@@ -207,7 +207,7 @@ interface ICapabilityProvider {
 
 ---
 
-# 69. Registration Workflow
+## 9. Registration Workflow
 
 Khi startup:
 
@@ -243,7 +243,7 @@ Startup fail.
 
 ---
 
-# 70. Capability Validation
+## 10. Capability Validation
 
 Validation phải kiểm tra:
 
@@ -256,7 +256,7 @@ Không cho phép startup với registry lỗi.
 
 ---
 
-# 71. Resolution Rules
+## 11. Resolution Rules
 
 Một Capability chỉ được có:
 
@@ -276,7 +276,7 @@ Phase 2 mới hỗ trợ ranking/fallback.
 
 ---
 
-# 72. Capability Context
+## 12. Capability Context
 
 Capability được gọi với context chuẩn.
 
@@ -292,7 +292,7 @@ Không truyền state rời rạc.
 
 ---
 
-# 73. Capability Result
+## 13. Capability Result
 
 Mọi Capability trả:
 
@@ -304,7 +304,7 @@ Không throw exception xuyên qua Registry.
 
 ---
 
-# 74. Plugin Discovery
+## 14. Plugin Discovery
 
 Phase 1 hỗ trợ:
 
@@ -322,7 +322,7 @@ Không hỗ trợ:
 
 ---
 
-# 75. Plugin Manifest
+## 15. Plugin Manifest
 
 Mỗi plugin phải có:
 
@@ -340,7 +340,7 @@ Mỗi plugin phải có:
 
 ---
 
-# 76. Plugin Lifecycle
+## 16. Plugin Lifecycle
 
 ```text
 Load
@@ -366,7 +366,7 @@ Không plugin nào được chạy code trước bước Validate.
 
 ---
 
-# 77. Isolation Rules
+## 17. Isolation Rules
 
 Plugin không được:
 
@@ -378,7 +378,7 @@ Plugin chỉ được giao tiếp qua contract.
 
 ---
 
-# 78. Security Rules
+## 18. Security Rules
 
 Plugin bị xem là:
 
@@ -398,7 +398,7 @@ là bắt buộc.
 
 ---
 
-# 79. Timeout Policy
+## 19. Timeout Policy
 
 Mỗi Capability phải khai báo:
 
@@ -417,7 +417,7 @@ Ví dụ:
 
 ---
 
-# 80. Error Handling
+## 20. Error Handling
 
 Plugin lỗi không được làm sập Host.
 
@@ -447,7 +447,7 @@ Host Crash
 
 ---
 
-# 81. DotNet Plugin Scope
+## 21. DotNet Plugin Scope
 
 M2 chỉ implement:
 
@@ -473,7 +473,7 @@ TemplateProvider để M8.
 
 ---
 
-# 82. Package Structure
+## 22. Package Structure
 
 ```text
 plugins/
@@ -493,7 +493,7 @@ Không tạo package cho Java.
 
 ---
 
-# 83. Testing Strategy
+## 23. Testing Strategy
 
 M2 cần:
 
@@ -511,7 +511,7 @@ Integration Test:
 
 ---
 
-# 84. Acceptance Criteria
+## 24. Acceptance Criteria
 
 M2 hoàn thành khi:
 
@@ -525,7 +525,7 @@ M2 hoàn thành khi:
 
 ---
 
-# 85. Out of Scope
+## 25. Out of Scope
 
 Không implement:
 
@@ -541,7 +541,7 @@ Registry chỉ quản lý capability.
 
 ---
 
-# 86. Risks
+## 26. Risks
 
 Rủi ro lớn nhất:
 
@@ -571,7 +571,7 @@ How
 
 ---
 
-# 87. Exit Criteria
+## 27. Exit Criteria
 
 Sau M2.
 
@@ -607,7 +607,7 @@ thì M2 thất bại.
 
 ---
 
-# 88. Architectural Review Checkpoint
+## 28. Architectural Review Checkpoint
 
 Sau M2 phải tổ chức review.
 
@@ -637,7 +637,7 @@ Dừng phát triển cho đến khi sửa xong.
 
 ---
 
-# 89. Success Metrics
+## 29. Success Metrics
 
 | Metric | Target |
 |----------|----------|
@@ -649,7 +649,7 @@ Dừng phát triển cho đến khi sửa xong.
 
 ---
 
-# 90. Transition to M3
+## 30. Transition to M3
 
 Sau khi hoàn thành M2.
 

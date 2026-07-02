@@ -1,6 +1,6 @@
-# 260. Milestone M10 — Verification Engine
+# Milestone M10 — Verification Engine
 
-## Goal
+## 1. Goal
 
 Verification Engine chịu trách nhiệm xác minh độc lập rằng kết quả thực thi đáp ứng các tiêu chí kỹ thuật trước khi Task được đánh dấu hoàn thành.
 
@@ -12,7 +12,7 @@ Verification Engine là **authority cuối cùng** của Harness.
 
 ---
 
-# 261. Responsibilities
+## 2. Responsibilities
 
 Verification Engine chịu trách nhiệm:
 
@@ -32,7 +32,7 @@ Không chịu trách nhiệm:
 
 ---
 
-# 262. High-Level Workflow
+## 3. High-Level Workflow
 
 ```
 Execution Finished
@@ -56,7 +56,7 @@ Report
 
 ---
 
-# 263. Verification Layers
+## 4. Verification Layers
 
 Phase 1.
 
@@ -88,7 +88,7 @@ Mọi Layer đều deterministic.
 
 ---
 
-# 264. Verification Pipeline
+## 5. Verification Pipeline
 
 ```
 Verification Request
@@ -116,7 +116,7 @@ Verification Report
 
 ---
 
-# 265. Verification Request
+## 6. Verification Request
 
 Input gồm:
 
@@ -136,7 +136,7 @@ interface VerificationRequest {
 
 ---
 
-# 266. Layer Runner
+## 7. Layer Runner
 
 Mỗi Layer chạy độc lập.
 
@@ -156,7 +156,7 @@ Không layer nào biết layer khác.
 
 ---
 
-# 267. Result Model
+## 8. Result Model
 
 ```typescript
 interface VerificationResult {
@@ -174,7 +174,7 @@ interface VerificationResult {
 
 ---
 
-# 268. Aggregator
+## 9. Aggregator
 
 Aggregator gom toàn bộ kết quả.
 
@@ -196,7 +196,7 @@ OVERALL FAIL
 
 ---
 
-# 269. Fail Fast?
+## 10. Fail Fast?
 
 Phase 1.
 
@@ -226,7 +226,7 @@ Run
 
 ---
 
-# 270. Plugin Integration
+## 11. Plugin Integration
 
 Verification không biết:
 
@@ -248,7 +248,7 @@ dotnet build
 
 ---
 
-# 271. Syntax Layer
+## 12. Syntax Layer
 
 Kiểm tra:
 
@@ -260,7 +260,7 @@ Không chạy test.
 
 ---
 
-# 272. Lint Layer
+## 13. Lint Layer
 
 Plugin quyết định.
 
@@ -276,7 +276,7 @@ golangci-lint
 
 ---
 
-# 273. Test Layer
+## 14. Test Layer
 
 Phase 1.
 
@@ -296,7 +296,7 @@ Run All.
 
 ---
 
-# 274. Architecture Layer
+## 15. Architecture Layer
 
 Architecture Runner gọi:
 
@@ -320,7 +320,7 @@ Violation
 
 ---
 
-# 275. Rule Model
+## 16. Rule Model
 
 ```typescript
 interface ArchitectureRule {
@@ -338,7 +338,7 @@ interface ArchitectureRule {
 
 ---
 
-# 276. Rule Categories
+## 17. Rule Categories
 
 Ví dụ.
 
@@ -350,7 +350,7 @@ Ví dụ.
 
 ---
 
-# 277. Severity
+## 18. Severity
 
 ```
 INFO
@@ -374,7 +374,7 @@ mới fail Verification.
 
 ---
 
-# 278. Diagnostics
+## 19. Diagnostics
 
 Diagnostics phải chỉ rõ:
 
@@ -392,7 +392,7 @@ Architecture violation.
 
 ---
 
-# 279. Verification Report
+## 20. Verification Report
 
 Ví dụ.
 
@@ -424,7 +424,7 @@ Warnings
 
 ---
 
-# 280. Retry
+## 21. Retry
 
 Verification Engine không retry.
 
@@ -434,7 +434,7 @@ Verification chỉ báo kết quả.
 
 ---
 
-# 281. Public APIs
+## 22. Public APIs
 
 ```
 Verify()
@@ -450,7 +450,7 @@ Report()
 
 ---
 
-# 282. Metrics
+## 23. Metrics
 
 Theo dõi:
 
@@ -462,7 +462,7 @@ Theo dõi:
 
 ---
 
-# 283. Testing
+## 24. Testing
 
 Unit Test.
 
@@ -482,7 +482,7 @@ Golden Test.
 
 ---
 
-# 284. Acceptance Criteria
+## 25. Acceptance Criteria
 
 Hoàn thành khi:
 
@@ -494,7 +494,7 @@ Hoàn thành khi:
 
 ---
 
-# 285. Out of Scope
+## 26. Out of Scope
 
 Không implement.
 
@@ -505,7 +505,7 @@ Không implement.
 
 ---
 
-# 286. Risks
+## 27. Risks
 
 Sai lầm phổ biến.
 
@@ -519,7 +519,7 @@ Verification Engine mới quyết định.
 
 ---
 
-# 287. Exit Criteria
+## 28. Exit Criteria
 
 Sau M9.
 
@@ -542,9 +542,9 @@ mà không cần AI.
 
 ---
 
-# 288. Architectural Refinement
+## 29. Architectural Refinement
 
-## Verification nên dùng Pipeline
+## 30. Verification nên dùng Pipeline
 
 Thay vì:
 
@@ -590,7 +590,7 @@ Mỗi Layer độc lập.
 
 ---
 
-# 289. Rule Registry
+## 31. Rule Registry
 
 Rule Registry không nên nằm trong Plugin trực tiếp.
 
@@ -620,7 +620,7 @@ Architecture Runner
 
 ---
 
-# 290. Verification Cache
+## 32. Verification Cache
 
 Một số Layer có thể cache.
 
@@ -642,7 +642,7 @@ Không cần chạy lại.
 
 ---
 
-# 291. Incremental Verification
+## 33. Incremental Verification
 
 Verification Request nên mang:
 
@@ -664,7 +664,7 @@ Changed Files
 
 ---
 
-# 292. Future Extension Points
+## 34. Future Extension Points
 
 Phase 2.
 
@@ -681,7 +681,7 @@ Tất cả chỉ là Layer mới.
 
 ---
 
-# 293. Definition of Success
+## 35. Definition of Success
 
 Một Verification Engine tốt không phải là Engine chạy nhiều kiểm tra nhất.
 

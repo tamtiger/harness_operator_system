@@ -15,7 +15,7 @@ Context Engine không kiểm tra kết quả.
 
 Nhiệm vụ duy nhất là:
 
-> Chuyển đổi repository knowledge và code intelligence thành một Context Pack có kích thước giới hạn nhưng mang nhiều thông tin nhất.
+> Chuyển đổi repository knowledge và Code Index thành một Context Pack có kích thước giới hạn nhưng mang nhiều thông tin nhất.
 
 ---
 

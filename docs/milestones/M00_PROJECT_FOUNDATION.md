@@ -1,6 +1,6 @@
-# 21. Milestone M0 — Project Foundation
+# Milestone M0 — Project Foundation
 
-## Goal
+## 1. Goal
 
 Tạo nền tảng phát triển ổn định cho toàn bộ dự án.
 
@@ -14,7 +14,7 @@ Giá trị của M0 là:
 
 ---
 
-# 22. Deliverables
+## 2. Deliverables
 
 Sau M0 phải có:
 
@@ -35,7 +35,7 @@ Không cần Planning.
 
 ---
 
-# 23. Folder Structure
+## 3. Folder Structure
 
 ```
 harness/
@@ -87,7 +87,7 @@ Không tạo Go.
 
 ---
 
-# 24. Core Packages
+## 4. Core Packages
 
 M0 chỉ tạo package.
 
@@ -115,7 +115,7 @@ Mỗi package chỉ cần:
 
 ---
 
-# 25. Shared Library
+## 5. Shared Library
 
 Shared chỉ chứa:
 
@@ -129,7 +129,7 @@ Không chứa business logic.
 
 ---
 
-# 26. Configuration
+## 6. Configuration
 
 Ngay từ M0 phải thống nhất:
 
@@ -155,7 +155,7 @@ Không module nào được sửa config runtime.
 
 ---
 
-# 27. Logging
+## 7. Logging
 
 Sử dụng structured logging.
 
@@ -179,7 +179,7 @@ Không sử dụng Console.WriteLine trong Core.
 
 ---
 
-# 28. Error Model
+## 8. Error Model
 
 Thống nhất Error ngay từ đầu.
 
@@ -201,7 +201,7 @@ Không throw Exception tùy tiện.
 
 ---
 
-# 29. Result Model
+## 9. Result Model
 
 Mọi API nội bộ trả về:
 
@@ -227,7 +227,7 @@ magic value
 
 ---
 
-# 30. CLI Bootstrap
+## 10. CLI Bootstrap
 
 CLI chỉ cần hỗ trợ:
 
@@ -247,7 +247,7 @@ Chỉ tạo placeholder.
 
 ---
 
-# 31. Testing
+## 11. Testing
 
 M0 chỉ cần:
 
@@ -259,7 +259,7 @@ Không E2E.
 
 ---
 
-# 32. Acceptance Criteria
+## 12. Acceptance Criteria
 
 M0 hoàn thành khi:
 
@@ -275,7 +275,7 @@ M0 hoàn thành khi:
 
 ---
 
-# 33. Out of Scope
+## 13. Out of Scope
 
 Không làm:
 
@@ -294,7 +294,7 @@ Nếu xuất hiện nhu cầu.
 
 ---
 
-# 34. Risks
+## 14. Risks
 
 Rủi ro lớn nhất của M0:
 
@@ -310,7 +310,7 @@ Do đó.
 
 ---
 
-# 35. Exit Criteria
+## 15. Exit Criteria
 
 Sau khi hoàn thành M0.
 
