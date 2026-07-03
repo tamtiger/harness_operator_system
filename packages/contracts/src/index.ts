@@ -127,3 +127,51 @@ export interface IHost {
   stop(): Promise<void>;
   getService<T>(name: string): T;
 }
+
+// ==========================================
+// MILESTONE M2: CAPABILITY REGISTRY CONTRACTS
+// ==========================================
+
+export type CapabilityType =
+  | 'analyzer'
+  | 'builder'
+  | 'tester'
+  | 'linter'
+  | 'verifier'
+  | 'template_provider';
+
+export interface CapabilityDescriptor {
+  id: string;
+  name: string;
+  type: CapabilityType;
+  version: string;
+  timeoutMs?: number;
+}
+
+export interface CapabilityContext {
+  projectId: string;
+  workspaceId: string;
+  traceId: string;
+}
+
+export interface ICapability {
+  readonly descriptor: CapabilityDescriptor;
+}
+
+export interface ICapabilityProvider {
+  getCapabilities(): CapabilityDescriptor[];
+  getCapability<T extends ICapability>(id: string): T | undefined;
+}
+
+// Specific Capability interfaces
+export interface IBuilder extends ICapability {
+  build(context: CapabilityContext): Promise<any>;
+}
+
+export interface ITester extends ICapability {
+  test(context: CapabilityContext): Promise<any>;
+}
+
+export interface ILinter extends ICapability {
+  lint(context: CapabilityContext): Promise<any>;
+}

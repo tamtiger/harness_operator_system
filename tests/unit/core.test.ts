@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ApplicationHost, Container, StructuredLogger, LayeredConfiguration, LocalEventBus, WorkspaceManager } from '../../packages/core/src/index.js';
+import { ApplicationHost, Container, StructuredLogger, LayeredConfiguration, LocalEventBus, WorkspaceManager, CapabilityRegistry } from '../../packages/core/src/index.js';
 import { SystemClock, NanoidGenerator, PhysicalFileSystem } from '../../packages/shared/src/index.js';
 
 describe('Harness Operator Core Infrastructure Tests', () => {
@@ -53,6 +53,7 @@ describe('Harness Operator Core Infrastructure Tests', () => {
     host.registerServiceSingleton('Logger', StructuredLogger);
     host.registerServiceSingleton('Workspace', WorkspaceManager, ['FileSystem', 'Configuration']);
     host.registerServiceSingleton('EventBus', LocalEventBus, ['Clock']);
+    host.registerServiceSingleton('CapabilityRegistry', CapabilityRegistry);
     
     await host.start();
     

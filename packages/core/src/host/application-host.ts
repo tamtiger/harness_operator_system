@@ -1,5 +1,7 @@
-import { IHost, IService } from '@harness/contracts';
+import { IHost, IService, IFileSystem } from '@harness/contracts';
 import { Container } from '../di/container.js';
+import { pathToFileURL } from 'url';
+import * as path from 'path';
 
 export type RuntimeState =
   | 'CREATED'
@@ -51,7 +53,7 @@ export class ApplicationHost implements IHost {
       }
 
       // 2. Initialize other services in registered order
-      const trackedServiceNames = ['Logger', 'Workspace', 'EventBus'];
+      const trackedServiceNames = ['Logger', 'Workspace', 'EventBus', 'CapabilityRegistry'];
       for (const name of trackedServiceNames) {
         try {
           const service = this.container.resolve<IService>(name);
@@ -68,6 +70,9 @@ export class ApplicationHost implements IHost {
           await service.initialize();
         }
       }
+
+      // 3. Load Plugins (Phase 4)
+      await this.loadPlugins();
 
       this.state = 'STARTING';
       
@@ -92,6 +97,40 @@ export class ApplicationHost implements IHost {
     this.state = 'STOPPING';
     await this.cleanup();
     this.state = 'STOPPED';
+  }
+
+  private async loadPlugins(): Promise<void> {
+    const fsService = this.getService<IFileSystem>('FileSystem');
+    const registry = this.getService<any>('CapabilityRegistry');
+    if (!fsService || !registry) return;
+
+    const pluginsDir = path.join(process.cwd(), 'plugins');
+    if (!(await fsService.exists(pluginsDir))) {
+      return;
+    }
+
+    const dirs = await fsService.readDir(pluginsDir);
+    for (const dir of dirs) {
+      const pluginManifestPath = path.join(pluginsDir, dir, 'manifest.json');
+      if (await fsService.exists(pluginManifestPath)) {
+        try {
+          const tsPath = path.resolve(pluginsDir, dir, 'src', 'index.ts');
+          const jsPath = path.resolve(pluginsDir, dir, 'dist', 'index.js');
+          const importPath = await fsService.exists(tsPath) ? tsPath : jsPath;
+          
+          const fileUrl = pathToFileURL(importPath).href;
+          const pluginModule = await import(fileUrl);
+          
+          const ProviderClass = pluginModule.default;
+          if (ProviderClass) {
+            const provider = new ProviderClass();
+            registry.registerProvider(provider);
+          }
+        } catch (err) {
+          console.error(`Failed to load plugin from ${dir}:`, err);
+        }
+      }
+    }
   }
 
   private async cleanup(): Promise<void> {

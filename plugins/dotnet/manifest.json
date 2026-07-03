@@ -1,0 +1,9 @@
+{
+  "id": "dotnet",
+  "version": "0.0.1",
+  "capabilities": [
+    "dotnet-builder",
+    "dotnet-tester",
+    "dotnet-linter"
+  ]
+}

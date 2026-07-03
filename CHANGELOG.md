@@ -2,6 +2,16 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
+## [0.0.3] - 2026-07-03
+
+### Added
+- **Capability Registry & DotNet Plugin (Milestone M2):**
+  - Định nghĩa các interface/types bổ sung cho Capability (`CapabilityType`, `CapabilityDescriptor`, `CapabilityContext`, `ICapability`, `ICapabilityProvider`, `IBuilder`, `ITester`, `ILinter`) trong `@harness/contracts`.
+  - Triển khai `CapabilityRegistry` trong `@harness/core` quản lý việc đăng ký, kiểm tra trùng lặp (duplication validation), và bọc thực thi an toàn hỗ trợ timeout và cô lập lỗi (error isolation).
+  - Tích hợp quét thư mục `plugins/` ở root và nạp động (dynamic ESM import) plugin vào `ApplicationHost`.
+  - Triển khai package `@harness/plugin-dotnet` cung cấp các Capability bọc CLI: `DotNetBuilder` (`dotnet build`), `DotNetTester` (`dotnet test`), và `DotNetLinter` (`dotnet format`).
+  - Viết bộ unit test `tests/unit/capability.test.ts` kiểm thử registry validation, duplicate prevention, timeout, và error isolation.
+
 ## [0.0.2] - 2026-07-03
 
 ### Added

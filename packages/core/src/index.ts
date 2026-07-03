@@ -41,3 +41,4 @@ export * from './config/configuration.js';
 export * from './events/event-bus.js';
 export * from './workspace/workspace-manager.js';
 export * from './host/application-host.js';
+export * from './capability/capability-registry.js';

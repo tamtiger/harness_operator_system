@@ -1,5 +1,5 @@
 {
-  "name": "@harness/shared",
+  "name": "@harness/plugin-dotnet",
   "version": "0.0.3",
   "private": true,
   "type": "module",
@@ -10,6 +10,7 @@
     "dev": "tsup src/index.ts --format esm --dts --watch"
   },
   "dependencies": {
-    "@harness/contracts": "workspace:*"
+    "@harness/contracts": "workspace:*",
+    "@harness/shared": "workspace:*"
   }
 }
