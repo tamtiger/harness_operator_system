@@ -2,6 +2,17 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
+## [0.0.6] - 2026-07-03
+
+### Added
+- **Code Index (Milestone M5):**
+  - Định nghĩa các interface `SymbolNode`, `SymbolRelation`, và `ICodeIndex` trong `@harness/contracts`.
+  - Hiện thực `CodeIndexer` trong `@harness/core` quản lý đồ thị Class/Interface/Method cùng mối quan hệ kế thừa (`inherits`/`implements`) và tham chiếu gọi nhau (`calls`).
+  - Viết bộ parser tĩnh bằng TypeScript thuần chuyên biệt nhận diện cấu trúc tệp `.cs` (C#) và `.ts/.js` nhanh chóng, độc lập.
+  - Cài đặt cơ chế cập nhật tăng trưởng (Incremental Update) tự động xóa các symbol cũ của tệp được cập nhật mà không cần rebuild đồ thị.
+  - Đăng ký `CodeIndexer` vào danh sách dịch vụ của `ApplicationHost`.
+  - Viết bộ unit test `tests/unit/index.test.ts` kiểm thử các tính năng parse AST C#/TS, xây dựng Reference Graph, và Incremental Indexing.
+
 ## [0.0.5] - 2026-07-03
 
 ### Added

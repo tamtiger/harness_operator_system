@@ -53,7 +53,7 @@ export class ApplicationHost implements IHost {
       }
 
       // 2. Initialize other services in registered order
-      const trackedServiceNames = ['Logger', 'Workspace', 'EventBus', 'CapabilityRegistry', 'KnowledgeStore', 'KnowledgeEngine'];
+      const trackedServiceNames = ['Logger', 'Workspace', 'EventBus', 'CapabilityRegistry', 'KnowledgeStore', 'KnowledgeEngine', 'CodeIndex'];
       for (const name of trackedServiceNames) {
         try {
           const service = this.container.resolve<IService>(name);

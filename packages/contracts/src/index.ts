@@ -232,3 +232,42 @@ export interface IKnowledgeEngine extends IService {
   getByTag(tag: string): Promise<KnowledgeItem[]>;
 }
 
+// ==========================================
+// MILESTONE M5: CODE INDEX CONTRACTS
+// ==========================================
+
+export interface SymbolNode {
+  id: string; // FQName e.g. MyNamespace.MyClass.MyMethod
+  language: string;
+  namespace: string;
+  name: string;
+  kind: 'class' | 'interface' | 'enum' | 'struct' | 'method' | 'property' | 'field';
+  filePath: string;
+  range: {
+    startLine: number;
+    startCol: number;
+    endLine: number;
+    endCol: number;
+  };
+  modifiers: string[];
+  parentId?: string;
+  hash: string;
+  documentation?: string;
+}
+
+export interface SymbolRelation {
+  fromId: string;
+  toId: string;
+  type: 'inherits' | 'implements' | 'calls' | 'references' | 'contains';
+}
+
+export interface ICodeIndex extends IService {
+  indexFile(filePath: string, content: string): Promise<void>;
+  removeFile(filePath: string): Promise<void>;
+  findSymbol(id: string): Promise<SymbolNode | undefined>;
+  findReferences(symbolId: string): Promise<SymbolRelation[]>;
+  findImplementations(interfaceId: string): Promise<SymbolNode[]>;
+  findDerivedTypes(classId: string): Promise<SymbolNode[]>;
+  findFileSymbols(filePath: string): Promise<SymbolNode[]>;
+}
+

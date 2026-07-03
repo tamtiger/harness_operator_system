@@ -146,3 +146,4 @@ export * from './host/application-host.js';
 export * from './capability/capability-registry.js';
 export * from './knowledge/knowledge-store.js';
 export * from './knowledge/knowledge-engine.js';
+export * from './index/code-indexer.js';
