@@ -2,6 +2,18 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
+## [0.0.2] - 2026-07-03
+
+### Added
+- **Hạ tầng cốt lõi (Milestone M1 — Core Infrastructure):**
+  - Định nghĩa các interface lõi trong `@harness/contracts`: `ILifecycle`, `IClock`, `IIdGenerator`, `IFileSystem`, `ILogger`, `IConfiguration`, `IEventBus`, `IWorkspaceManager` và `IHost`.
+  - Hiện thực `SystemClock`, `NanoidGenerator` (dùng Node crypto) và `PhysicalFileSystem` trong `@harness/shared`.
+  - Viết DI Container siêu nhẹ trong `@harness/core` hỗ trợ Singleton/Transient và constructor injection.
+  - Hiện thực Structured JSON Logger (`StructuredLogger`) và nạp cấu hình đa tầng Deep Merge (`LayeredConfiguration`).
+  - Hiện thực `LocalEventBus` truyền tin dạng Envelope và `WorkspaceManager` tự động tạo `.harness/`.
+  - Hiện thực `ApplicationHost` điều hành khởi tạo và tắt service theo 6 phase.
+  - Bộ unit test `tests/unit/core.test.ts` kiểm thử DI, Config, Event Bus, và Host lifecycle.
+
 ## [0.0.1] - 2026-07-03
 
 ### Added

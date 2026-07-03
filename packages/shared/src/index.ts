@@ -31,3 +31,7 @@ export class HarnessError extends Error {
     this.name = this.constructor.name;
   }
 }
+
+export * from './clock.js';
+export * from './id-generator.js';
+export * from './file-system.js';

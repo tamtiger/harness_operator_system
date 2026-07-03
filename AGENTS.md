@@ -240,6 +240,12 @@ Always request approval before:
 
 ---
 
+# Git Commit & Push Rules
+
+* **No automatic commits/pushes:** AI Agent tuyệt đối không được tự ý thực hiện lệnh `git commit` hay `git push` lên remote. Mọi hành động commit/push bắt buộc phải tuân thủ quy định tại [CONTRIBUTION.md](CONTRIBUTION.md).
+
+---
+
 # Verification Checklist
 
 Before marking a task complete:
