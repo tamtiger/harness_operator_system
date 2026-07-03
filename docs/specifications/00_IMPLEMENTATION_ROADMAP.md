@@ -18,11 +18,16 @@ MVP (Phase 1) **CHỈ** cần:
 * Verification Engine (Build + Test only)
 * 1 Plugin (DotNet hoặc Node)
 
-MVP **KHÔNG** bao gồm:
+MVP **KHÔNG** bao gồm (dời sang Phase 2 hoặc Post-MVP):
+* Learning Engine
+* Knowledge Engine (Full)
+* Verification Engine (Nâng cao: mutation testing, full sandbox)
 * Full plugin marketplace
-* Mutation testing
 * Full observability system
 * Multi-language support
+
+> [!WARNING]
+> **Tránh Scope Creep:** Harness này là một công cụ orchestration, không phải một hệ điều hành AI (AI OS) độc lập. Chỉ tập trung vào những component tối thiểu cần thiết để tạo thành Core Execution Loop trong Phase 1.
 
 ---
 

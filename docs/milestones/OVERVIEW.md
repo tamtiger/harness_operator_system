@@ -6,9 +6,6 @@
 >
 > Status: Draft
 >
-> Companion document:
-> - PROJECT_PLAN.md
-> - TECHNICAL_DESIGN.md
 
 ---
 
@@ -16,7 +13,7 @@
 
 Tài liệu này mô tả kế hoạch triển khai (Implementation Plan) của Universal Coding Harness.
 
-Khác với `PROJECT_PLAN.md`, tài liệu này **không mô tả kiến trúc tổng thể**, mà tập trung vào:
+Tài liệu này **không mô tả kiến trúc tổng thể**, mà tập trung vào:
 
 - thứ tự xây dựng hệ thống;
 - dependency giữa các module;
