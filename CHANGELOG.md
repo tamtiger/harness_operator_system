@@ -2,6 +2,17 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
+## [0.0.5] - 2026-07-03
+
+### Added
+- **Knowledge Engine (Milestone M4):**
+  - Định nghĩa các interface `KnowledgeItem`, `IKnowledgeStore`, và `IKnowledgeEngine` trong `@harness/contracts`.
+  - Cấu hình cho phép `better-sqlite3` build trong `pnpm-workspace.yaml` và cài đặt vào `@harness/core`.
+  - Hiện thực `SQLiteKnowledgeStore` trong `packages/core` sử dụng SQLite và FTS5 virtual table (`knowledge_fts`) cho Full-Text Search local.
+  - Hiện thực `KnowledgeEngine` hỗ trợ phân tách động Markdown ra từng Section độc lập và triển khai giải thuật xếp hạng tìm kiếm **BM25** cục bộ.
+  - Đăng ký `KnowledgeStore` và `KnowledgeEngine` vào danh sách khởi tạo dịch vụ của `ApplicationHost`.
+  - Viết bộ unit test `tests/unit/knowledge.test.ts` kiểm thử hoạt động của SQLite, FTS và thuật toán BM25.
+
 ## [0.0.4] - 2026-07-03
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "@harness/core",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@harness/contracts": "workspace:*",
-    "@harness/shared": "workspace:*"
+    "@harness/shared": "workspace:*",
+    "better-sqlite3": "^12.11.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
   }
 }

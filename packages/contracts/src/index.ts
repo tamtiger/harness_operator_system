@@ -201,3 +201,34 @@ export interface IAnalyzer extends ICapability {
   analyze(context: CapabilityContext): Promise<any>; // Returns Result<AnalysisResult>
 }
 
+// ==========================================
+// MILESTONE M4: KNOWLEDGE ENGINE CONTRACTS
+// ==========================================
+
+export interface KnowledgeItem {
+  id: string;
+  type: string;
+  source: string;
+  title: string;
+  content: string;
+  tags: string[];
+  updatedAt: Date;
+  metadata?: Record<string, any>;
+}
+
+export interface IKnowledgeStore extends IService {
+  initializeStore(dbPath: string): void;
+  saveItems(items: KnowledgeItem[]): void;
+  getItems(type?: string): KnowledgeItem[];
+  getItemById(id: string): KnowledgeItem | undefined;
+  searchCandidates(query: string): KnowledgeItem[];
+  clear(): void;
+}
+
+export interface IKnowledgeEngine extends IService {
+  indexDocuments(): Promise<void>;
+  search(query: string, limit?: number): Promise<KnowledgeItem[]>;
+  getById(id: string): Promise<KnowledgeItem | undefined>;
+  getByTag(tag: string): Promise<KnowledgeItem[]>;
+}
+
