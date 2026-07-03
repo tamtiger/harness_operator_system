@@ -2,6 +2,16 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
+## [0.0.4] - 2026-07-03
+
+### Added
+- **Repository Analyzer (Milestone M3):**
+  - Định nghĩa interface `IAnalyzer` và cấu trúc kết quả phân tích `AnalysisResult` trong `@harness/contracts`.
+  - Nâng cấp `ContextEngine` trong `@harness/core` quản lý việc gọi analyzer và ghi bản đồ dự án `repo-map.yaml` cùng 3 bản nháp markdown `architecture.md`, `conventions.md`, `glossary.md` vào `docs/_generated/`.
+  - Cấu hình lại `ApplicationHost` để chuyển DI Container vào constructor của các plugin khi load động.
+  - Tích hợp capability `dotnet-analyzer` trong manifest của dotnet plugin và triển khai `DotNetAnalyzer` để khám phá các file `.sln` và `.csproj`, trích xuất dependencies, và phân tích các file `.cs` để lấy symbols (class/interface).
+  - Viết bộ unit test `tests/unit/analyzer.test.ts` kiểm thử phát hiện công nghệ từ csproj và sự phối hợp phân tích của `ContextEngine`.
+
 ## [0.0.3] - 2026-07-03
 
 ### Added
@@ -16,7 +26,7 @@ Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hi�
 
 ### Added
 - **Hạ tầng cốt lõi (Milestone M1 — Core Infrastructure):**
-  - Định nghĩa các interface lõi trong `@harness/contracts`: `ILifecycle`, `IClock`, `IIdGenerator`, `IFileSystem`, `ILogger`, `IConfiguration`, `IEventBus`, `IWorkspaceManager` và `IHost`.
+  - Định nghĩa các interface lõi trong `@harness/contracts`: `ILifecycle`, `IService`, `IClock`, `IIdGenerator`, `IFileSystem`, `ILogger`, `IConfiguration`, `IEventBus`, `IWorkspaceManager` và `IHost`.
   - Hiện thực `SystemClock`, `NanoidGenerator` (dùng Node crypto) và `PhysicalFileSystem` trong `@harness/shared`.
   - Viết DI Container siêu nhẹ trong `@harness/core` hỗ trợ Singleton/Transient và constructor injection.
   - Hiện thực Structured JSON Logger (`StructuredLogger`) và nạp cấu hình đa tầng Deep Merge (`LayeredConfiguration`).

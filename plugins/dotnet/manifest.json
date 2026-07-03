@@ -4,6 +4,7 @@
   "capabilities": [
     "dotnet-builder",
     "dotnet-tester",
-    "dotnet-linter"
+    "dotnet-linter",
+    "dotnet-analyzer"
   ]
 }

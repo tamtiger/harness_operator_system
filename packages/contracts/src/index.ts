@@ -175,3 +175,29 @@ export interface ITester extends ICapability {
 export interface ILinter extends ICapability {
   lint(context: CapabilityContext): Promise<any>;
 }
+
+// Specific IAnalyzer capability
+export interface AnalysisResult {
+  technologies: {
+    language: string;
+    frameworks: string[];
+    orms: string[];
+    testFrameworks: string[];
+  };
+  dependencies: {
+    name: string;
+    version: string;
+    type: 'project' | 'package';
+  }[];
+  symbols: {
+    name: string;
+    type: 'class' | 'interface' | 'enum';
+    filePath: string;
+    namespace?: string;
+  }[];
+}
+
+export interface IAnalyzer extends ICapability {
+  analyze(context: CapabilityContext): Promise<any>; // Returns Result<AnalysisResult>
+}
+

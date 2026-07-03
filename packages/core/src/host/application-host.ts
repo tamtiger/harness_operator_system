@@ -123,7 +123,7 @@ export class ApplicationHost implements IHost {
           
           const ProviderClass = pluginModule.default;
           if (ProviderClass) {
-            const provider = new ProviderClass();
+            const provider = new ProviderClass(this.container);
             registry.registerProvider(provider);
           }
         } catch (err) {
