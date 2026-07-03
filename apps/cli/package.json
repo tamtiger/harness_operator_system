@@ -1,0 +1,20 @@
+{
+  "name": "@harness/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "harness": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm",
+    "dev": "tsup src/index.ts --format esm --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@harness/contracts": "workspace:*",
+    "@harness/shared": "workspace:*",
+    "@harness/core": "workspace:*",
+    "commander": "^11.1.0"
+  }
+}

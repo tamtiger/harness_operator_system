@@ -1,0 +1,17 @@
+{
+  "name": "@harness/mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm",
+    "dev": "tsup src/index.ts --format esm --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@harness/contracts": "workspace:*",
+    "@harness/shared": "workspace:*",
+    "@harness/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  }
+}

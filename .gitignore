@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Production / Build outputs
+dist/
+build/
+out/
+
+# Turborepo
+.turbo/
+
+# Logs
+*.log
+.pnpm-debug.log*
+
+# Harness State / Local state
+.harness/
+
+# OS files
+.DS_Store
+Thumbs.db
