@@ -15,27 +15,6 @@ export type TaskStatus =
   | 'DONE'
   | 'ERROR';
 
-export interface ContextPack {
-  taskId: string;
-  relevantFiles: string[];
-  outlines: ClassOutline[];
-  snippets: CodeSnippet[];
-}
-
-export interface ClassOutline {
-  name: string;
-  filePath: string;
-  startLine: number;
-  endLine: number;
-  methods: string[];
-}
-
-export interface CodeSnippet {
-  filePath: string;
-  content: string;
-  startLine: number;
-  endLine: number;
-}
 
 export interface ExecutionPlan {
   taskId: string;
@@ -269,5 +248,43 @@ export interface ICodeIndex extends IService {
   findImplementations(interfaceId: string): Promise<SymbolNode[]>;
   findDerivedTypes(classId: string): Promise<SymbolNode[]>;
   findFileSymbols(filePath: string): Promise<SymbolNode[]>;
+}
+
+// ==========================================
+// MILESTONE M6: CONTEXT ENGINE CONTRACTS
+// ==========================================
+
+export interface ContextSection {
+  title: string;
+  priority: number; // Lower means higher priority
+  tokenEstimate: number;
+  source: string;
+  content: string;
+}
+
+export interface ContextPack {
+  task: {
+    id: string;
+    description: string;
+    type: 'bug' | 'feature' | 'refactor' | 'other';
+    risk: 'low' | 'medium' | 'high' | 'critical';
+  };
+  sections: ContextSection[];
+  estimatedTokens: number;
+  version: string;
+}
+
+export interface IContextEngine extends IService {
+  buildContext(
+    task: {
+      id: string;
+      description: string;
+      type: 'bug' | 'feature' | 'refactor' | 'other';
+      risk: 'low' | 'medium' | 'high' | 'critical';
+    },
+    queryTerms: string[]
+  ): Promise<ContextPack>;
+  estimateTokens(text: string): number;
+  invalidateCache(): void;
 }
 

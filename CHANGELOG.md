@@ -2,6 +2,18 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
+## [0.0.7] - 2026-07-03
+
+### Added
+- **Context Engine (Milestone M6):**
+  - Định nghĩa các interface `ContextSection`, `ContextPack`, và `IContextEngine` trong `@harness/contracts`.
+  - Dọn dẹp cấu trúc `ContextPack` trùng lặp cũ khỏi `@harness/contracts`.
+  - Hiện thực `ContextEngine` trong `packages/core` tích hợp chức năng nạp context từ `KnowledgeEngine` và `CodeIndex`.
+  - Cài đặt cơ chế token budget Allocation (LOW: 30K, MEDIUM: 45K, HIGH: 60K, CRITICAL: 80K) cùng tính năng deduplication và prioritization (Task > Architecture > Convention > Code).
+  - Tích hợp logic cắt tỉa thông minh (Compression/Truncation) khi vượt quá Token Budget.
+  - Tái cấu trúc di chuyển và hợp nhất `analyzeRepository` (M3) vào `ContextEngine` để đảm bảo tính tương thích ngược.
+  - Viết bộ unit test `tests/unit/context.test.ts` kiểm thử các tính năng đóng gói context, deduplication, và truncation.
+
 ## [0.0.6] - 2026-07-03
 
 ### Added
@@ -39,7 +51,7 @@ Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hi�
 ### Added
 - **Capability Registry & DotNet Plugin (Milestone M2):**
   - Định nghĩa các interface/types bổ sung cho Capability (`CapabilityType`, `CapabilityDescriptor`, `CapabilityContext`, `ICapability`, `ICapabilityProvider`, `IBuilder`, `ITester`, `ILinter`) trong `@harness/contracts`.
-  - Triển khai `CapabilityRegistry` trong `@harness/core` quản lý việc đăng ký, kiểm tra trùng lặp (duplication validation), và bọc thực thi an toàn hỗ trợ timeout và cô lập lỗi (error isolation).
+  - Triển khai `CapabilityRegistry` trong `@harness/core` quản lý việc đăng ký, kiểm tra trùng lặp (duplication validation), và bọc thực thi an sau hỗ trợ timeout và cô lập lỗi (error isolation).
   - Tích hợp quét thư mục `plugins/` ở root và nạp động (dynamic ESM import) plugin vào `ApplicationHost`.
   - Triển khai package `@harness/plugin-dotnet` cung cấp các Capability bọc CLI: `DotNetBuilder` (`dotnet build`), `DotNetTester` (`dotnet test`), và `DotNetLinter` (`dotnet format`).
   - Viết bộ unit test `tests/unit/capability.test.ts` kiểm thử registry validation, duplicate prevention, timeout, và error isolation.
