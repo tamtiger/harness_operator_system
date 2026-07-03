@@ -2,6 +2,19 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
+## [0.0.8] - 2026-07-03
+
+### Added
+- **Planning Engine (Milestone M7):**
+  - Định nghĩa các interface `ExecutionStep`, `ExecutionPlan`, `PlanValidationResult`, và `IPlanningEngine` trong `@harness/contracts`.
+  - Dọn dẹp các kiểu `ExecutionPlan` và `ExecutionStep` cũ trùng lặp khỏi `@harness/contracts`.
+  - Hiện thực `PlanningEngine` trong `packages/core` tích hợp Plan Store (lưu vết lịch sử plan và step vào SQLite `plans.db`).
+  - Thiết kế Rule Pipeline kiểm tra Schema (yêu cầu summary, steps, rollback, test strategy) và các quy tắc logic nghiệp vụ.
+  - Xây dựng thuật toán tính điểm rủi ro (Risk Score) dựa trên số lượng file chỉnh sửa và Impact Analysis sử dụng `CodeIndex` quét caller.
+  - Triển khai luồng phê duyệt tự động cho plan rủi ro thấp (< 60 điểm) và chờ human approval cho plan rủi ro cao (>= 60 điểm).
+  - Đăng ký `PlanningEngine` vào danh sách dịch vụ của `ApplicationHost`.
+  - Viết bộ unit test `tests/unit/planning.test.ts` kiểm thử hoạt động của SQLite, tính điểm rủi ro, và luồng duyệt plan.
+
 ## [0.0.7] - 2026-07-03
 
 ### Added

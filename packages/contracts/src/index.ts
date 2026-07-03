@@ -16,18 +16,6 @@ export type TaskStatus =
   | 'ERROR';
 
 
-export interface ExecutionPlan {
-  taskId: string;
-  steps: ExecutionStep[];
-  status: 'pending' | 'approved' | 'rejected';
-}
-
-export interface ExecutionStep {
-  id: string;
-  action: 'analyze' | 'generate_file' | 'run_test' | 'run_command';
-  target: string;
-  parameters: Record<string, any>;
-}
 
 // ==========================================
 // MILESTONE M1: CORE INFRASTRUCTURE CONTRACTS
@@ -286,5 +274,43 @@ export interface IContextEngine extends IService {
   ): Promise<ContextPack>;
   estimateTokens(text: string): number;
   invalidateCache(): void;
+}
+
+// ==========================================
+// MILESTONE M7: PLANNING ENGINE CONTRACTS
+// ==========================================
+
+export interface ExecutionStep {
+  id: string;
+  action: 'analyze' | 'generate_file' | 'run_test' | 'run_command';
+  target: string;
+  parameters: Record<string, any>;
+}
+
+export interface ExecutionPlan {
+  taskId: string;
+  summary: string;
+  steps: ExecutionStep[];
+  files: string[];
+  rollback: string;
+  testStrategy: string;
+  version: number;
+  status: 'pending' | 'approved' | 'rejected' | 'awaiting_approval';
+}
+
+export interface PlanValidationResult {
+  status: 'APPROVED' | 'REJECTED' | 'AWAITING_APPROVAL';
+  reason: string;
+  riskScore: number;
+  diagnostics: string[];
+  warnings: string[];
+}
+
+export interface IPlanningEngine extends IService {
+  validatePlan(plan: ExecutionPlan): Promise<PlanValidationResult>;
+  approvePlan(taskId: string, version: number): Promise<void>;
+  rejectPlan(taskId: string, version: number, reason: string): Promise<void>;
+  getPlan(taskId: string, version?: number): Promise<ExecutionPlan | undefined>;
+  getPlanHistory(taskId: string): Promise<ExecutionPlan[]>;
 }
 

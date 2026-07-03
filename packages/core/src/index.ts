@@ -4,15 +4,6 @@ import { CapabilityRegistry } from './capability/capability-registry.js';
 import * as path from 'path';
 
 
-export class PlanningEngine {
-  public async createPlan(task: Task, context: ContextPack): Promise<Result<ExecutionPlan>> {
-    return Result.ok<ExecutionPlan, Error>({
-      taskId: task.id,
-      steps: [],
-      status: 'pending'
-    });
-  }
-}
 
 export class RuntimeEngine {
   public async executeStep(step: any): Promise<Result<void>> {
@@ -38,3 +29,4 @@ export * from './knowledge/knowledge-store.js';
 export * from './knowledge/knowledge-engine.js';
 export * from './index/code-indexer.js';
 export * from './context/context-engine.js';
+export * from './planning/planning-engine.js';
