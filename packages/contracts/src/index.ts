@@ -314,3 +314,45 @@ export interface IPlanningEngine extends IService {
   getPlanHistory(taskId: string): Promise<ExecutionPlan[]>;
 }
 
+// ==========================================
+// MILESTONE M9: RUNTIME ENGINE CONTRACTS
+// ==========================================
+
+export interface RuntimeState {
+  taskId: string;
+  planId: string;
+  currentStepId: string;
+  status: 'EXECUTING' | 'FAILED' | 'ROLLED_BACK' | 'DONE';
+  gitBranch: string;
+  gitCheckpointCommit: string;
+}
+
+export type StepStatus =
+  | 'PENDING'
+  | 'READY'
+  | 'IN_PROGRESS'
+  | 'DONE'
+  | 'FAILED'
+  | 'ROLLED_BACK';
+
+export interface StepState {
+  taskId: string;
+  stepId: string;
+  status: StepStatus;
+  startedAt?: Date;
+  finishedAt?: Date;
+}
+
+export interface IRuntimeEngine extends IService {
+  initializeTask(taskId: string, plan: ExecutionPlan): Promise<RuntimeState>;
+  startStep(taskId: string, stepId: string): Promise<void>;
+  completeStep(taskId: string, stepId: string): Promise<void>;
+  failStep(taskId: string, stepId: string, reason: string): Promise<void>;
+  rollbackTask(taskId: string): Promise<void>;
+  getRuntimeState(taskId: string): Promise<RuntimeState | undefined>;
+  getStepState(taskId: string, stepId: string): Promise<StepState | undefined>;
+  getStepStates(taskId: string): Promise<StepState[]>;
+  resumeSession(taskId: string): Promise<RuntimeState | undefined>;
+}
+
+

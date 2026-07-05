@@ -39,9 +39,9 @@ export class CapabilityRegistry implements IService {
     return this.capabilities.get(type) as T;
   }
 
-  public async executeSafe<R>(
-    capability: ICapability,
-    fn: (cap: any) => Promise<Result<R>>
+  public async executeSafe<T extends ICapability, R>(
+    capability: T,
+    fn: (cap: T) => Promise<Result<R>>
   ): Promise<Result<R>> {
     const timeoutMs = capability.descriptor.timeoutMs || 300000; // 5 mins default
     

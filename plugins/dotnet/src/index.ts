@@ -53,14 +53,12 @@ export class DotNetTester implements ITester {
       
       const total = totalMatch ? parseInt(totalMatch[1], 10) : 0;
       const failed = failedMatch ? parseInt(failedMatch[1], 10) : 0;
-      const passed = passedMatch ? parseInt(passedMatch[1], 10) : 0;
       
       return Result.ok({
         passed: failed === 0,
         total,
-        failed,
-        passedCount: passed
-      } as any);
+        failed
+      });
     } catch (err: any) {
       return Result.fail(new Error(err.stdout || err.message || 'dotnet test failed'));
     }

@@ -2,8 +2,15 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
-## [0.0.8] - 2026-07-03
+## [0.0.9] - 2026-07-05
 
+### Changed
+- **Context Engine:** Cải thiện xử lý lỗi trong quá trình phân tích kho lưu trữ (repository analysis) bằng `try...catch` khi gọi `CapabilityRegistry.executeSafe`.
+- **Application Host:** Sửa đổi thứ tự khởi tạo service, đưa `CapabilityRegistry` lên khởi tạo sớm nhất để đảm bảo các plugin có thể truy cập ngay từ đầu.
+- **Knowledge Store:** Tối ưu hóa logic làm sạch chuỗi truy vấn (sanitize query) trong `SQLiteKnowledgeStore` (chuyển chữ thường, loại bỏ ký tự đặc biệt, lọc khoảng trắng) giúp tìm kiếm chính xác hơn.
+- **DotNet Plugin:** Cập nhật lại bộ phân tích kết quả của `DotNetTester`, sửa lỗi trích xuất số lượng test passed để khớp với interface trả về.
+
+## [0.0.8] - 2026-07-03
 ### Added
 - **Planning Engine (Milestone M7):**
   - Định nghĩa các interface `ExecutionStep`, `ExecutionPlan`, `PlanValidationResult`, và `IPlanningEngine` trong `@harness/contracts`.

@@ -1,5 +1,6 @@
-import { IHost, IService, IFileSystem } from '@harness/contracts';
+import { IHost, IService, IFileSystem, IClock } from '@harness/contracts';
 import { Container } from '../di/container.js';
+import { CapabilityRegistry } from '../capability/capability-registry.js';
 import { pathToFileURL } from 'url';
 import * as path from 'path';
 
@@ -46,14 +47,23 @@ export class ApplicationHost implements IHost {
     this.state = 'INITIALIZING';
     
     try {
-      // 1. Resolve configuration first as it's required for workspace
-      const config = this.getService<IService>('Configuration');
-      if (config && config.initialize) {
-        await config.initialize();
+      // 1. Initialize CapabilityRegistry early as plugins need it
+      const registry = this.container.resolve<CapabilityRegistry>('CapabilityRegistry');
+      if (registry && !this.services.includes(registry)) {
+        this.services.push(registry);
       }
 
       // 2. Initialize other services in registered order
-      const trackedServiceNames = ['Logger', 'Workspace', 'EventBus', 'CapabilityRegistry', 'KnowledgeStore', 'KnowledgeEngine', 'CodeIndex', 'PlanningEngine'];
+      const trackedServiceNames = [
+        'Logger', 
+        'Workspace', 
+        'EventBus', 
+        'KnowledgeStore', 
+        'KnowledgeEngine', 
+        'CodeIndex', 
+        'PlanningEngine',
+        'RuntimeEngine'
+      ];
       for (const name of trackedServiceNames) {
         try {
           const service = this.container.resolve<IService>(name);

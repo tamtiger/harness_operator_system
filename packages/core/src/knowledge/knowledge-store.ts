@@ -102,7 +102,7 @@ export class SQLiteKnowledgeStore implements IKnowledgeStore {
   public searchCandidates(query: string): KnowledgeItem[] {
     if (!this.db) throw new Error('Database not initialized');
 
-    const sanitized = query.replace(/[^\w\s]/g, ' ').trim();
+    const sanitized = this.sanitizeQuery(query);
     if (!sanitized) return [];
 
     try {
@@ -120,6 +120,14 @@ export class SQLiteKnowledgeStore implements IKnowledgeStore {
       const val = `%${sanitized}%`;
       return this.mapRows(stmt.all(val, val));
     }
+  }
+
+  private sanitizeQuery(query: string): string {
+    return query.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(t => t.trim().length > 0)
+      .join(' ');
   }
 
   public clear(): void {

@@ -1,4 +1,4 @@
-import { IContextEngine, IKnowledgeEngine, ICodeIndex, ContextPack, ContextSection, IService, IFileSystem, ILogger } from '@harness/contracts';
+import { IContextEngine, IKnowledgeEngine, ICodeIndex, ContextPack, ContextSection, IService, IFileSystem, ILogger, IAnalyzer, AnalysisResult } from '@harness/contracts';
 import { Result, HarnessError } from '@harness/shared';
 import { CapabilityRegistry } from '../capability/capability-registry.js';
 import * as crypto from 'crypto';
@@ -18,9 +18,9 @@ export class ContextEngine implements IContextEngine {
 
   public async initialize(): Promise<void> {}
 
-  // Milestone M3: analyzeRepository
+// Milestone M3: analyzeRepository
   public async analyzeRepository(projectId: string, workspaceId: string): Promise<Result<void>> {
-    const analyzer = this.registry.resolve<any>('analyzer');
+    const analyzer = this.registry.resolve<IAnalyzer>('analyzer');
     if (!analyzer) {
       return Result.fail(new HarnessError('ANALYZER_NOT_FOUND', 'No active repository analyzer found in registry'));
     }
@@ -32,23 +32,24 @@ export class ContextEngine implements IContextEngine {
     };
 
     this.logger.info(`Starting repository analysis`, { projectId, workspaceId });
-    
-    const result = await this.registry.executeSafe<any>(analyzer, async (cap) => {
-      return await cap.analyze(context);
-    });
 
-    if (!result.isSuccess) {
-      this.logger.error(`Repository analysis failed`, result.error);
-      return Result.fail(result.error!);
-    }
+    try {
+      const result = await this.registry.executeSafe<IAnalyzer, AnalysisResult>(analyzer, async (cap) => {
+        return await cap.analyze(context);
+      });
 
-    const analysis = result.value;
+      if (!result.isSuccess || !result.value) {
+        this.logger.error(`Repository analysis failed`, result.error);
+        return Result.fail(result.error || new HarnessError('ANALYSIS_FAILED', 'Analysis returned no result'));
+      }
 
-    const genDocsDir = path.join(process.cwd(), 'docs', '_generated');
-    await this.fileSystem.mkdir(genDocsDir);
+      const analysis = result.value;
 
-    const repoMapPath = path.join(genDocsDir, 'repo-map.yaml');
-    const repoMapYaml = `
+      const genDocsDir = path.join(process.cwd(), 'docs', '_generated');
+      await this.fileSystem.mkdir(genDocsDir);
+
+      const repoMapPath = path.join(genDocsDir, 'repo-map.yaml');
+      const repoMapYaml = `
 # Generated Repository Map
 project: ${projectId}
 workspace: ${workspaceId}
@@ -64,10 +65,10 @@ ${analysis.technologies.testFrameworks.map((t: string) => `    - ${t}`).join('\n
 dependencies:
 ${analysis.dependencies.map((d: any) => `  - name: ${d.name}\n    version: ${d.version}\n    type: ${d.type}`).join('\n')}
 `;
-    await this.fileSystem.writeFile(repoMapPath, repoMapYaml.trim());
+      await this.fileSystem.writeFile(repoMapPath, repoMapYaml.trim());
 
-    const archPath = path.join(genDocsDir, 'architecture.md');
-    const archMd = `
+      const archPath = path.join(genDocsDir, 'architecture.md');
+      const archMd = `
 # Architecture Draft
 
 This is a dynamically generated architecture draft for project \`${projectId}\`.
@@ -82,10 +83,10 @@ This is a dynamically generated architecture draft for project \`${projectId}\`.
 Detected ${analysis.symbols.length} symbol(s):
 ${analysis.symbols.map((s: any) => `- **${s.name}** (${s.type}) in \`${s.filePath}\` (namespace: \`${s.namespace || 'default'}\`)`).join('\n')}
 `;
-    await this.fileSystem.writeFile(archPath, archMd.trim());
+      await this.fileSystem.writeFile(archPath, archMd.trim());
 
-    const convPath = path.join(genDocsDir, 'conventions.md');
-    const convMd = `
+      const convPath = path.join(genDocsDir, 'conventions.md');
+      const convMd = `
 # Conventions Draft
 
 This is a conventions draft listing detected code layout conventions.
@@ -95,20 +96,24 @@ This is a conventions draft listing detected code layout conventions.
 - **ORM:** ${analysis.technologies.orms[0] || 'Unknown'}
 - **Namespace Structure:** Matches project directories.
 `;
-    await this.fileSystem.writeFile(convPath, convMd.trim());
+      await this.fileSystem.writeFile(convPath, convMd.trim());
 
-    const glossPath = path.join(genDocsDir, 'glossary.md');
-    const glossMd = `
+      const glossPath = path.join(genDocsDir, 'glossary.md');
+      const glossMd = `
 # Glossary Draft
 
 Definitions of terms used in project \`${projectId}\`.
 
 - **Symbols:** Class, Interface, or Enum entities found in code.
 `;
-    await this.fileSystem.writeFile(glossPath, glossMd.trim());
+      await this.fileSystem.writeFile(glossPath, glossMd.trim());
 
-    this.logger.info(`Repository analysis finished successfully. Draft documents generated in docs/_generated/`);
-    return Result.ok(undefined);
+      this.logger.info(`Repository analysis finished successfully. Draft documents generated in docs/_generated/`);
+      return Result.ok(undefined);
+    } catch (err) {
+      this.logger.error(`Repository analysis failed`, err instanceof Error ? err : undefined);
+      return Result.fail(new HarnessError('ANALYSIS_FAILED', String(err), { error: err }));
+    }
   }
 
   // Milestone M6: buildContext

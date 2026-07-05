@@ -5,11 +5,7 @@ import * as path from 'path';
 
 
 
-export class RuntimeEngine {
-  public async executeStep(step: any): Promise<Result<void>> {
-    return Result.ok<void, Error>(undefined);
-  }
-}
+export * from './runtime/runtime-engine.js';
 
 export class VerificationEngine {
   public async verify(task: Task): Promise<Result<boolean>> {
