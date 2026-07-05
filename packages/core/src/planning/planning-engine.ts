@@ -2,6 +2,7 @@ import { IPlanningEngine, ExecutionPlan, PlanValidationResult, IWorkspaceManager
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 export class PlanningEngine implements IPlanningEngine {
   public readonly serviceName = 'PlanningEngine';
@@ -15,7 +16,7 @@ export class PlanningEngine implements IPlanningEngine {
   public async initialize(): Promise<void> {
     let dbPath = this.workspace.getDatabaseDir();
     if (dbPath !== ':memory:') {
-      dbPath = path.join(dbPath, 'plans.db');
+      dbPath = path.join(dbPath, 'harness.db');
       const dir = path.dirname(dbPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -27,7 +28,15 @@ export class PlanningEngine implements IPlanningEngine {
 
     // Create tables
     this.db.exec(`
+      CREATE TABLE IF NOT EXISTS projects (
+        project_id TEXT PRIMARY KEY,
+        project_path TEXT UNIQUE,
+        project_name TEXT,
+        initialized_at TEXT
+      );
+
       CREATE TABLE IF NOT EXISTS plans (
+        project_id TEXT,
         task_id TEXT,
         version INTEGER,
         summary TEXT,
@@ -35,19 +44,32 @@ export class PlanningEngine implements IPlanningEngine {
         rollback TEXT,
         test_strategy TEXT,
         status TEXT,
-        PRIMARY KEY (task_id, version)
+        PRIMARY KEY (project_id, task_id, version)
       );
 
       CREATE TABLE IF NOT EXISTS steps (
+        project_id TEXT,
         task_id TEXT,
         version INTEGER,
         step_id TEXT,
         action TEXT,
         target TEXT,
         parameters TEXT,
-        PRIMARY KEY (task_id, version, step_id)
+        PRIMARY KEY (project_id, task_id, version, step_id)
       );
     `);
+
+    // Tự động đăng ký thông tin định danh repo vào bảng projects
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectName = path.basename(projectPath);
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    
+    this.db.prepare('INSERT OR IGNORE INTO projects (project_id, project_path, project_name, initialized_at) VALUES (?, ?, ?, ?)').run(
+      projectId,
+      projectPath,
+      projectName,
+      new Date().toISOString()
+    );
   }
 
   public async validatePlan(plan: ExecutionPlan): Promise<PlanValidationResult> {
@@ -104,7 +126,6 @@ export class PlanningEngine implements IPlanningEngine {
     }
 
     // 3. Impact & Risk Analysis
-    // Risk based on files modified
     const fileCount = plan.files ? plan.files.length : 0;
     if (fileCount > 5) {
       riskScore += 50;
@@ -138,19 +159,23 @@ export class PlanningEngine implements IPlanningEngine {
       reason = 'High risk plan, requires human confirmation';
     }
 
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+
     // Save to history in database
     const insertPlan = this.db.prepare(`
-      INSERT OR REPLACE INTO plans (task_id, version, summary, files, rollback, test_strategy, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO plans (project_id, task_id, version, summary, files, rollback, test_strategy, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertStep = this.db.prepare(`
-      INSERT OR REPLACE INTO steps (task_id, version, step_id, action, target, parameters)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO steps (project_id, task_id, version, step_id, action, target, parameters)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     const tx = this.db.transaction(() => {
       insertPlan.run(
+        projectId,
         plan.taskId,
         plan.version,
         plan.summary,
@@ -162,6 +187,7 @@ export class PlanningEngine implements IPlanningEngine {
 
       for (const step of plan.steps) {
         insertStep.run(
+          projectId,
           plan.taskId,
           plan.version,
           step.id,
@@ -185,26 +211,32 @@ export class PlanningEngine implements IPlanningEngine {
 
   public async approvePlan(taskId: string, version: number): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare("UPDATE plans SET status = 'approved' WHERE task_id = ? AND version = ?");
-    stmt.run(taskId, version);
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare("UPDATE plans SET status = 'approved' WHERE project_id = ? AND task_id = ? AND version = ?");
+    stmt.run(projectId, taskId, version);
   }
 
   public async rejectPlan(taskId: string, version: number, reason: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare("UPDATE plans SET status = 'rejected' WHERE task_id = ? AND version = ?");
-    stmt.run(taskId, version);
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare("UPDATE plans SET status = 'rejected' WHERE project_id = ? AND task_id = ? AND version = ?");
+    stmt.run(projectId, taskId, version);
   }
 
   public async getPlan(taskId: string, version?: number): Promise<ExecutionPlan | undefined> {
     if (!this.db) throw new Error('Database not initialized');
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
     
     let row;
     if (version !== undefined) {
-      const stmt = this.db.prepare('SELECT * FROM plans WHERE task_id = ? AND version = ?');
-      row = stmt.get(taskId, version);
+      const stmt = this.db.prepare('SELECT * FROM plans WHERE project_id = ? AND task_id = ? AND version = ?');
+      row = stmt.get(projectId, taskId, version);
     } else {
-      const stmt = this.db.prepare('SELECT * FROM plans WHERE task_id = ? ORDER BY version DESC LIMIT 1');
-      row = stmt.get(taskId);
+      const stmt = this.db.prepare('SELECT * FROM plans WHERE project_id = ? AND task_id = ? ORDER BY version DESC LIMIT 1');
+      row = stmt.get(projectId, taskId);
     }
 
     if (!row) return undefined;
@@ -213,8 +245,10 @@ export class PlanningEngine implements IPlanningEngine {
 
   public async getPlanHistory(taskId: string): Promise<ExecutionPlan[]> {
     if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare('SELECT * FROM plans WHERE task_id = ? ORDER BY version ASC');
-    const rows = stmt.all(taskId) as any[];
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare('SELECT * FROM plans WHERE project_id = ? AND task_id = ? ORDER BY version ASC');
+    const rows = stmt.all(projectId, taskId) as any[];
     return rows.map(r => this.mapRow(r));
   }
 
@@ -226,8 +260,8 @@ export class PlanningEngine implements IPlanningEngine {
   }
 
   private mapRow(r: any): ExecutionPlan {
-    const stepsStmt = this.db!.prepare('SELECT * FROM steps WHERE task_id = ? AND version = ?');
-    const stepRows = stepsStmt.all(r.task_id, r.version) as any[];
+    const stepsStmt = this.db!.prepare('SELECT * FROM steps WHERE project_id = ? AND task_id = ? AND version = ?');
+    const stepRows = stepsStmt.all(r.project_id, r.task_id, r.version) as any[];
     const steps: ExecutionStep[] = stepRows.map(sr => ({
       id: sr.step_id,
       action: sr.action,

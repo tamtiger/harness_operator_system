@@ -5,6 +5,7 @@ import { IWorkspaceManager } from '../../packages/contracts/src/index.js';
 describe('Code Indexer Tests', () => {
   const mockWorkspace: IWorkspaceManager = {
     getWorkspaceRoot: () => process.cwd(),
+    getProjectRoot: () => process.cwd(),
     getDatabaseDir: () => ':memory:'
   } as any;
 

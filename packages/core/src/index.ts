@@ -7,11 +7,7 @@ import * as path from 'path';
 
 export * from './runtime/runtime-engine.js';
 
-export class VerificationEngine {
-  public async verify(task: Task): Promise<Result<boolean>> {
-    return Result.ok<boolean, Error>(true);
-  }
-}
+export * from './verification/verification-engine.js';
 
 // Infrastructure Exports
 export * from './di/container.js';

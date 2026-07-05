@@ -294,6 +294,67 @@ Mọi AI Agent **phải đọc `AGENTS.md` trước khi bắt đầu implementat
 * Human approval rules
 * Definition of Done
 
+# Usage
+
+Dưới đây là hướng dẫn cài đặt và sử dụng Universal Coding Harness ở chế độ CLI hoặc tích hợp MCP Server.
+
+## 1. Yêu cầu hệ thống
+- **Node.js**: Phiên bản 18+ trở lên.
+- **pnpm**: Phiên bản 9+.
+- **Git**: Đã cấu hình và khởi tạo repository trong thư mục dự án của bạn.
+
+## 2. Cài đặt và Biên dịch
+Cài đặt các dependency và build dự án bằng các lệnh sau:
+```bash
+# Cài đặt dependency
+pnpm install
+
+# Biên dịch toàn bộ các package trong monorepo
+pnpm build
+```
+
+## 3. Sử dụng qua dòng lệnh (CLI)
+Harness cung cấp các lệnh CLI thông qua package `@harness/cli`. Bạn có thể cài đặt toàn cục (global) để sử dụng một cách ngắn gọn:
+
+```bash
+# Cài đặt CLI toàn cục từ thư mục cục bộ
+npm install -g ./apps/cli
+```
+
+### Khởi tạo Harness trong dự án của bạn
+Lệnh `init` sẽ đăng ký thông tin định danh của repository vào cơ sở dữ liệu toàn cục của Harness (lưu trữ tại `~/.harness/database/harness.db`) và tự động tạo tệp tin hướng dẫn `AGENTS.md` ngay tại thư mục gốc dự án của bạn:
+```bash
+harness init
+```
+
+### Chạy một tác vụ phát triển (Task)
+Lệnh `run` sẽ kích hoạt luồng thực thi Harness cho tác vụ mong muốn:
+```bash
+harness run "Mô tả task cần làm (Ví dụ: Thêm API đăng nhập)"
+```
+
+## 4. Sử dụng qua MCP Server (Model Context Protocol)
+MCP Server giúp bạn tích hợp Harness trực tiếp với các IDE hỗ trợ AI (như Cursor, VS Code Claude Desktop, Windsurf).
+
+### Khởi chạy MCP Server qua dòng lệnh
+```bash
+node apps/mcp/dist/index.js
+```
+
+### Cấu hình tích hợp vào Claude Desktop
+Thêm đoạn cấu hình sau vào tệp cấu hình của Claude Desktop (thường nằm ở `%APPDATA%/Claude/claude_desktop_config.json` trên Windows hoặc `~/Library/Application Support/Claude/claude_desktop_config.json` trên macOS):
+```json
+{
+  "mcpServers": {
+    "harness-operator": {
+      "command": "node",
+      "args": ["d:/MyProject/harness_operator_system/apps/mcp/dist/index.js"]
+    }
+  }
+}
+```
+*(Thay thế `d:/MyProject/harness_operator_system` bằng đường dẫn tuyệt đối đến thư mục chứa dự án của bạn).*
+
 ---
 
 # Current Status

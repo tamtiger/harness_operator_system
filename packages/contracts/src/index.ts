@@ -355,4 +355,27 @@ export interface IRuntimeEngine extends IService {
   resumeSession(taskId: string): Promise<RuntimeState | undefined>;
 }
 
+// ==========================================
+// MILESTONE M10: VERIFICATION ENGINE CONTRACTS
+// ==========================================
+
+export interface LayerResult {
+  layer: 'L1' | 'L2' | 'L3' | 'L4';
+  status: 'PASS' | 'FAIL';
+  errors: string[];
+}
+
+export interface VerificationResult {
+  taskId: string;
+  status: 'PASS' | 'FAIL' | 'ESCALATED';
+  layers: LayerResult[];
+  summary: string;
+  failedRules: string[];
+}
+
+export interface IVerificationEngine extends IService {
+  verify(taskId: string, context: CapabilityContext): Promise<VerificationResult>;
+}
+
+
 

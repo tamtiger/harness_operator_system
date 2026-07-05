@@ -2,12 +2,35 @@
 
 Tài liệu này ghi lại toàn bộ tiến trình công việc đã thực hiện trên dự án Universal Coding Harness.
 
+## [0.1.0] - 2026-07-05
+
+### Added
+- **Verification Engine (Milestone M10):**
+  - Triển khai pipeline xác thực đa tầng gồm L1 (Build/Syntax), L2 (Lint), L3 (Unit Tests), và L4 (Architecture Rules).
+  - Tích hợp gọi các Capability (Builder, Linter, Tester) một cách an toàn thông qua `executeSafe` của `CapabilityRegistry`.
+  - Triển khai bộ đánh giá quy tắc kiến trúc (L4 Architecture Rules Evaluator) phân tích trực tiếp cơ sở dữ liệu `symbols.db` để phát hiện các liên kết gọi/tham chiếu bị cấm.
+  - Hỗ trợ cấu hình chính sách `failFast` để tối ưu hóa tài nguyên chạy.
+  - Viết bộ unit test `tests/unit/verification.test.ts` kiểm thử toàn diện pipeline và L4 checker.
+- **Database & Architecture Improvements:**
+  - Hợp nhất 3 cơ sở dữ liệu (`plans.db`, `runtime.db`, `symbols.db`) về một tệp duy nhất là `harness.db` lưu trữ toàn cục tại thư mục `~/.harness/database/harness.db` để không tạo file thừa trong repo dự án.
+  - Thiết lập cơ chế cô lập dữ liệu theo dự án sử dụng mã định danh băm `project_id` (sinh bằng MD5 băm từ project path) để tránh xung đột dữ liệu giữa các repository khác nhau.
+  - Tự động đăng ký thông tin định danh repository vào bảng `projects` toàn cục khi khởi chạy.
+  - Tự động sinh tệp hướng dẫn local `AGENTS.md` tại thư mục gốc của dự án khi chạy lệnh `harness init` giúp các AI Agent phối hợp đúng chuẩn Harness.
+
 ## [0.0.9] - 2026-07-05
+
+### Added
+- **Runtime Engine (Milestone M9):**
+  - Triển khai Runtime Engine quản lý trạng thái của Task và Step.
+  - Tích hợp cơ chế cô lập bằng nhánh Git độc lập (`harness/task-{taskId}`) và Git-native Checkpoint.
+  - Thực thi kiểm tra phạm vi thay đổi (Scope Enforcement) thông qua `git status` và tự động rollback khi phát hiện vi phạm.
+  - Lưu trữ trạng thái trong cơ sở dữ liệu SQLite `runtime.db` cục bộ cùng cơ chế Audit Log append-only.
+  - Viết bộ unit test `tests/unit/runtime.test.ts` giả lập kho Git để kiểm thử.
 
 ### Changed
 - **Context Engine:** Cải thiện xử lý lỗi trong quá trình phân tích kho lưu trữ (repository analysis) bằng `try...catch` khi gọi `CapabilityRegistry.executeSafe`.
 - **Application Host:** Sửa đổi thứ tự khởi tạo service, đưa `CapabilityRegistry` lên khởi tạo sớm nhất để đảm bảo các plugin có thể truy cập ngay từ đầu.
-- **Knowledge Store:** Tối ưu hóa logic làm sạch chuỗi truy vấn (sanitize query) trong `SQLiteKnowledgeStore` (chuyển chữ thường, loại bỏ ký tự đặc biệt, lọc khoảng trắng) giúp tìm kiếm chính xác hơn.
+- **Knowledge Store:** Tối ưu hóa logic làm sạch chuỗi truy vấn (sanitize query) trong `SQLiteKnowledgeStore` giúp tìm kiếm chính xác hơn.
 - **DotNet Plugin:** Cập nhật lại bộ phân tích kết quả của `DotNetTester`, sửa lỗi trích xuất số lượng test passed để khớp với interface trả về.
 
 ## [0.0.8] - 2026-07-03

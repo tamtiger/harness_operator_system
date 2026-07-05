@@ -13,7 +13,7 @@ export class CodeIndexer implements ICodeIndex {
   public async initialize(): Promise<void> {
     let dbPath = this.workspace.getDatabaseDir();
     if (dbPath !== ':memory:') {
-      dbPath = path.join(dbPath, 'symbols.db');
+      dbPath = path.join(dbPath, 'harness.db');
       const dir = path.dirname(dbPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -25,7 +25,8 @@ export class CodeIndexer implements ICodeIndex {
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS symbols (
-        id TEXT PRIMARY KEY,
+        project_id TEXT,
+        id TEXT,
         language TEXT,
         namespace TEXT,
         name TEXT,
@@ -38,18 +39,20 @@ export class CodeIndexer implements ICodeIndex {
         modifiers TEXT,
         parent_id TEXT,
         hash TEXT,
-        documentation TEXT
+        documentation TEXT,
+        PRIMARY KEY (project_id, id)
       );
 
       CREATE TABLE IF NOT EXISTS relations (
+        project_id TEXT,
         from_id TEXT,
         to_id TEXT,
         type TEXT,
-        PRIMARY KEY (from_id, to_id, type)
+        PRIMARY KEY (project_id, from_id, to_id, type)
       );
 
-      CREATE INDEX IF NOT EXISTS idx_symbols_file ON symbols(file_path);
-      CREATE INDEX IF NOT EXISTS idx_relations_to ON relations(to_id);
+      CREATE INDEX IF NOT EXISTS idx_symbols_file ON symbols(project_id, file_path);
+      CREATE INDEX IF NOT EXISTS idx_relations_to ON relations(project_id, to_id);
     `);
   }
 
@@ -77,19 +80,23 @@ export class CodeIndexer implements ICodeIndex {
 
     if (symbols.length === 0) return;
 
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+
     const insertSymbol = this.db.prepare(`
-      INSERT OR REPLACE INTO symbols (id, language, namespace, name, kind, file_path, start_line, start_col, end_line, end_col, modifiers, parent_id, hash, documentation)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO symbols (project_id, id, language, namespace, name, kind, file_path, start_line, start_col, end_line, end_col, modifiers, parent_id, hash, documentation)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertRelation = this.db.prepare(`
-      INSERT OR REPLACE INTO relations (from_id, to_id, type)
-      VALUES (?, ?, ?)
+      INSERT OR REPLACE INTO relations (project_id, from_id, to_id, type)
+      VALUES (?, ?, ?, ?)
     `);
 
     const tx = this.db.transaction(() => {
       for (const s of symbols) {
         insertSymbol.run(
+          projectId,
           s.id,
           s.language,
           s.namespace,
@@ -107,7 +114,7 @@ export class CodeIndexer implements ICodeIndex {
         );
       }
       for (const r of relations) {
-        insertRelation.run(r.fromId, r.toId, r.type);
+        insertRelation.run(projectId, r.fromId, r.toId, r.type);
       }
     });
 
@@ -118,21 +125,24 @@ export class CodeIndexer implements ICodeIndex {
     if (!this.db) throw new Error('Database not initialized');
     
     const cleanPath = filePath.replace(/\\/g, '/');
-    const getSymbols = this.db.prepare('SELECT id FROM symbols WHERE file_path = ?');
-    const rows = getSymbols.all(cleanPath) as { id: string }[];
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+
+    const getSymbols = this.db.prepare('SELECT id FROM symbols WHERE project_id = ? AND file_path = ?');
+    const rows = getSymbols.all(projectId, cleanPath) as { id: string }[];
     const ids = rows.map(r => r.id);
 
     if (ids.length === 0) return;
 
-    const deleteSymbols = this.db.prepare('DELETE FROM symbols WHERE file_path = ?');
-    const deleteRelationsFrom = this.db.prepare('DELETE FROM relations WHERE from_id = ?');
-    const deleteRelationsTo = this.db.prepare('DELETE FROM relations WHERE to_id = ?');
+    const deleteSymbols = this.db.prepare('DELETE FROM symbols WHERE project_id = ? AND file_path = ?');
+    const deleteRelationsFrom = this.db.prepare('DELETE FROM relations WHERE project_id = ? AND from_id = ?');
+    const deleteRelationsTo = this.db.prepare('DELETE FROM relations WHERE project_id = ? AND to_id = ?');
 
     const tx = this.db.transaction(() => {
-      deleteSymbols.run(cleanPath);
+      deleteSymbols.run(projectId, cleanPath);
       for (const id of ids) {
-        deleteRelationsFrom.run(id);
-        deleteRelationsTo.run(id);
+        deleteRelationsFrom.run(projectId, id);
+        deleteRelationsTo.run(projectId, id);
       }
     });
 
@@ -141,15 +151,19 @@ export class CodeIndexer implements ICodeIndex {
 
   public async findSymbol(id: string): Promise<SymbolNode | undefined> {
     if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare('SELECT * FROM symbols WHERE id = ?');
-    const row = stmt.get(id);
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare('SELECT * FROM symbols WHERE project_id = ? AND id = ?');
+    const row = stmt.get(projectId, id);
     return row ? this.mapRow(row) : undefined;
   }
 
   public async findReferences(symbolId: string): Promise<SymbolRelation[]> {
     if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare("SELECT * FROM relations WHERE to_id = ? AND type = 'calls'");
-    const rows = stmt.all(symbolId) as any[];
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare("SELECT * FROM relations WHERE project_id = ? AND to_id = ? AND type = 'calls'");
+    const rows = stmt.all(projectId, symbolId) as any[];
     return rows.map(r => ({
       fromId: r.from_id,
       toId: r.to_id,
@@ -159,29 +173,35 @@ export class CodeIndexer implements ICodeIndex {
 
   public async findImplementations(interfaceId: string): Promise<SymbolNode[]> {
     if (!this.db) throw new Error('Database not initialized');
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
     const stmt = this.db.prepare(`
       SELECT s.* FROM symbols s
-      JOIN relations r ON s.id = r.from_id
-      WHERE r.to_id = ? AND r.type = 'implements'
+      JOIN relations r ON s.project_id = r.project_id AND s.id = r.from_id
+      WHERE s.project_id = ? AND r.to_id = ? AND r.type = 'implements'
     `);
-    return (stmt.all(interfaceId) as any[]).map(r => this.mapRow(r));
+    return (stmt.all(projectId, interfaceId) as any[]).map(r => this.mapRow(r));
   }
 
   public async findDerivedTypes(classId: string): Promise<SymbolNode[]> {
     if (!this.db) throw new Error('Database not initialized');
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
     const stmt = this.db.prepare(`
       SELECT s.* FROM symbols s
-      JOIN relations r ON s.id = r.from_id
-      WHERE r.to_id = ? AND r.type = 'inherits'
+      JOIN relations r ON s.project_id = r.project_id AND s.id = r.from_id
+      WHERE s.project_id = ? AND r.to_id = ? AND r.type = 'inherits'
     `);
-    return (stmt.all(classId) as any[]).map(r => this.mapRow(r));
+    return (stmt.all(projectId, classId) as any[]).map(r => this.mapRow(r));
   }
 
   public async findFileSymbols(filePath: string): Promise<SymbolNode[]> {
     if (!this.db) throw new Error('Database not initialized');
     const cleanPath = filePath.replace(/\\/g, '/');
-    const stmt = this.db.prepare('SELECT * FROM symbols WHERE file_path = ?');
-    return (stmt.all(cleanPath) as any[]).map(r => this.mapRow(r));
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare('SELECT * FROM symbols WHERE project_id = ? AND file_path = ?');
+    return (stmt.all(projectId, cleanPath) as any[]).map(r => this.mapRow(r));
   }
 
   public async dispose(): Promise<void> {

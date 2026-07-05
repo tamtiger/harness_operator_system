@@ -5,6 +5,7 @@ import { ICodeIndex, IWorkspaceManager, ExecutionPlan } from '../../packages/con
 describe('Planning Engine Tests', () => {
   const mockWorkspace: IWorkspaceManager = {
     getWorkspaceRoot: () => process.cwd(),
+    getProjectRoot: () => process.cwd(),
     getDatabaseDir: () => ':memory:'
   } as any;
 

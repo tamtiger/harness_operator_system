@@ -62,7 +62,8 @@ export class ApplicationHost implements IHost {
         'KnowledgeEngine', 
         'CodeIndex', 
         'PlanningEngine',
-        'RuntimeEngine'
+        'RuntimeEngine',
+        'VerificationEngine'
       ];
       for (const name of trackedServiceNames) {
         try {

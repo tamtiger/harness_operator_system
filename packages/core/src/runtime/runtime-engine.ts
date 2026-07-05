@@ -14,6 +14,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 
 const execAsync = promisify(exec);
 
@@ -30,7 +31,7 @@ export class RuntimeEngine implements IRuntimeEngine {
   public async initialize(): Promise<void> {
     let dbPath = this.workspace.getDatabaseDir();
     if (dbPath !== ':memory:') {
-      dbPath = path.join(dbPath, 'runtime.db');
+      dbPath = path.join(dbPath, 'harness.db');
       const dir = path.dirname(dbPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -43,25 +44,29 @@ export class RuntimeEngine implements IRuntimeEngine {
     // Create tables
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS runtime_states (
-        task_id TEXT PRIMARY KEY,
+        project_id TEXT,
+        task_id TEXT,
         plan_id TEXT,
         current_step_id TEXT,
         status TEXT,
         git_branch TEXT,
-        git_checkpoint_commit TEXT
+        git_checkpoint_commit TEXT,
+        PRIMARY KEY (project_id, task_id)
       );
 
       CREATE TABLE IF NOT EXISTS step_states (
+        project_id TEXT,
         task_id TEXT,
         step_id TEXT,
         status TEXT,
         started_at TEXT,
         finished_at TEXT,
-        PRIMARY KEY (task_id, step_id)
+        PRIMARY KEY (project_id, task_id, step_id)
       );
 
       CREATE TABLE IF NOT EXISTS audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id TEXT,
         task_id TEXT,
         event TEXT,
         payload TEXT,
@@ -73,7 +78,9 @@ export class RuntimeEngine implements IRuntimeEngine {
   public async initializeTask(taskId: string, plan: ExecutionPlan): Promise<RuntimeState> {
     if (!this.db) throw new Error('Database not initialized');
 
-    this.logger?.info(`Initializing task ${taskId} with plan version ${plan.version}`);
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    this.logger?.info(`Initializing task ${taskId} with plan version ${plan.version} in project ${projectPath} (ID: ${projectId})`);
 
     let currentCommit = '';
     const branchName = `harness/task-${taskId}`;
@@ -102,17 +109,18 @@ export class RuntimeEngine implements IRuntimeEngine {
 
     // Save state to database
     const insertState = this.db.prepare(`
-      INSERT OR REPLACE INTO runtime_states (task_id, plan_id, current_step_id, status, git_branch, git_checkpoint_commit)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO runtime_states (project_id, task_id, plan_id, current_step_id, status, git_branch, git_checkpoint_commit)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertStep = this.db.prepare(`
-      INSERT OR REPLACE INTO step_states (task_id, step_id, status, started_at, finished_at)
-      VALUES (?, ?, ?, NULL, NULL)
+      INSERT OR REPLACE INTO step_states (project_id, task_id, step_id, status, started_at, finished_at)
+      VALUES (?, ?, ?, ?, NULL, NULL)
     `);
 
     const tx = this.db.transaction(() => {
       insertState.run(
+        projectId,
         state.taskId,
         state.planId,
         state.currentStepId,
@@ -123,7 +131,7 @@ export class RuntimeEngine implements IRuntimeEngine {
 
       for (let i = 0; i < plan.steps.length; i++) {
         const step = plan.steps[i];
-        insertStep.run(taskId, step.id, i === 0 ? 'READY' : 'PENDING');
+        insertStep.run(projectId, taskId, step.id, i === 0 ? 'READY' : 'PENDING');
       }
     });
 
@@ -138,6 +146,8 @@ export class RuntimeEngine implements IRuntimeEngine {
   public async startStep(taskId: string, stepId: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
     const step = this.getStepStateSync(taskId, stepId);
     if (!step) {
       throw new Error(`Step ${stepId} not found for task ${taskId}`);
@@ -150,15 +160,15 @@ export class RuntimeEngine implements IRuntimeEngine {
     const startedAt = new Date().toISOString();
 
     const updateStep = this.db.prepare(`
-      UPDATE step_states SET status = 'IN_PROGRESS', started_at = ? WHERE task_id = ? AND step_id = ?
+      UPDATE step_states SET status = 'IN_PROGRESS', started_at = ? WHERE project_id = ? AND task_id = ? AND step_id = ?
     `);
     const updateRuntime = this.db.prepare(`
-      UPDATE runtime_states SET current_step_id = ?, status = 'EXECUTING' WHERE task_id = ?
+      UPDATE runtime_states SET current_step_id = ?, status = 'EXECUTING' WHERE project_id = ? AND task_id = ?
     `);
 
     const tx = this.db.transaction(() => {
-      updateStep.run(startedAt, taskId, stepId);
-      updateRuntime.run(stepId, taskId);
+      updateStep.run(startedAt, projectId, taskId, stepId);
+      updateRuntime.run(stepId, projectId, taskId);
     });
     tx();
 
@@ -169,6 +179,8 @@ export class RuntimeEngine implements IRuntimeEngine {
   public async completeStep(taskId: string, stepId: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
     const step = this.getStepStateSync(taskId, stepId);
     if (!step) throw new Error(`Step ${stepId} not found`);
 
@@ -192,19 +204,19 @@ export class RuntimeEngine implements IRuntimeEngine {
     const nextStep = steps[currentIndex + 1];
 
     const updateStep = this.db.prepare(`
-      UPDATE step_states SET status = 'DONE', finished_at = ? WHERE task_id = ? AND step_id = ?
+      UPDATE step_states SET status = 'DONE', finished_at = ? WHERE project_id = ? AND task_id = ? AND step_id = ?
     `);
 
     const tx = this.db.transaction(() => {
-      updateStep.run(finishedAt, taskId, stepId);
+      updateStep.run(finishedAt, projectId, taskId, stepId);
       if (nextStep) {
         this.db!.prepare(`
-          UPDATE step_states SET status = 'READY' WHERE task_id = ? AND step_id = ?
-        `).run(taskId, nextStep.stepId);
+          UPDATE step_states SET status = 'READY' WHERE project_id = ? AND task_id = ? AND step_id = ?
+        `).run(projectId, taskId, nextStep.stepId);
       } else {
         this.db!.prepare(`
-          UPDATE runtime_states SET status = 'DONE' WHERE task_id = ?
-        `).run(taskId);
+          UPDATE runtime_states SET status = 'DONE' WHERE project_id = ? AND task_id = ?
+        `).run(projectId, taskId);
       }
     });
     tx();
@@ -216,20 +228,22 @@ export class RuntimeEngine implements IRuntimeEngine {
   public async failStep(taskId: string, stepId: string, reason: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
     this.logger?.warn(`Step ${stepId} failed: ${reason}`);
 
     const finishedAt = new Date().toISOString();
 
     const updateStep = this.db.prepare(`
-      UPDATE step_states SET status = 'FAILED', finished_at = ? WHERE task_id = ? AND step_id = ?
+      UPDATE step_states SET status = 'FAILED', finished_at = ? WHERE project_id = ? AND task_id = ? AND step_id = ?
     `);
     const updateRuntime = this.db.prepare(`
-      UPDATE runtime_states SET status = 'FAILED' WHERE task_id = ?
+      UPDATE runtime_states SET status = 'FAILED' WHERE project_id = ? AND task_id = ?
     `);
 
     const tx = this.db.transaction(() => {
-      updateStep.run(finishedAt, taskId, stepId);
-      updateRuntime.run(taskId);
+      updateStep.run(finishedAt, projectId, taskId, stepId);
+      updateRuntime.run(projectId, taskId);
     });
     tx();
 
@@ -243,6 +257,8 @@ export class RuntimeEngine implements IRuntimeEngine {
   public async rollbackTask(taskId: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
     const state = await this.getRuntimeState(taskId);
     if (!state) throw new Error(`Runtime state for task ${taskId} not found`);
 
@@ -260,15 +276,15 @@ export class RuntimeEngine implements IRuntimeEngine {
 
     // 2. Reset step statuses in DB
     const updateSteps = this.db.prepare(`
-      UPDATE step_states SET status = 'ROLLED_BACK' WHERE task_id = ? AND status IN ('IN_PROGRESS', 'DONE', 'FAILED')
+      UPDATE step_states SET status = 'ROLLED_BACK' WHERE project_id = ? AND task_id = ? AND status IN ('IN_PROGRESS', 'DONE', 'FAILED')
     `);
     const updateRuntime = this.db.prepare(`
-      UPDATE runtime_states SET status = 'ROLLED_BACK' WHERE task_id = ?
+      UPDATE runtime_states SET status = 'ROLLED_BACK' WHERE project_id = ? AND task_id = ?
     `);
 
     const tx = this.db.transaction(() => {
-      updateSteps.run(taskId);
-      updateRuntime.run(taskId);
+      updateSteps.run(projectId, taskId);
+      updateRuntime.run(projectId, taskId);
     });
     tx();
 
@@ -278,8 +294,10 @@ export class RuntimeEngine implements IRuntimeEngine {
 
   public async getRuntimeState(taskId: string): Promise<RuntimeState | undefined> {
     if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare('SELECT * FROM runtime_states WHERE task_id = ?');
-    const row = stmt.get(taskId) as any;
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare('SELECT * FROM runtime_states WHERE project_id = ? AND task_id = ?');
+    const row = stmt.get(projectId, taskId) as any;
     if (!row) return undefined;
     return {
       taskId: row.task_id,
@@ -297,8 +315,10 @@ export class RuntimeEngine implements IRuntimeEngine {
 
   private getStepStateSync(taskId: string, stepId: string): StepState | undefined {
     if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare('SELECT * FROM step_states WHERE task_id = ? AND step_id = ?');
-    const row = stmt.get(taskId, stepId) as any;
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare('SELECT * FROM step_states WHERE project_id = ? AND task_id = ? AND step_id = ?');
+    const row = stmt.get(projectId, taskId, stepId) as any;
     if (!row) return undefined;
     return {
       taskId: row.task_id,
@@ -311,8 +331,10 @@ export class RuntimeEngine implements IRuntimeEngine {
 
   public async getStepStates(taskId: string): Promise<StepState[]> {
     if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare('SELECT * FROM step_states WHERE task_id = ?');
-    const rows = stmt.all(taskId) as any[];
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    const stmt = this.db.prepare('SELECT * FROM step_states WHERE project_id = ? AND task_id = ?');
+    const rows = stmt.all(projectId, taskId) as any[];
     return rows.map(row => ({
       taskId: row.task_id,
       stepId: row.step_id,
@@ -360,34 +382,33 @@ export class RuntimeEngine implements IRuntimeEngine {
 
   private logAudit(taskId: string, event: string, payload: Record<string, any>): void {
     if (!this.db) return;
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
     const stmt = this.db.prepare(`
-      INSERT INTO audit_logs (task_id, event, payload, timestamp)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO audit_logs (project_id, task_id, event, payload, timestamp)
+      VALUES (?, ?, ?, ?, ?)
     `);
-    stmt.run(taskId, event, JSON.stringify(payload), new Date().toISOString());
+    stmt.run(projectId, taskId, event, JSON.stringify(payload), new Date().toISOString());
   }
 
   private async enforceScope(taskId: string, stepId: string): Promise<Result<void>> {
-    // 1. Get allowed files from plan (we must query PlanningEngine/Store if registered, or we look up plans.db)
+    const projectPath = this.workspace.getProjectRoot().replace(/\\/g, '/');
+    const projectId = crypto.createHash('md5').update(projectPath).digest('hex').substring(0, 12);
+    // 1. Get allowed files from plan (query harness.db)
     let allowedFiles: string[] = [];
     try {
-      const planDbPath = path.join(this.workspace.getDatabaseDir(), 'plans.db');
-      if (fs.existsSync(planDbPath)) {
-        const planDb = new Database(planDbPath);
-        const state = await this.getRuntimeState(taskId);
-        if (state) {
-          const parts = state.planId.split('_v');
-          const planTaskId = parts[0];
-          const version = parts[1] ? parseInt(parts[1], 10) : 1;
-          const row = planDb.prepare('SELECT files FROM plans WHERE task_id = ? AND version = ?').get(planTaskId, version) as any;
-          if (row && row.files) {
-            allowedFiles = row.files.split(',').map((f: string) => f.trim().replace(/\\/g, '/')).filter((f: string) => f.length > 0);
-          }
+      const state = await this.getRuntimeState(taskId);
+      if (state) {
+        const parts = state.planId.split('_v');
+        const planTaskId = parts[0];
+        const version = parts[1] ? parseInt(parts[1], 10) : 1;
+        const row = this.db!.prepare('SELECT files FROM plans WHERE project_id = ? AND task_id = ? AND version = ?').get(projectId, planTaskId, version) as any;
+        if (row && row.files) {
+          allowedFiles = row.files.split(',').map((f: string) => f.trim().replace(/\\/g, '/')).filter((f: string) => f.length > 0);
         }
-        planDb.close();
       }
     } catch (err) {
-      this.logger?.warn(`Could not read allowed files from plans.db: ${err}`);
+      this.logger?.warn(`Could not read allowed files from harness.db: ${err}`);
     }
 
     // 2. Read git status to find files modified
@@ -399,19 +420,17 @@ export class RuntimeEngine implements IRuntimeEngine {
         .map(line => line.trim())
         .filter(line => line.length > 0)
         .map(line => {
-          // git status --porcelain formats: "M path/to/file.ts" or "?? path/to/file.ts"
           const parts = line.split(/\s+/);
           return parts[parts.length - 1].replace(/\\/g, '/');
         });
     } catch (err: any) {
       this.logger?.warn(`Could not determine modified files via Git: ${err.message}`);
-      return Result.ok(undefined); // If git is not running, we bypass scope enforcement
+      return Result.ok(undefined);
     }
 
     // 3. Compare modified vs allowed
     const violations: string[] = [];
     for (const file of modifiedFiles) {
-      // Find if this file is allowed by any path in allowedFiles
       const isAllowed = allowedFiles.some(allowed => file === allowed || file.endsWith(allowed));
       if (!isAllowed && allowedFiles.length > 0) {
         violations.push(file);
@@ -424,8 +443,6 @@ export class RuntimeEngine implements IRuntimeEngine {
       return Result.fail(new HarnessError('SCOPE_VIOLATION', `Modified files outside plan scope: ${violations.join(', ')}`));
     }
 
-    // 4. Protected Region check placeholder (AC-09)
-    // In future this will inspect file content diffs. For now, it passes.
     return Result.ok(undefined);
   }
 }
