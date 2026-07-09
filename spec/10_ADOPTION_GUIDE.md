@@ -1,0 +1,1 @@
+ADOPTION_GUIDE.md
