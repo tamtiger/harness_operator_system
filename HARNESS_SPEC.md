@@ -1,6 +1,6 @@
 # HARNESS_SPEC.md
 
-> Version: 3.0 (Draft)
+> Version: 4.0
 >
 > Philosophy: **KISS · File-based · Vendor-independent · Evidence-first**
 
@@ -16,54 +16,49 @@ Harness không thay thế AI Agent.
 
 Harness định nghĩa cách AI:
 
-* hiểu repository
-* khám phá code
-* lập kế hoạch
-* sửa code
-* xác minh kết quả
-* ghi nhận quyết định
-* quan sát toàn bộ quá trình thực thi
+- hiểu repository
+- khám phá code
+- lập kế hoạch
+- sửa code
+- xác minh kết quả
+- ghi nhận quyết định
+- quan sát toàn bộ quá trình thực thi
+- liên tục cải tiến Repository Knowledge
 
-Harness hoạt động hoàn toàn bằng Markdown và có thể chạy trên nhiều AI Coding Platform khác nhau.
+Harness hoạt động hoàn toàn bằng Markdown và chạy trên nhiều AI Coding Platform.
 
 ---
 
 ## 1.2 Design Goals
 
-Harness hướng đến các mục tiêu sau:
-
-* Chuẩn hóa AI Coding Workflow.
-* Giảm hallucination.
-* Giảm duplicate implementation.
-* Đảm bảo code nhất quán với repository.
-* Verify trước khi hoàn thành.
-* Quan sát toàn bộ quá trình để cải tiến liên tục.
-* Không phụ thuộc vào AI Provider hay IDE.
+- Chuẩn hóa AI Coding Workflow.
+- Giảm hallucination.
+- Giảm duplicate implementation.
+- Đảm bảo code nhất quán với repository.
+- Verify trước khi hoàn thành.
+- Quan sát toàn bộ quá trình để cải tiến liên tục.
+- Không phụ thuộc AI Provider hay IDE.
 
 ---
 
 ## 1.3 Non Goals
 
-Harness **không** xây dựng:
+Harness không xây dựng:
 
-* AI Agent
-* Agent Framework
-* Workflow Runtime
-* Multi-Agent Orchestration
-* Vector Database
-* Knowledge Graph
-* MCP Server
-* Background Service
-* Sandbox Runtime
-* IDE Plugin
-
-Những thành phần này nằm ngoài phạm vi của Core Harness.
+- AI Agent
+- Agent Framework
+- Workflow Runtime
+- Multi-Agent Orchestration
+- Vector Database
+- Knowledge Graph
+- MCP Server
+- Background Service
+- Sandbox Runtime
+- IDE Plugin
 
 ---
 
 # 2. Design Principles
-
-Harness tuân theo các nguyên tắc sau:
 
 1. KISS hơn thông minh.
 2. Markdown hơn Database.
@@ -80,9 +75,7 @@ Harness tuân theo các nguyên tắc sau:
 
 # 3. Architecture
 
-Harness đóng vai trò là lớp Governance giữa AI Agent và Repository.
-
-```text
+```
             Human
               │
               ▼
@@ -90,7 +83,7 @@ Harness đóng vai trò là lớp Governance giữa AI Agent và Repository.
  (Claude / Codex / Cursor / ...)
               │
               ▼
-            Harness
+           Harness
               │
               ▼
           Repository
@@ -100,76 +93,139 @@ AI chịu trách nhiệm **thực thi**.
 
 Harness chịu trách nhiệm **governance**.
 
-Repository là **nguồn sự thật duy nhất (Source of Truth)**.
+Repository là **nguồn sự thật duy nhất**.
 
 ---
 
 # 4. Core Components
 
-Harness gồm tám thành phần độc lập.
+| Component | Responsibility |
+|---|---|
+| Policies | Chính sách toàn cục của repository |
+| Repository Map | Mô tả cấu trúc repository |
+| Workflow | Chuẩn hóa quy trình AI thực hiện task |
+| Repository Rules | Quy tắc riêng của repository |
+| Knowledge | Kiến thức nghiệp vụ và bối cảnh |
+| ADR | Lịch sử quyết định kiến trúc |
+| Execution Log | Ghi nhận quá trình thực thi + trạng thái hiện tại |
+| Proposals | Backlog cải tiến chờ Human Review |
+| Telemetry | Phân tích hiệu quả Harness |
 
-| Component        | Responsibility                           |
-| ---------------- | ---------------------------------------- |
-| Policies         | Chính sách toàn cục của repository       |
-| Repository Map   | Mô tả cấu trúc repository                |
-| Workflow         | Chuẩn hóa quy trình AI thực hiện task    |
-| Repository Rules | Quy tắc riêng của repository             |
-| Knowledge        | Kiến thức nghiệp vụ và bối cảnh          |
-| ADR              | Lịch sử quyết định kiến trúc             |
-| Session          | Trạng thái thực thi hiện tại             |
-| Telemetry        | Ghi nhận và phân tích quá trình thực thi |
-
-Mỗi thành phần chỉ có **một trách nhiệm duy nhất**.
+Mỗi thành phần chỉ có một trách nhiệm duy nhất.
 
 ---
 
 # 5. Repository Structure
 
-```text
+```
 project/
-
-├── AGENTS.md
-├── CLAUDE.md                  # Optional
-├── .cursor/                   # Optional
-├── .kiro/                     # Optional
-├── opencode.json              # Optional
+├── AGENTS.md                    ← Single source of truth (≤150 lines)
+├── CLAUDE.md                    ← Optional platform adapter
+├── .cursor/                     ← Optional platform adapter
+├── .kiro/                       ← Optional platform adapter
+├── opencode.json                ← Optional platform adapter
 │
 └── .harness/
-    ├── repository-map.md
-    ├── repository-rules/
+    ├── repository-map.md        ← Last updated: YYYY-MM-DD
+    ├── repository-rules/        ← Path-scoped rules (Phase 2+)
     ├── workflows/
-    ├── knowledge/
-    ├── adr.md
-    ├── session.md
+    │   ├── default.md
+    │   ├── feature.md
+    │   ├── bugfix.md
+    │   └── refactor.md
+    ├── knowledge/               ← Phase 2+
+    ├── proposals.md             ← AI Review backlog (append-only)
+    ├── adr.md                   ← Architectural decisions (append-only)
     └── logs/
+        └── YYYY/
+            └── MM/
+                ├── task-0001.md
+                ├── task-0002.md
+                └── ...
 ```
 
-Platform-specific files chỉ đóng vai trò adapter.
+`.gitignore`:
+```
+# Không gitignore bất kỳ file nào trong .harness/
+# Execution Log thay thế Session — không còn ephemeral file
+```
 
-Toàn bộ Harness được quản lý trong `.harness`.
+---
+
+# 5A. Repository Onboarding
+
+## Purpose
+
+Onboarding là quá trình khởi tạo Harness cho một Repository mới.
+
+Chỉ thực hiện một lần cho mỗi Repository.
+
+---
+
+## Workflow
+
+```
+Harness Toolkit (harness init)
+      │
+      ▼
+Repository Scan (deterministic)
+      │
+      ▼
+Generate draft:
+  - AGENTS.md
+  - repository-map.md
+  - .harness/ structure
+      │
+      ▼
+Human Review & Edit
+      │
+      ▼
+Repository Ready
+```
+
+Harness Toolkit không tự tạo:
+
+- Repository Rules → xây dựng dần từ Phase 2
+- Knowledge → Human tạo khi cần
+- ADR → tạo khi có architectural decision
+
+---
+
+## Repository Scan
+
+Toolkit dùng deterministic tooling — không phụ thuộc AI:
+
+- File system traversal: detect entry points, module directories
+- Import/export detection: xác định dependency direction
+- Pattern matching: tìm public interfaces, service boundaries
+
+Không dùng Tree-sitter ở Phase 1. File system scan + regex đủ để generate 80% Repository Map với zero external dependency.
+
+AI chỉ dùng kết quả Scan để tạo Summary hoặc Proposal — không trực tiếp phân tích toàn bộ repository.
 
 ---
 
 # 6. Workflow
 
-Harness sử dụng workflow thống nhất.
-
-```text
+```
 Explore
     │
     ▼
 Classify
     │
-    ├── Small ───────────────┐
-    │                        │
-    ▼                        │
-Plan (Medium+)               │
-    │                        │
-    ▼                        │
-Implement
+    ├── Small ──────────────────┐
+    │                           │
+    ▼                           ▼
+Plan (Medium+)            Implement
+    │                           │
+    ▼                           │
+Implement ◄─────────────────────┘
     │
     ▼
 Verify ↺
+    │
+    ▼
+Log + Review
     │
     ▼
 Done
@@ -177,39 +233,29 @@ Done
 
 Verification là một **feedback loop**, không phải bước cuối.
 
+Log + Review là bước bắt buộc sau mỗi task.
+
 ---
 
 ## 6.1 Explore
 
-Mục tiêu:
-
-Hiểu repository trước khi thay đổi.
+Mục tiêu: Hiểu repository trước khi thay đổi bất cứ điều gì.
 
 AI phải:
 
-* đọc AGENTS.md
-* đọc Repository Map
-* đọc Repository Rules liên quan
-* đọc Knowledge khi cần
-* đọc Source Code
-* tìm implementation hiện có
+1. Đọc AGENTS.md
+2. Đọc Repository Map
+3. Đọc Repository Rules liên quan
+4. Đọc Knowledge khi cần
+5. Đọc Source Code cần thiết
+6. Tìm implementation hiện có (Search First)
 
 Không được sửa code ở giai đoạn này.
 
----
+### Search First
 
-### Search First Principle
-
-Luôn ưu tiên:
-
-```text
-Search Existing
-      │
-      ▼
-Reuse Existing
-      │
-      ▼
-Create New
+```
+Search Existing → Reuse Existing → Create New
 ```
 
 Không tạo implementation mới nếu repository đã có giải pháp phù hợp.
@@ -218,49 +264,41 @@ Không tạo implementation mới nếu repository đã có giải pháp phù h�
 
 ## 6.2 Classify
 
-Sau khi Explore, AI phải phân loại độ phức tạp của task.
-
-| Level  | Điều kiện                              |
-| ------ | -------------------------------------- |
-| Small  | ≤2 file, không ảnh hưởng kiến trúc     |
-| Medium | 3–10 file hoặc cần quyết định thiết kế |
-| Large  | >10 file hoặc thay đổi kiến trúc       |
-| XL     | Nhiều session hoặc breaking change     |
-
-Kết quả phân loại quyết định mức độ governance cần áp dụng.
+| Level | Điều kiện |
+|---|---|
+| Small | ≤2 file, không ảnh hưởng kiến trúc |
+| Medium | 3–10 file hoặc cần design decision |
+| Large | >10 file hoặc thay đổi kiến trúc |
+| XL | Nhiều session hoặc breaking change |
 
 ---
 
 ## 6.3 Planning
 
-Planning chỉ bắt buộc với:
+Bắt buộc với Medium, Large, XL.
 
-* Medium
-* Large
-* XL
+Plan tối thiểu:
 
-Plan tối thiểu gồm:
+```
+Goal:         <một dòng>
+Complexity:   Medium / Large / XL
+Files:        <danh sách>
+Steps:        <numbered>
+Verification: <what to check>
+Out of Scope: <explicitly excluded>
+```
 
-* Goal
-* Scope
-* Files
-* Steps
-* Verification
-* Out of Scope
-
-Large và XL phải được Human phê duyệt trước khi triển khai.
+Large và XL phải được Human phê duyệt trước khi implement.
 
 ---
 
 ## 6.4 Implementation
 
-Nguyên tắc:
-
-* Read trước Edit.
-* Diff nhỏ.
-* Không mở rộng Scope.
-* Reuse trước Create.
-* Không tạo abstraction khi chưa có bằng chứng cần thiết.
+- Read trước Edit.
+- Diff nhỏ.
+- Không mở rộng Scope.
+- Reuse trước Create.
+- Không tạo abstraction khi chưa có bằng chứng cần thiết.
 
 Nếu phát hiện cần sửa ngoài kế hoạch:
 
@@ -273,145 +311,53 @@ Nếu phát hiện cần sửa ngoài kế hoạch:
 
 ## 6.5 Verification
 
-Verification là bắt buộc.
+Bắt buộc. Không có ngoại lệ.
 
-Pipeline mặc định:
-
-```text
-Build
-    │
-    ▼
-Test
-    │
-    ▼
-Lint
-    │
-    ▼
-Review Diff
+**Mandatory:**
+```
+Build → Test → Lint → Review Diff
 ```
 
-Project có thể bổ sung:
+**Conditional (theo loại task):**
+- Security Scan → auth / payment / user data
+- Dependency Check → thêm package mới
+- Integration Test → cross-module changes
+- Performance Test → hot path changes
 
-* Security Scan
-* Dependency Check
-* Integration Test
-* Performance Test
+Static analysis và coverage không nằm trong default pipeline. Thêm vào `.harness/repository-rules/security.md` nếu project cần.
 
-Task chỉ được đánh dấu **Done** khi toàn bộ bước bắt buộc thành công.
+Task chỉ Done khi toàn bộ mandatory checks pass.
 
 ---
 
 ## 6.6 Verification Loop
 
-Nếu Verification thất bại:
-
-```text
-Diagnose
-    │
-    ▼
-Fix
-    │
-    ▼
-Verify
+```
+Diagnose → Fix → Verify
 ```
 
-Loop lặp lại cho đến khi:
-
-* Thành công
-* hoặc Human Intervention
-
-Không được bỏ qua Verification.
+Loop cho đến khi thành công hoặc cần Human Intervention.
 
 ---
 
-# 7. Governance Model
+## 6.7 Log + Review
 
-Harness quản trị Repository thông qua bốn loại tri thức.
+Bước bắt buộc sau mỗi task.
 
-Repository là nguồn sự thật.
+Thứ tự:
 
-Harness quản trị tri thức.
+1. Agent finalize Execution Log (Summary + Verification + Outcome)
+2. Agent đọc toàn bộ Execution Log của task vừa hoàn thành
+3. Agent thực hiện AI Review
+4. Agent append Improvement Proposals vào `proposals.md`
 
-AI chỉ tiêu thụ tri thức để thực thi task.
+Xem chi tiết tại Section 19, 20, 21.
 
 ---
 
-# 8. Priority Model
+# 7. Repository Knowledge Model
 
-Khi có xung đột:
-
-```text
-Human Instruction
-        │
-        ▼
-Policies
-        │
-        ▼
-Repository Rules
-        │
-        ▼
-Workflow
-        │
-        ▼
-Knowledge
 ```
-
-Layer phía trên luôn được ưu tiên hơn.
-
----
-
-# 9. Decision Model
-
-Khi có nhiều phương án:
-
-```text
-Correctness
-      │
-      ▼
-Safety
-      │
-      ▼
-Maintainability
-      │
-      ▼
-Consistency
-      │
-      ▼
-Performance
-      │
-      ▼
-Developer Experience
-```
-
-Không đánh đổi tính đúng đắn để lấy hiệu năng hoặc sự tiện lợi.
-
----
-
-# 10. Guardrails
-
-Harness phải dừng và yêu cầu Human Approval khi:
-
-* Deploy Production.
-* Xóa dữ liệu.
-* Thay đổi Migration đã phát hành.
-* Thay đổi Public API.
-* Thay đổi Architecture Boundary.
-* Thêm Dependency ngoài kế hoạch.
-* Commit Secrets.
-* Sửa file ngoài Scope.
-
-Harness phải hỏi lại khi:
-
-* Requirement chưa rõ.
-* Scope thay đổi.
-* Có nhiều phương án hợp lý.
-* Không đủ bằng chứng để quyết định.
-
-# 11. Repository Knowledge Model
-
-Harness quản lý tri thức của Repository thông qua bốn thành phần.
-
-```text
 Repository
       │
       ▼
@@ -422,342 +368,172 @@ Repository Knowledge
 Map  Rules     Knowledge     ADR
 ```
 
-Mỗi thành phần có trách nhiệm riêng.
+| Component | Mục đích |
+|---|---|
+| Repository Map | Mô tả cấu trúc repository |
+| Repository Rules | Quy tắc xây dựng repository |
+| Knowledge | Kiến thức nghiệp vụ và bối cảnh |
+| ADR | Lịch sử quyết định kiến trúc |
 
-| Component        | Mục đích                        |
-| ---------------- | ------------------------------- |
-| Repository Map   | Mô tả cấu trúc repository       |
-| Repository Rules | Quy tắc xây dựng repository     |
-| Knowledge        | Kiến thức nghiệp vụ và bối cảnh |
-| ADR              | Lịch sử quyết định kiến trúc    |
-
-Không được trùng lặp trách nhiệm.
+Không được trùng lặp trách nhiệm giữa các component.
 
 ---
 
-# 12. Repository Map
+# 8. Priority Model
+
+```
+Human Instruction
+        ↓
+    Policies
+        ↓
+Repository Rules
+        ↓
+    Workflow
+        ↓
+   Knowledge
+```
+
+Layer phía trên luôn được ưu tiên hơn.
+
+---
+
+# 9. Decision Model
+
+```
+Correctness → Safety → Maintainability → Consistency → Performance → Developer Experience
+```
+
+Không đánh đổi tính đúng đắn để lấy hiệu năng hoặc sự tiện lợi.
+
+---
+
+# 10. Guardrails
+
+**Dừng và yêu cầu Human Approval khi:**
+
+- Deploy Production
+- Xóa dữ liệu (DROP, DELETE không có WHERE, rm -rf)
+- Thay đổi Migration đã phát hành
+- Thay đổi Public API
+- Thay đổi Architecture Boundary
+- Thêm Dependency ngoài kế hoạch
+- Commit Secrets hoặc Credentials
+- Sửa file ngoài Scope đã khai báo
+
+**Hỏi lại khi:**
+
+- Requirement chưa rõ
+- Scope cần mở rộng
+- Có nhiều phương án hợp lý
+- Không đủ Evidence để quyết định
+
+---
+
+# 11. Context Loading Strategy
+
+```
+1. AGENTS.md           ← always, mọi session
+2. Repository Map      ← trước rules (cần biết structure trước)
+3. Workflow            ← đọc workflow phù hợp với task type
+4. Repository Rules    ← chỉ rules liên quan đến path đang làm việc
+5. Knowledge           ← on-demand, khi thật sự cần domain context
+6. Source Code         ← đọc file trước khi sửa
+```
+
+Load ít nhất có thể. Không load toàn bộ repository.
+
+---
+
+# 12. Context Budget
+
+| Component | Guideline |
+|---|---|
+| AGENTS.md | ≤150 dòng |
+| Repository Map | ≤150 dòng |
+| Active Workflow | ≤50 dòng |
+| Active Rules | Chỉ rules liên quan |
+| Knowledge | On-demand |
+| Source Code | Chỉ file cần thiết |
+
+Giữ startup context dưới 10,000 tokens.
+
+---
+
+# 13. Repository Map
 
 ## Purpose
 
-Repository Map giúp AI hiểu cấu trúc repository trước khi đọc source code.
+Giúp AI hiểu cấu trúc repository trước khi đọc source code.
 
-Repository Map **không mô tả implementation**.
+Không mô tả implementation. Chỉ mô tả topology.
 
-Repository Map chỉ mô tả topology của hệ thống.
+Bao gồm:
 
-Ví dụ:
+- Entry Points
+- Modules và Responsibilities
+- Public Interfaces
+- Dependency Direction
+- Architecture Boundaries
+- Important Paths
 
-* Entry Points
-* Modules
-* Public Interfaces
-* Dependency Direction
-* Architecture Boundaries
-* Important Paths
+## Lifecycle
 
----
+Có `Last Updated: YYYY-MM-DD` ở header — bắt buộc.
 
-## Repository Map Lifecycle
+Cập nhật khi:
+- Thêm module mới
+- Đổi architecture boundary
+- Đổi dependency direction
+- Đổi public entry point
 
-Repository Map không nên được duy trì thủ công hoàn toàn.
+Không cập nhật mỗi commit.
 
-Workflow đề xuất:
-
-```text
-Scan Repository
-      │
-      ▼
-Generate Repository Map
-      │
-      ▼
-Human Review
-      │
-      ▼
-Approved Map
-      │
-      ▼
-Periodic Refresh
-```
-
-AI chịu trách nhiệm cập nhật đề xuất.
-
-Human chịu trách nhiệm phê duyệt.
+AI đề xuất cập nhật qua Improvement Proposal. Human phê duyệt.
 
 ---
 
-## Update Conditions
-
-Repository Map chỉ cần cập nhật khi:
-
-* thêm module mới
-* đổi architecture boundary
-* đổi dependency direction
-* đổi public entry point
-* đổi cấu trúc thư mục lớn
-
-Không cần cập nhật mỗi commit.
-
----
-
-# 13. Repository Rules
+# 14. Repository Rules
 
 ## Purpose
 
-Repository Rules mô tả cách repository được xây dựng.
-
-Rule không mô tả framework.
-
-Rule không mô tả ngôn ngữ lập trình.
-
-Rule mô tả **quy ước riêng của repository**.
+Mô tả cách repository được xây dựng — không phải framework, không phải ngôn ngữ.
 
 Ví dụ:
-
-* API Convention
-* Error Handling
-* Dependency Direction
-* Logging
-* Repository Pattern
-* Testing Strategy
-* Security Convention
-* Naming Convention
-
----
-
-## Rule Lifecycle
-
-Repository Rules được tạo theo quy trình sau.
-
-```text
-Observe Repository
-        │
-        ▼
-Detect Patterns
-        │
-        ▼
-Generate Draft Rules
-        │
-        ▼
-Collect Evidence
-        │
-        ▼
-Human Review
-        │
-        ▼
-Approved Rules
-        │
-        ▼
-Continuous Improvement
-```
-
-AI quan sát.
-
-AI đề xuất.
-
-Human quyết định.
-
----
+- API Convention
+- Error Handling Pattern
+- Dependency Direction
+- Logging Convention
+- Repository Pattern
+- Testing Strategy
+- Security Convention
+- Naming Convention
 
 ## Rule Requirements
 
-Mỗi Rule phải có tối thiểu:
+Mỗi Rule phải có:
 
-* Description
-* Rationale
-* Evidence
-* Confidence
-* Status
-* Last Reviewed
-
-Ví dụ:
-
-```text
-Title
-
-Public Service returns Result<T>
-
-Description
-
-Service methods should return Result<T>.
-
-Evidence
-
-UserService.cs
-OrderService.cs
-InvoiceService.cs
-
-Confidence
-
-96%
-
-Status
-
-Approved
+```
+Title:        <tên rule>
+Description:  <mô tả>
+Rationale:    <lý do>
+Evidence:     <files hoặc patterns làm bằng chứng>
+Confidence:   High / Medium / Low
+Status:       Draft / Approved / Deprecated / Retired
+Last Reviewed: YYYY-MM-DD
 ```
 
-Không có Evidence thì không tạo Rule.
+**Không có Evidence thì không tạo Rule.**
 
----
+## Rule Lifecycle
 
-## Rule Categories
-
-Rule được phân loại bằng metadata.
-
-Ví dụ:
-
-* Architecture
-* Convention
-* Security
-* Testing
-* Domain
-
-Một Rule có thể thuộc nhiều Category.
-
-Category chỉ phục vụ tìm kiếm và quản lý.
-
-Không ảnh hưởng Rule Priority.
-
----
-
-## Rule Priority
-
-Nếu nhiều Rule cùng áp dụng:
-
-```text
-Human Decision
-      │
-      ▼
-Repository Rule
-      │
-      ▼
-Knowledge
 ```
-
-Rule luôn ưu tiên hơn Knowledge.
-
----
-
-# 13A. Evidence Model
-
-## Purpose
-
-Evidence là cơ sở để AI đưa ra quyết định.
-
-Harness ưu tiên quyết định dựa trên Evidence thay vì suy đoán.
-
-Mọi Repository Rule, Improvement Proposal và Architecture Decision đều phải có Evidence.
-
-Không có Evidence thì không tạo Rule hoặc Proposal.
-
----
-
-## Evidence Sources
-
-Evidence có thể đến từ nhiều nguồn.
-
-Ví dụ:
-
-* Existing Source Code
-* Repository Structure
-* Repository Rules
-* Knowledge
-* ADR
-* Search Results
-* Build Results
-* Test Results
-* Lint Results
-* Security Scan
-* Human Requirement
-* Execution Log
-
-Repository luôn là nguồn Evidence quan trọng nhất.
-
----
-
-## Evidence Strength
-
-Evidence được phân thành ba mức.
-
-### Strong
-
-Có bằng chứng trực tiếp.
-
-Ví dụ:
-
-* Source Code
-* Build Result
-* Test Result
-* Existing Implementation
-* Approved ADR
-
-Strong Evidence có thể dùng để tạo Rule.
-
----
-
-### Medium
-
-Có bằng chứng gián tiếp.
-
-Ví dụ:
-
-* Nhiều implementation giống nhau
-* Repository Pattern
-* Execution History
-
-Medium Evidence cần Human Review.
-
----
-
-### Weak
-
-Chỉ là suy luận.
-
-Ví dụ:
-
-* AI Suggestion
-* Assumption
-* Một implementation duy nhất
-
-Weak Evidence không đủ để tạo Rule.
-
----
-
-## Evidence Requirements
-
-Mỗi Proposal nên ghi rõ:
-
-* Source
-* Rationale
-* Confidence
-
-Ví dụ:
-
-Source
-
-PaymentService.cs
-OrderService.cs
-
-Confidence
-
-95%
-
----
-
-# 13B. Repository Rule Lifecycle
-
-Repository Rules phát triển theo thời gian.
-
-Rule không phải tài liệu bất biến.
-
-Workflow:
-
-```text
 Observe Repository
         │
         ▼
 Detect Pattern
         │
         ▼
-Generate Draft
+Generate Draft (AI)
         │
         ▼
 Collect Evidence
@@ -771,1178 +547,806 @@ Approved
         ▼
 Continuous Review
         │
- ┌──────┴────────┐
- ▼               ▼
-Update        Retire
+   ┌────┴────┐
+   ▼         ▼
+Update     Retire
 ```
 
----
+AI quan sát. AI đề xuất. Human quyết định.
 
 ## Rule Status
 
-Rule có thể có các trạng thái sau.
-
-* Draft
-* Approved
-* Deprecated
-* Retired
-
-Draft
-
-Đang được đánh giá.
-
-Approved
-
-Được sử dụng.
-
-Deprecated
-
-Không khuyến khích sử dụng.
-
-Retired
-
-Không còn áp dụng.
-
----
+| Status | Ý nghĩa |
+|---|---|
+| Draft | Đang được đánh giá |
+| Approved | Đang được sử dụng |
+| Deprecated | Không khuyến khích |
+| Retired | Không còn áp dụng |
 
 ## Review Trigger
 
 Rule nên được xem xét lại khi:
+- Architecture thay đổi
+- Rule thường xuyên bị vi phạm
+- Có nhiều Proposals cập nhật cùng một Rule
 
-* Architecture thay đổi
-* Repository Pattern thay đổi
-* Rule thường xuyên bị vi phạm
-* Có nhiều Proposal cập nhật cùng một Rule
+## Rule Priority
+
+```
+Human Decision → Repository Rule → Knowledge
+```
 
 ---
 
-# 13C. Confidence Model
+# 14A. Evidence Model
+
+## Evidence Strength
+
+| Level | Định nghĩa | Ví dụ | Có thể tạo Rule? |
+|---|---|---|---|
+| Strong | Bằng chứng trực tiếp | Source code, build result, approved ADR | Có thể propose |
+| Medium | Bằng chứng gián tiếp | Nhiều implementation giống nhau, execution history | Cần Human Review |
+| Weak | Chỉ là suy luận | AI suggestion, một implementation duy nhất | Không đủ |
+
+Không có Evidence thì không tạo Rule hoặc Proposal.
+
+## Evidence Requirements
+
+Mỗi Proposal phải ghi rõ:
+
+```
+Evidence Sources: <files, results, patterns>
+Confidence:       High / Medium / Low
+Rationale:        <tại sao evidence này support proposal>
+```
+
+---
+
+# 14B. Confidence Model
+
+| Level | Evidence | AI Action |
+|---|---|---|
+| High | Strong Evidence (existing impl, build/test result, approved ADR) | Có thể propose trực tiếp |
+| Medium | Medium Evidence (patterns, execution history) | Giải thích các phương án, recommend một phương án |
+| Low | Evidence chưa đủ hoặc ambiguous | Yêu cầu thêm thông tin hoặc Human Decision |
+
+**AI không được tự phê duyệt Proposal của chính mình, bất kể Confidence ở mức nào.**
+
+Confidence thấp → ưu tiên làm rõ Requirement thay vì suy đoán.
+
+---
+
+# 15. Knowledge
 
 ## Purpose
 
-Confidence phản ánh mức độ chắc chắn của AI khi đưa ra quyết định hoặc Proposal.
+Chứa thông tin AI không thể suy ra từ source code.
 
-Confidence không thay thế Evidence.
+**Knowledge phù hợp:**
+- Business Domain
+- Domain Glossary
+- External Systems
+- Business Workflow
+- API Provider Documentation
+- Operational Runbook
+- Compliance Requirement
 
-Evidence là cơ sở.
+**Knowledge không phù hợp** (thuộc Repository Rules):
+- Naming Convention
+- Folder Structure
+- Dependency Direction
+- Error Handling Rule
 
-Confidence là mức độ tin cậy của kết luận dựa trên Evidence.
+## Lifecycle
 
----
-
-## Confidence Levels
-
-### High
-
-AI có Strong Evidence.
-
-Ví dụ:
-
-* Existing Implementation
-* Build Result
-* Test Result
-* Approved Repository Rule
-* Approved ADR
-
-AI có thể đưa ra Proposal trực tiếp.
-
-Human vẫn là người quyết định cuối cùng.
-
----
-
-### Medium
-
-AI có Medium Evidence.
-
-Ví dụ:
-
-* Repository Pattern
-* Nhiều implementation tương tự
-* Execution History
-
-AI nên giải thích các phương án và khuyến nghị phương án phù hợp.
-
----
-
-### Low
-
-Evidence chưa đủ hoặc có nhiều khả năng hợp lý.
-
-Ví dụ:
-
-* Requirement chưa rõ
-* Repository có nhiều pattern khác nhau
-* Chưa tìm đủ Source Code
-* Chưa có Repository Rule
-
-AI nên yêu cầu thêm thông tin hoặc Human Decision.
-
----
-
-## Decision Policy
-
-Confidence không được dùng để bỏ qua Human Approval.
-
-Confidence chỉ giúp AI quyết định:
-
-* Có thể tiếp tục.
-* Nên đưa ra nhiều phương án.
-* Hay nên dừng để hỏi Human.
-
-Khi Confidence thấp, AI nên ưu tiên làm rõ Requirement thay vì suy đoán.
-
----
-
-# 14. Knowledge
-
-## Purpose
-
-Knowledge chứa thông tin AI **không thể suy ra từ source code**.
-
-Knowledge không chứa coding convention.
-
-Knowledge không chứa implementation rule.
-
-Knowledge không thay thế Repository Rules.
-
----
-
-## Ví dụ
-
-Knowledge phù hợp:
-
-* Business Domain
-* Domain Glossary
-* External Systems
-* Business Workflow
-* API Provider
-* Operational Runbook
-* Compliance Requirement
-
-Knowledge không phù hợp:
-
-* Naming Convention
-* Folder Structure
-* Dependency Direction
-* Error Handling Rule
-
-Những nội dung này thuộc Repository Rules.
-
----
-
-## Knowledge Lifecycle
-
-Knowledge chủ yếu được duy trì bởi Human.
-
-Workflow:
-
-```text
-Human Create
-      │
-      ▼
-AI Consume
-      │
-      ▼
-Human Update
-```
-
-AI có thể đề xuất cập nhật.
-
-Human luôn là người quyết định.
-
----
-
-# 14A. Knowledge Lifecycle & Metadata
-
-Knowledge được duy trì theo vòng đời riêng.
-
-Workflow:
-
-```text
-Create
-    │
-    ▼
-Review
-    │
-    ▼
-Approved
-    │
-    ▼
-Update
-    │
-    ▼
-Deprecated
-    │
-    ▼
-Archived
-```
-
-AI có thể đề xuất cập nhật.
-
-Human luôn là người quyết định.
-
----
+Human tạo và maintain. AI có thể đề xuất cập nhật qua Proposals.
 
 ## Metadata
 
-Mỗi Knowledge nên có metadata tối thiểu.
-
-```text
-Title
-
-Status
-
-Version
-
-Last Updated
-
-Related Rules
+```
+Title:        <tên>
+Status:       Draft / Approved / Deprecated / Archived
+Last Updated: YYYY-MM-DD
+Related Rules: <rule IDs liên quan>
 ```
 
----
+AI chỉ sử dụng Knowledge có Status là Approved.
 
-## Status
-
-Knowledge có các trạng thái:
-
-* Draft
-* Approved
-* Deprecated
-* Archived
-
-AI chỉ nên sử dụng Knowledge có trạng thái Approved.
+Stale knowledge nguy hiểm hơn không có knowledge — review định kỳ.
 
 ---
 
-# 15. Architecture Decision Record (ADR)
+# 16. Architecture Decision Record (ADR)
 
 ## Purpose
 
-ADR lưu lại các quyết định kiến trúc quan trọng.
+Lưu các quyết định kiến trúc quan trọng.
 
-ADR là append-only.
-
-Không sửa lịch sử.
-
-Nếu thay đổi quyết định:
-
-Tạo ADR mới.
-
----
+Append-only. Không sửa lịch sử.
 
 ## Khi nào tạo ADR
 
 Bắt buộc khi thay đổi:
+- Architecture
+- Database schema hoặc access pattern
+- API Contract
+- Security Model
+- Infrastructure
+- Messaging / Event Architecture
+- Caching Strategy
 
-* Architecture
-* Database
-* API Contract
-* Security Model
-* Infrastructure
-* Messaging
-* Caching
+Không tạo ADR cho: refactor nhỏ, rename, formatting, bug fix.
 
-Không tạo ADR cho:
+## Format
 
-* Refactor nhỏ
-* Rename
-* Formatting
-* Bug Fix
-
----
-
-## ADR Format
-
-```text
+```
 ADR-001
 
-Status
+Status:   Accepted
+Date:     YYYY-MM-DD
 
-Accepted
+Context:
+<vấn đề cần giải quyết>
 
-Date
+Decision:
+<quyết định đưa ra>
 
-YYYY-MM-DD
+Rationale:
+<lý do>
 
-Context
+Alternatives:
+<phương án bị loại và tại sao>
 
-...
-
-Decision
-
-...
-
-Rationale
-
-...
-
-Alternatives
-
-...
-
-Consequences
-
-...
+Consequences:
+<hệ quả, trade-off>
 ```
 
 Nếu quyết định bị thay thế:
 
-```text
-Superseded By
-
-ADR-00X
+```
+Superseded By: ADR-00X
 ```
 
-Không sửa ADR cũ.
+Tạo ADR mới khi quyết định thay đổi. Không sửa ADR cũ.
 
 ---
 
-# 16. Session
+# 17. Execution Log
 
 ## Purpose
 
-Session lưu trạng thái thực thi hiện tại.
+Execution Log phục vụ hai mục đích trong một file:
 
-Session không phải Memory dài hạn.
+1. **Audit Trail** — ghi nhận toàn bộ quá trình thực thi (permanent)
+2. **Recovery State** — cho phép agent resume sau context compaction hoặc crash (real-time)
 
-Session chỉ phục vụ:
+Execution Log thay thế Session. Không cần file session.md riêng.
 
-* Resume sau Context Compaction
-* Resume sau Crash
-* Theo dõi tiến độ Task
+## Structure
 
----
-
-## Session Lifecycle
-
-```text
-Task Started
-      │
-      ▼
-Session Created
-      │
-      ▼
-Continuous Update
-      │
-      ▼
-Task Completed
-      │
-      ▼
-Session Reset
+```
+.harness/logs/YYYY/MM/task-NNNN.md
 ```
 
-Session nên được `.gitignore`.
+Mỗi task có một Execution Log riêng.
+
+## Format
+
+```markdown
+# Task: <mô tả ngắn>
+ID: task-NNNN
+Started: YYYY-MM-DD HH:MM
+Complexity: Small / Medium / Large / XL
 
 ---
 
-## Session Format
+## Current State
+*(Updated in place — overwrite khi state thay đổi)*
 
-```text
-Task
+Status:       Implementing
+Phase:        3/5 — Implementation
+Files:        src/payments/PaymentController.cs
+Next:         Step 3 — Update tests
+Blockers:     None
 
-Status
+---
 
-Current Phase
+## Event Log
+*(Append-only — không sửa)*
 
-Files
+HH:MM  Task Started
+HH:MM  Explore Completed — read N files, found <key findings>
+HH:MM  Classified: Medium
+HH:MM  Plan Created — N files, N steps
+HH:MM  Implementation Started
+HH:MM  Verification Failed — Test: <failure reason>
+HH:MM  Verification Retry (1)
+HH:MM  Verification Passed
+HH:MM  Task Completed
 
-Completed
+---
 
-Next
+## Summary
+*(Filled when Done)*
 
-Blockers
+Outcome:         Completed / Failed / Cancelled
+Verification:    PASS / FAIL
+Human Approval:  Yes / No
+Files Changed:   <list>
+Failure Category: <nếu Failed — từ Failure Taxonomy>
 ```
 
-Session chỉ phản ánh trạng thái hiện tại.
+## Hai sections với hai rules khác nhau
 
-Không lưu lịch sử.
+**Current State** — overwrite in place khi state thay đổi. Phục vụ recovery.
 
----
+**Event Log** — append-only, không sửa. Phục vụ audit.
 
-# 17. Context Loading Strategy
-
-Harness ưu tiên nạp đúng thông tin cần thiết.
-
-```text
-Policies
-      │
-      ▼
-Repository Map
-      │
-      ▼
-Workflow
-      │
-      ▼
-Repository Rules
-      │
-      ▼
-Knowledge
-      │
-      ▼
-Source Code
-```
-
-Không đọc toàn bộ repository.
-
-Không nạp tất cả Rules.
-
-Không nạp toàn bộ Knowledge.
-
-Chỉ tải những gì liên quan đến task hiện tại.
-
----
-
-# 18. Context Budget
-
-Mục tiêu là giảm startup context.
-
-| Component       | Guideline           |
-| --------------- | ------------------- |
-| AGENTS.md       | ≤150 dòng           |
-| Repository Map  | ≤150 dòng           |
-| Active Workflow | ≤50 dòng            |
-| Active Rules    | Chỉ Rules liên quan |
-| Knowledge       | On-demand           |
-| Source Code     | Chỉ file cần thiết  |
-
-Harness ưu tiên **lazy loading** thay vì đọc toàn bộ repository ngay từ đầu.
-
-# 19. Continuous Improvement
-
-Harness không chỉ chuẩn hóa cách AI làm việc.
-
-Harness còn phải tự cải tiến sau mỗi Task.
-
-Mỗi Task đều tạo ra dữ liệu để đánh giá và cải thiện Repository Knowledge.
-
-```text
-Task
-    │
-    ▼
-Execution
-    │
-    ▼
-Execution Log
-    │
-    ▼
-AI Review
-    │
-    ▼
-Improvement Proposal
-    │
-    ▼
-Human Review
-    │
- ┌──┴─────────────┐
- ▼                ▼
-Reject        Approve
- │                │
- ▼                ▼
-Archive      Update Repository Knowledge
-                  │
-                  ▼
-           Better Next Task
-```
-
-Execution Log là dữ liệu.
-
-Improvement Proposal là đề xuất.
-
-Human Review là cơ chế kiểm soát.
-
-Repository Knowledge là kết quả cuối cùng.
-
-Mọi thay đổi của Harness đều phải thông qua vòng lặp này.
-
----
-
-# 20. Execution Log
-
-Markdown là định dạng mặc định.
-
-Platform hoặc Tool có thể sinh thêm JSONL để phục vụ Telemetry và Analytics.
-
-Markdown vẫn là Source of Truth.
-
-## Purpose
-
-Execution Log ghi lại toàn bộ quá trình AI thực hiện một Task.
-
-Mục tiêu:
-
-* Audit
-* Replay
-* Debug
-* Review
-* Continuous Improvement
-* Workflow Analysis
-* Repository Rule Analysis
-
-Execution Log chỉ ghi nhận sự kiện.
-
-Không điều khiển Workflow.
-
----
-
-## Event Model
-
-Execution Log sử dụng mô hình Event.
-
-```text
-Task Started
-      │
-      ▼
-Explore Completed
-      │
-      ▼
-Classified
-      │
-      ▼
-Planning Completed
-      │
-      ▼
-Implementation Completed
-      │
-      ▼
-Verification Passed / Failed
-      │
-      ▼
-Task Completed
-```
-
-Mỗi Event phản ánh một mốc quan trọng của Workflow.
-
----
+Khi task Done → Current State được thay bằng Summary. File trở thành pure audit log.
 
 ## Logging Policy
 
-Execution Log chỉ ghi khi:
-
-* Hoàn thành một Phase
-* Verification Pass / Fail
-* Human Approval
-* Repository Rule Created
-* Repository Rule Updated
-* ADR Created
-* Task Completed
+Ghi vào Event Log khi:
+- Hoàn thành một Phase (Explore, Classify, Plan, Implement)
+- Verification Pass / Fail / Retry
+- Human Approval requested / granted / rejected
+- Task Completed / Failed / Cancelled
+- Scope Expanded (guardrail triggered)
 
 Không ghi:
+- Chain of Thought
+- Internal Reasoning
+- Prompt nội bộ
+- Token Stream
+- Mỗi tool call riêng lẻ (trừ khi platform hỗ trợ hooks)
 
-* Chain of Thought
-* Internal Reasoning
-* Prompt nội bộ
-* Token Stream
+## Tool-level Logging
 
----
+**Nếu platform hỗ trợ hooks (ví dụ Claude Code PostToolUse):**
 
-## Log Structure
+Hooks ghi tool-level events tự động vào Event Log — không tốn context token của agent. Agent chỉ ghi phase-level summary.
 
-```text
-.harness/
-└── logs/
-    └── YYYY/
-        └── MM/
-            ├── task-0001.md
-            ├── task-0002.md
-            └── ...
+**Nếu platform không hỗ trợ hooks:**
+
+Agent chỉ ghi phase-level events. Tool calls được aggregate thành phase summary.
+
+Không yêu cầu agent ghi mỗi tool call thủ công — tốn token, giảm performance.
+
+## Recovery
+
+Khi context compact hoặc crash, agent đọc Current State section của Execution Log để resume:
+
+```
+Status:   → biết đang ở bước nào
+Phase:    → biết đã làm đến đâu
+Files:    → biết file nào đang sửa
+Next:     → biết bước tiếp theo
+Blockers: → biết vấn đề đang gặp
 ```
 
-Mỗi Task có một Execution Log riêng.
+---
+
+# 18. Failure Taxonomy
+
+Failure Category được ghi vào Execution Log khi task thất bại.
+
+Dùng để phân tích root cause và cải tiến Harness.
+
+| Category | Định nghĩa |
+|---|---|
+| Planning | Requirement chưa đủ hoặc plan sai |
+| Search | Không tìm được implementation phù hợp |
+| Knowledge | Thiếu Repository Knowledge |
+| Rule | Repository Rule chưa đủ hoặc không chính xác |
+| Implementation | Code không đúng yêu cầu |
+| Verification | Build, Test hoặc Lint thất bại |
+| Environment | Lỗi môi trường, dependency hoặc tool |
+| Human | Requirement thay đổi hoặc Human Intervention |
 
 ---
 
-## Log Format
+# 19. Continuous Improvement
 
-```text
-Task
-Refactor Payment API
+Mỗi task tạo ra data. Data tạo ra Proposals. Proposals cải tiến Repository Knowledge.
 
-Started
-2026-07-08 09:30
+```
+Task Completed
+      │
+      ▼
+Agent finalize Execution Log
+      │
+      ▼
+Agent đọc Execution Log
+      │
+      ▼
+AI Review
+      │
+      ▼
+Append Proposals → proposals.md
+      │
+      ▼
+[Task tiếp theo bắt đầu ngay — không block]
 
-Events
+      ... nhiều tasks ...
 
-09:31 Explore Completed
-09:33 Classified: Medium
-09:36 Planning Completed
-09:48 Implementation Completed
-09:52 Verification Failed
-09:58 Verification Passed
-10:00 Task Completed
-
-Summary
-Completed
-
-Verification
-PASS
-
-Human Approval
-No
+      │
+      ▼
+Human Review Trigger
+      │
+      ▼
+Human Review proposals.md
+      │
+    ┌─┴──────────┐
+    ▼            ▼
+Reject        Approve / Modify
+    │            │
+    ▼            ▼
+Mark Rejected  Apply → Repository Knowledge
 ```
 
-Execution Log phản ánh **quá trình thực thi**.
+## Human Review Trigger
 
-ADR phản ánh **quyết định kiến trúc**.
+Human Review được trigger khi bất kỳ điều kiện nào sau đây xảy ra:
 
-Hai thành phần này phục vụ mục đích khác nhau.
+- `proposals.md` có ≥5 Pending proposals
+- Verification Failure Rate > 20% trong tuần
+- Cuối sprint (cadence mặc định)
+- Human chủ động muốn review
 
----
+Không block workflow. Proposals accumulate async. Human review theo trigger.
 
-# 20A. Failure Taxonomy
+## Điều quan trọng
 
-Execution Failure nên được phân loại để hỗ trợ Continuous Improvement.
+Human Review không cần tool, không cần UI.
 
-Failure không chỉ phản ánh việc Task thất bại.
-
-Failure giúp xác định nguyên nhân gốc.
-
----
-
-## Categories
-
-Planning
-
-Requirement chưa đầy đủ hoặc kế hoạch sai.
-
-Search
-
-Không tìm được implementation phù hợp.
-
-Knowledge
-
-Thiếu Repository Knowledge.
-
-Rule
-
-Repository Rule chưa đầy đủ hoặc không chính xác.
-
-Implementation
-
-Code không đúng yêu cầu.
-
-Verification
-
-Build, Test hoặc Lint thất bại.
-
-Environment
-
-Lỗi môi trường, dependency hoặc tool.
-
-Human
-
-Requirement thay đổi hoặc Human Intervention.
+Human edit `proposals.md` (Approve / Reject / Modify) và apply approved proposals vào đúng file trong Repository Knowledge.
 
 ---
 
-## Failure Recording
-
-Execution Log nên ghi:
-
-* Failure Category
-* Root Cause
-* Resolution
-* Retry Count
-
-Failure được dùng để cải tiến Workflow và Repository Knowledge.
-
----
-
-# 20B. Telemetry Model
+# 20. Proposals
 
 ## Purpose
 
-Telemetry giúp đánh giá hiệu quả của Harness bằng dữ liệu thực tế.
+`proposals.md` là backlog chứa tất cả Improvement Proposals từ AI Review.
 
-Telemetry chỉ ghi nhận số liệu.
+Append-only khi AI thêm proposal.
 
-Không lưu Prompt hoặc Chain of Thought.
+Human edit status khi review.
 
----
+## Format
 
-## Repository Metrics
+```markdown
+## Proposal-001
+Date:     YYYY-MM-DD
+Source:   logs/2026/07/task-0003.md
+Type:     Repository Rule / Repository Map / Workflow / Knowledge / ADR
+Status:   Pending / Approved / Rejected / Modified
 
-Theo dõi:
+Evidence:
+- PaymentService.cs line 45
+- OrderService.cs line 78
+- InvoiceService.cs line 92
 
-* Repository Rule Coverage
-* ADR Coverage
-* Convention Violation
-* Duplicate Implementation
+Proposal:
+All service methods should return Result<T> instead of throwing exceptions.
 
----
+Rationale:
+Pattern observed in 3/3 existing services. Consistent error handling reduces
+hallucination risk when AI adds new service methods.
 
-## Workflow Metrics
+Confidence: High
 
-Theo dõi:
+Human Notes:
+<Human điền khi review>
+```
 
-* Planning Rate
-* Retry Rate
-* Verification Failure Rate
-* Verification Skip
-* Task Completion Time
+## Phase 1 Scope
 
----
+Ở Phase 1, AI Review chỉ propose cho:
 
-## Context Metrics
+- **Repository Map updates** — module mới, boundary thay đổi, dependency direction
+- **Workflow improvements** — bước nào thừa, bước nào thiếu, threshold nào cần điều chỉnh
+- **Rule candidates (backlog)** — observed patterns sẽ được apply khi Phase 2 bắt đầu
 
-Theo dõi:
+AI không propose thay đổi Repository Rules ở Phase 1 vì Rule system chưa tồn tại.
 
-* Startup Context Size
-* Loaded Rules
-* Loaded Knowledge
-* Search Count
-
-Mục tiêu là giảm Context nhưng vẫn giữ chất lượng.
-
----
-
-## AI Cost Metrics
-
-AI Cost Metrics chỉ khả dụng khi Platform hoặc API cung cấp dữ liệu tương ứng.
-
-Harness không yêu cầu mọi Platform phải hỗ trợ Token hoặc Cost Metrics.
-
-Theo dõi:
-
-* Prompt Tokens
-* Completion Tokens
-* Total Tokens
-* Estimated Cost
-* Average Latency
-
-Các chỉ số này giúp tối ưu hiệu năng và chi phí.
-
----
-
-## Improvement Metrics
-
-Theo dõi:
-
-* Proposal Count
-* Proposal Approval Rate
-* Rule Update Rate
-* Rule Retirement Rate
-* Workflow Improvement Rate
-
-Telemetry chỉ phục vụ phân tích và cải tiến.
-
-Không tham gia điều khiển Workflow.
+Proposals về Rule candidates được lưu vào `proposals.md` với Type: `Rule Candidate` và Status: `Deferred to Phase 2`.
 
 ---
 
 # 21. AI Review
 
-Sau khi Task hoàn thành, AI phải tự đánh giá quá trình thực hiện.
+Sau khi task hoàn thành, agent đọc Execution Log và thực hiện AI Review.
 
-Review tập trung vào Harness, không chỉ vào code.
+Review tập trung vào Harness — không chỉ vào code.
 
-AI không được tự phê duyệt Proposal của chính mình.
+**AI không được tự phê duyệt Proposal của chính mình.**
 
-Mọi Proposal đều phải thông qua Human Review, bất kể Confidence ở mức nào.
+**Mọi Proposal phải thông qua Human Review, bất kể Confidence.**
 
-AI cần đánh giá:
+## Checklist
 
 ### Workflow
-
-* Có bước nào dư thừa?
-* Có bước nào thiếu?
-* Có thể đơn giản hơn không?
-
-### Repository Rules
-
-* Rule nào bị vi phạm?
-* Rule nào nên tạo mới?
-* Rule nào nên cập nhật?
-* Rule nào không còn phù hợp?
+- Có bước nào dư thừa không?
+- Có bước nào bị thiếu không?
+- Verification failure xảy ra ở đâu và tại sao?
 
 ### Repository Map
+- Có module mới cần thêm vào Map không?
+- Có dependency direction thay đổi không?
+- Có boundary thay đổi không?
 
-* Có module mới?
-* Có dependency mới?
-* Có boundary thay đổi?
+### Repository Rules (Phase 2+)
+- Rule nào bị vi phạm trong task này?
+- Pattern nào nên trở thành Rule mới?
+- Rule nào không còn phù hợp?
 
-### Knowledge
-
-* Có business knowledge mới?
-* Có glossary cần bổ sung?
-* Có tài liệu cần cập nhật?
+### Knowledge (Phase 2+)
+- Có business knowledge mới phát hiện không?
+- Có glossary term nào cần bổ sung không?
 
 ### Verification
+- Có bước verify nào còn thiếu không?
+- Verification failure pattern có gợi ý gì về missing rules không?
 
-* Có bước verify nào còn thiếu?
-* Có bước verify nào không còn cần thiết?
+## Output
 
----
-
-## Improvement Proposal
-
-AI không được sửa Repository Knowledge trực tiếp.
-
-AI chỉ tạo Proposal.
-
-Ví dụ:
-
-```text
-## Improvement Proposal
-
-Repository Rules
-
-- Add API Error Handling Convention
-
-Evidence
-
-- PaymentService.cs
-- UserService.cs
-- OrderService.cs
-
-Confidence
-
-94%
-
-Repository Map
-
-- Add Payment Module
-
-Knowledge
-
-- Update Payment Workflow
-
-Verification
-
-- Recommend Integration Test
-```
-
-Mọi Proposal phải có:
-
-* Evidence
-* Rationale
-* Confidence
-
-Không có Evidence thì không đề xuất.
+AI append Proposals vào `proposals.md`. Không sửa Repository Knowledge trực tiếp.
 
 ---
 
 # 22. Human Review
 
-Human là người quyết định cuối cùng.
+Human là người quyết định cuối cùng cho mọi Proposal.
 
 Đối với mỗi Proposal:
 
-* Approve
-* Modify
-* Reject
+- **Approve** → Apply vào Repository Knowledge (Map / Rules / Workflow / Knowledge)
+- **Modify** → AI cập nhật Proposal, Human review lại
+- **Reject** → Mark Rejected, giữ trong proposals.md để tham khảo
 
-Chỉ Proposal được phê duyệt mới được cập nhật vào Repository Knowledge.
+Chỉ Approved Proposal mới được apply vào Repository Knowledge.
 
-Nếu Reject:
-
-* Proposal được lưu để tham khảo.
-* Repository không thay đổi.
-
-Nếu Modify:
-
-* AI cập nhật Proposal.
-* Human review lại.
+Rejected Proposal không xóa — giữ để tránh AI propose lại cùng một điều.
 
 ---
 
-# 23. Success Metrics
+# 23. Telemetry
 
-Trước khi áp dụng Harness nên ghi nhận Baseline Metrics của Repository.
+Telemetry được tách thành hai loại với nguồn gốc và độ chính xác khác nhau.
 
-Các Metrics sau khi triển khai nên được so sánh với Baseline để đánh giá hiệu quả của Harness.
+## System Telemetry
 
-Harness phải được đánh giá bằng dữ liệu.
+Toolkit collect. Deterministic. Không phụ thuộc agent.
+
+| Source | Metrics |
+|---|---|
+| Git diff | files_changed, lines_added, lines_deleted |
+| Build output | build_pass, build_fail, build_duration |
+| Test runner | test_pass, test_fail, test_count |
+| Lint output | lint_pass, lint_fail, violation_count |
+| File system | files_created, files_deleted |
+| Git log | commit_count, commit_size |
+
+Accuracy: **High** — ground truth từ system.
+
+## Agent Telemetry
+
+Agent self-report vào Execution Log. Toolkit aggregate.
+
+| Source | Metrics |
+|---|---|
+| Execution Log | task_duration, phase_durations |
+| Execution Log | verification_retry_count |
+| Execution Log | classification (Small/Medium/Large/XL) |
+| Execution Log | plan_created (yes/no) |
+| Execution Log | failure_category |
+| Execution Log | proposal_count |
+| Platform API (nếu available) | prompt_tokens, completion_tokens, estimated_cost |
+
+Accuracy: **Medium** — phụ thuộc agent self-reporting. Accept điều này như một limitation.
+
+AI Cost Metrics chỉ khả dụng khi Platform hoặc API cung cấp dữ liệu. Harness không yêu cầu mọi Platform hỗ trợ token hoặc cost metrics.
+
+## Telemetry Reports
+
+```
+.harness/
+└── reports/
+    └── YYYY-MM/
+        ├── system-telemetry.md   ← Toolkit generated, high accuracy
+        └── agent-telemetry.md    ← Aggregated from Execution Logs
+```
+
+Reports được commit vào git — human-readable, có giá trị team review theo thời gian.
+
+Raw logs không cần gitignore — là part of Repository Knowledge.
+
+## Workflow Metrics
+
+- Planning Rate (Medium+)
+- Verification Failure Rate
+- Verification Skip Rate
+- Retry Rate
+- Task Completion Time
+
+## Context Metrics
+
+- Startup Context Size
+- Loaded Rules (agent-reported)
+- Loaded Knowledge (agent-reported)
+
+Mục tiêu: giảm context nhưng vẫn giữ chất lượng.
+
+## Improvement Metrics
+
+- Proposal Count
+- Proposal Approval Rate
+- Rule Update Rate
+- Rule Retirement Rate
+- Workflow Improvement Rate
+
+---
+
+# 24. Success Metrics
+
+**Đo baseline trước khi deploy Harness.** So sánh sau triển khai để chứng minh ROI.
 
 ## Repository Metrics
 
-| Metric                   | Target                  |
-| ------------------------ | ----------------------- |
-| Verification Skip        | 0%                      |
-| Convention Violation     | <10%                    |
-| Planning Rate (Medium+)  | >80%                    |
-| Duplicate Implementation | Giảm theo thời gian     |
-| Repository Rule Coverage | Tăng theo thời gian     |
-| ADR Coverage             | 100% thay đổi kiến trúc |
-
----
+| Metric | Target |
+|---|---|
+| Verification Skip | 0% |
+| Convention Violation | <10% |
+| Planning Rate (Medium+) | >80% |
+| Duplicate Implementation | Giảm theo thời gian |
+| Repository Rule Coverage | Tăng theo thời gian |
+| ADR Coverage | 100% thay đổi kiến trúc |
 
 ## Operational Metrics
 
-| Metric                          | Target              |
-| ------------------------------- | ------------------- |
-| Setup Time                      | <2 giờ / Repository |
-| Monthly Maintenance             | <2 giờ              |
-| Startup Context                 | <10K Tokens         |
-| Rule Review Time                | <10 phút            |
-| Recovery sau Context Compaction | <1 phút             |
-
----
+| Metric | Target |
+|---|---|
+| Setup Time per Repository | <2 giờ |
+| Monthly Maintenance | <2 giờ |
+| Startup Context | <10K Tokens |
+| Recovery sau Context Compaction | <1 phút |
+| Human Review per Proposal | <10 phút |
 
 ## Improvement Metrics
 
 Theo dõi định kỳ:
-
-* Rule được tạo mới
-* Rule được cập nhật
-* Rule bị loại bỏ
-* Workflow được cải tiến
-* Retry Rate
-* Verification Failure Rate
-* Approval Rate của Proposal
-* Task Completion Time
-
-Mọi thay đổi của Harness nên được chứng minh bằng các Metrics này.
+- Rule được tạo mới / cập nhật / loại bỏ
+- Workflow được cải tiến
+- Proposal Approval Rate
+- False Positive Rate của AI Proposals
+- Verification Failure Rate theo thời gian
 
 ---
 
-# 24. Platform Adapters
+# 25. Platform Adapters
 
 Harness Core độc lập Platform.
 
-Platform chỉ là Adapter.
+Platform chỉ là Adapter. Adapter không thay đổi Core.
 
-| Platform    | IDE | CLI | Native Support   |
-| ----------- | --- | --- | ---------------- |
-| Claude Code | ✓   | ✓   | `CLAUDE.md`      |
-| Codex       | ✓   | ✓   | `AGENTS.md`      |
-| Cursor      | ✓   | ✗   | `.cursor/rules/` |
-| Antigravity | ✓   | ✓   | `AGENTS.md`      |
-| Kiro        | ✓   | ✓   | `.kiro/`         |
-| OpenCode    | ✓   | ✓   | `opencode.json`  |
+| Platform | Native Support | Notes |
+|---|---|---|
+| Claude Code | `CLAUDE.md` → `@AGENTS.md` | Import syntax, 4-tier hierarchy, PostToolUse hooks available |
+| Codex | `AGENTS.md` (native) | 32KB limit, skills lazy-loaded |
+| Cursor | `.cursor/rules/main.mdc` | glob-scoped, alwaysApply flag |
+| Antigravity | `AGENTS.md` (native, v1.20.3+) | `.agents/rules/` supplement, CLI: `agy` |
+| Kiro | `.kiro/` | Kiro-native specs |
+| OpenCode | `opencode.json` | JSON config |
 
 Platform-specific features chỉ mở rộng khả năng tích hợp.
 
 Không thay đổi Core Harness.
 
+## Execution Capabilities
+
+Harness yêu cầu Platform có khả năng thực thi:
+
+| Capability | Purpose |
+|---|---|
+| Exploration | Hiểu Repository và Requirement |
+| Planning | Xây dựng kế hoạch |
+| Implementation | Thực hiện thay đổi |
+| Verification | Kiểm chứng kết quả |
+| Review | Đánh giá và đề xuất cải tiến |
+
+Platform có thể implement các Capability bằng Prompt, Command, Skill, Subagent, hoặc Workflow Engine — miễn đáp ứng đầy đủ Capability.
+
 ---
 
-# 25. Adoption Roadmap
+# 26. Harness Toolkit
 
-Harness được triển khai theo hướng **Evidence-first**.
+Harness Toolkit là CLI tool hỗ trợ Repository Governance.
 
-Mỗi Phase chỉ bổ sung những thành phần đã được chứng minh là cần thiết từ dữ liệu thực tế.
+Toolkit thực hiện tác vụ deterministic — không phụ thuộc AI.
 
----
+## Phase 1 Commands
 
-# Phase 1 — Foundation
-
-Mục tiêu:
-
-Thiết lập Harness tối thiểu để AI có thể làm việc nhất quán và bắt đầu thu thập dữ liệu thực tế.
-
-Bao gồm:
-
-* AGENTS.md
-* Repository Map
-* Default Workflow
-* Session
-* Execution Log
-* AI Review
-* Improvement Proposal
-* Telemetry
-
-Repository Map có thể được tạo hoặc cập nhật bằng **Tree-sitter** để giảm công sức bảo trì. AI chỉ đề xuất thay đổi, Human là người phê duyệt cuối cùng.
-
-Telemetry ghi nhận các chỉ số như:
-
-* Verification Skip
-* Retry Rate
-* Task Completion Time
-* Startup Context Size
-* Search Count
-* Verification Failure Rate
-
-Workflow sau mỗi Task:
-
-```text
-Task
-    │
-    ▼
-Execution
-    │
-    ▼
-Execution Log
-    │
-    ▼
-AI Review
-    │
-    ▼
-Improvement Proposal
-    │
-    ▼
-Human Review
+```
+harness init      → Scan repo, generate draft AGENTS.md + repository-map.md + .harness/ structure
+harness validate  → Check AGENTS.md ≤150 lines, required fields present, repository-map.md has Last Updated
+harness report    → Aggregate Execution Logs thành telemetry report
 ```
 
-Validation:
+## Distribution
 
-* Thực hiện tối thiểu 10–20 Task thực tế.
-* AI Review sau mỗi Task.
-* Human Review toàn bộ Proposal.
-* Đo Verification Skip.
-* Đo Convention Violation.
-* Đo Retry Rate.
-* Đánh giá Startup Context.
-* Điều chỉnh Workflow khi có Evidence.
+```
+npx harness-toolkit init
+```
 
-Không bổ sung thêm tính năng nếu chưa có dữ liệu chứng minh cần thiết.
+Hoặc shell script + Python script trong `.harness/toolkit/` — zero external dependency cho Phase 1.
 
----
+## Trách nhiệm
 
-# Phase 2 — Repository Knowledge
+AI phân tích → Toolkit thu thập dữ liệu → Human phê duyệt.
 
-Phase 2 bắt đầu bằng việc AI quan sát Repository hiện tại, Execution Log và dữ liệu thu thập từ Phase 1 để tạo Draft Repository Rules.
-
-Draft Rules phải được Human Review trước khi được phê duyệt.
-
-Chỉ Approved Rules mới trở thành một phần của Repository Knowledge.
-
-Bổ sung:
-
-* Repository Rules
-* Knowledge
-* ADR
-
-Repository Rules được xây dựng từ:
-
-* Existing Repository Pattern
-* Execution Log
-* AI Review
-* Improvement Proposal
-* Human Approval
-
-Knowledge chỉ chứa những thông tin không thể suy ra từ Source Code.
-
-ADR chỉ ghi nhận các quyết định kiến trúc quan trọng.
-
-Mọi Rule mới đều phải có:
-
-* Description
-* Rationale
-* Evidence
-* Confidence
-* Status
-* Last Reviewed
-
-Không có Evidence thì không tạo Rule.
-
-Validation:
-
-* Rule Coverage tăng theo thời gian.
-* Duplicate Implementation giảm.
-* Convention Violation giảm.
-* Repository Knowledge được Human Review định kỳ.
+Toolkit không:
+- Generate Repository Rules
+- Approve Proposals
+- Make Architecture Decisions
+- Review code
 
 ---
 
-# Phase 3 — AI-assisted Governance
+# 27. Adoption Roadmap
 
-Sau khi Repository Knowledge đã ổn định.
-
-AI bắt đầu hỗ trợ quản trị Repository.
-
-Ví dụ:
-
-* Generate hoặc Update Repository Map (Tree-sitter)
-* Detect Repository Rules
-* Suggest Rule Updates
-* Review Rule Quality
-* Detect Repository Pattern
-* Analyze Workflow
-* Analyze Execution Log
-* Generate Improvement Proposal
-
-AI chỉ đưa ra Proposal.
-
-Human luôn là người quyết định cuối cùng.
-
-Validation:
-
-* Proposal Approval Rate.
-* False Positive Rate.
-* Rule Quality.
-* Workflow Improvement.
-* Maintenance Time giảm theo thời gian.
+Triển khai theo hướng Evidence-first. Mỗi Phase chỉ bổ sung thành phần được chứng minh cần thiết.
 
 ---
 
-# Phase 4 — Platform Optimization
+## Phase 1 — Foundation
 
-Sau khi Core Harness ổn định.
+**Mục tiêu:** Thiết lập Harness tối thiểu, bắt đầu thu thập data thực tế.
 
-Tối ưu cho từng nền tảng:
+**Bao gồm:**
 
-* Claude Code
-* Codex
-* Cursor
-* Antigravity
-* Kiro
-* OpenCode
+- AGENTS.md
+- Repository Map (Toolkit-generated draft, Human-approved)
+- Default Workflow
+- Execution Log (thay thế Session)
+- AI Review sau mỗi task
+- proposals.md (backlog)
+- Telemetry (System + Agent)
+- Harness Toolkit (`harness init`, `harness validate`, `harness report`)
 
-Platform Adapter chỉ tối ưu trải nghiệm sử dụng.
+**Repository Map** được tạo bằng `harness init` (file system scan + regex, không cần Tree-sitter). Human review và approve trước khi dùng.
 
-Không thay đổi:
+**AI Review ở Phase 1** chỉ propose:
+- Repository Map updates
+- Workflow improvements
+- Rule candidates (deferred to Phase 2, lưu vào proposals.md)
 
-* Repository Knowledge
-* Workflow
-* Governance Model
-* Core Architecture
+**Continuous Improvement loop** chạy từ Phase 1 với Async model:
+- Agent append proposals sau mỗi task
+- Human review khi trigger: ≥5 pending proposals, hoặc verification failure rate >20%, hoặc cuối sprint
 
-Core Harness vẫn giữ hoàn toàn Vendor-independent.
+**Validation (10–20 tasks thực tế):**
+- Đo Verification Skip Rate
+- Đo Convention Violation Rate
+- Đo Retry Rate
+- Đánh giá Startup Context Size
+- Đánh giá AI Review quality
+- Điều chỉnh Workflow khi có Evidence
 
 ---
 
-# 26. Future Evolution
+## Phase 2 — Repository Knowledge
 
-Chỉ bổ sung khi có ít nhất **ba use case thực tế**.
+**Bắt đầu khi:** Phase 1 hoàn thành với ít nhất 20 tasks. Có đủ Execution Logs và Rule Candidate Proposals để bootstrap Rules.
 
-Ví dụ:
+**Workflow khởi tạo Rules:**
 
-* Repository Map Generator
-* Repository Rule Generator
-* Workflow Analyzer
-* Rule Quality Analyzer
-* Semantic Search
-* LSP Integration
-* Sandbox (Opt-in)
-* Platform-specific Extensions
+```
+AI đọc Execution Logs từ Phase 1
+      │
+      ▼
+AI đọc Rule Candidate Proposals trong proposals.md
+      │
+      ▼
+AI generate Draft Rules với Evidence
+      │
+      ▼
+Human Review
+      │
+      ▼
+Approved Rules → .harness/repository-rules/
+```
+
+**Bổ sung:**
+- Repository Rules (path-scoped, lazy-loaded)
+- Knowledge base
+- ADR
+
+**Validation:**
+- Rule Coverage tăng theo thời gian
+- Duplicate Implementation giảm
+- Convention Violation giảm
+- Human Review định kỳ
+
+---
+
+## Phase 3 — AI-assisted Governance
+
+**Bắt đầu khi:** Repository Knowledge ổn định. Rules đã Approved. AI có đủ context để assist governance.
+
+**Bổ sung:**
+- Auto Repository Map update (Tree-sitter)
+- AI-assisted Rule detection và quality review
+- Workflow analysis từ Execution Logs
+- Platform-specific adapter optimization
+
+AI chỉ đưa ra Proposals. Human luôn là người quyết định.
+
+**Validation:**
+- Proposal Approval Rate
+- False Positive Rate
+- Maintenance Time giảm
+
+---
+
+## Phase 4 — Platform Optimization
+
+**Bắt đầu khi:** Core Harness ổn định trên ≥3 repositories.
+
+Tối ưu cho từng platform. Core Harness không thay đổi.
+
+---
+
+# 28. Future Evolution
+
+Chỉ bổ sung khi có ít nhất ba use case thực tế:
+
+- Repository Map Generator (AST / Tree-sitter)
+- Repository Rule Generator
+- Workflow Analyzer
+- Semantic Search
+- LSP Integration
+- Sandbox (Opt-in, Docker)
+- Platform-specific Extensions
 
 Không phát triển trước nhu cầu.
 
 ---
 
-# 27. Summary
+# 29. Summary
 
-Harness được xây dựng trên sáu thành phần cốt lõi.
-
-```text
+```
 Repository
       │
       ▼
 Repository Knowledge
+(Map + Rules + Knowledge + ADR)
       │
       ▼
 Workflow
+(Explore → Classify → Plan → Implement → Verify → Log+Review)
       │
       ▼
 Execution Log
+(Audit Trail + Recovery State)
       │
       ▼
 Continuous Improvement
+(AI Review → Proposals → Human Review → Update Knowledge)
       │
       ▼
 AI Execution
 ```
 
-Trong đó:
+| Role | Responsibility |
+|---|---|
+| Repository | Nguồn sự thật duy nhất |
+| Repository Knowledge | Toàn bộ tri thức của Repository |
+| Workflow | Chuẩn hóa cách AI làm việc |
+| Execution Log | Audit trail + Recovery state |
+| Proposals | Backlog cải tiến chờ Human Review |
+| Toolkit | Thu thập dữ liệu deterministic |
+| AI | Execution Engine + Review Engine |
+| Human | Governance Engine — quyết định cuối cùng |
 
-* **Repository** là nguồn sự thật.
-* **Repository Knowledge** quản lý toàn bộ tri thức của Repository.
-* **Workflow** chuẩn hóa cách AI thực hiện công việc.
-* **Execution Log** ghi nhận toàn bộ quá trình thực thi.
-* **Continuous Improvement** chuyển dữ liệu thành đề xuất cải tiến.
-* **AI** là Execution Engine, còn **Human** là Governance Engine.
-
-Triết lý của Harness là:
-
-> **Chuẩn hóa cách AI làm việc trên Repository và liên tục cải tiến Repository Knowledge thông qua AI Review và Human Approval.**
-
+> **Triết lý:** Chuẩn hóa cách AI làm việc trên Repository và liên tục cải tiến Repository Knowledge thông qua AI Review và Human Approval.
