@@ -5,102 +5,142 @@
 
 ---
 
-# 1. Purpose
+# 1. Capability Model & Taxonomy
 
-Tài liệu này định nghĩa Runtime Capability Contract của Harness.
+## 1.1 Purpose
+Tài liệu này định nghĩa Runtime Capability Contract của Harness. Capability là hợp đồng (contract) mô tả một khả năng mà Runtime có thể cung cấp cho AI Client, độc lập hoàn toàn với công nghệ cài đặt.
 
-Capability Specification chuẩn hóa hành vi mà một Harness Runtime phải cung cấp để triển khai Harness Specification.
+## 1.2 Capability Model Definition
+- **Capability NOT**: Capability không phải là một CLI command cụ thể, một MCP tool cụ thể, một plugin, hay một workflow logic.
+- **Capability IS**: Là hợp đồng giao dịch logic quy định định danh (Identity), tham số đầu vào (Inputs Contract), điều kiện tiên quyết (Preconditions), kết quả trả về (Outputs Contract) và các mã lỗi (Error Contract).
+- **Implementation**: Một Capability có thể được cài đặt thông qua CLI subprocess, MCP tool server, REST API, gRPC API hoặc SDK native functions.
 
-Tài liệu này không quy định cách triển khai.
+Mỗi Capability bắt buộc phải có:
+- **Identity**: Định danh duy nhất viết thường (ví dụ: `read_file`).
+- **Name**: Tên hiển thị thân thiện.
+- **Version**: Phiên bản SemVer.
+- **Category**: Nhóm chức năng (Repository, Context, Execution,...).
+- **Description**: Mô tả tác vụ thực hiện.
+- **Contract Schema**: Khai báo JSON Schema cho tham số đầu vào và đầu ra.
 
-Runtime có thể sử dụng bất kỳ công nghệ nào miễn là đáp ứng Capability Contract.
+## 1.3 Capability Taxonomy
+Đặc tả phân loại và chuẩn hóa các Capability thành 6 nhóm cốt lõi:
+
+### 1. Repository Capabilities
+- `read_file`: Đọc nội dung tệp tin.
+- `write_file`: Ghi hoặc tạo mới tệp tin.
+- `list_directory`: Liệt kê tệp tin.
+- `find_files`: Quét tìm tệp theo pattern.
+
+### 2. Context Capabilities
+- `get_repository_map`: Trả về sơ đồ cây thư mục dự án.
+- `resolve_context`: Lọc và rank tri thức rules, adr phù hợp cho task.
+
+### 3. Execution Capabilities
+- `execute_command`: Chạy shell command trong repository sandbox.
+- `validate_compliance`: Chạy conformance test suite kiểm tra cấu trúc `.harness/`.
+
+### 4. Governance Capabilities
+- `create_proposal`: Tạo đề xuất thay đổi tri thức cục bộ.
+- `submit_evidence`: Đóng gói log và kết quả làm bằng chứng.
 
 ---
 
-# 2. Design Principles
+# 2. Dynamic Resolution & Permission Model
 
-Capability Specification tuân thủ các nguyên tắc sau.
-
-- **Contract First** — Chuẩn hóa hành vi thay vì implementation.
-- **Platform Independent** — Không phụ thuộc AI Platform.
-- **Composable** — Capability có thể kết hợp thành Workflow.
-- **Replaceable** — Runtime có thể thay thế mà không ảnh hưởng Repository.
-- **Deterministic** — Cùng Input nên tạo cùng Output.
-
----
-
-# 3. Capability Lifecycle
-
-Mọi Capability đều tuân theo vòng đời chung.
+## 2.1 Dynamic Capability Resolution Flow
+Khi AI Client yêu cầu thực thi một Capability, Runtime thực hiện phân giải động theo các bước:
 
 ```text
-Requested
-      │
-      ▼
-Validated
-      │
-      ▼
-Running
-      │
-      ├────────► Failed
-      │
-      ▼
-Completed
+Yêu cầu Capability Name ──► Kiểm tra Registry ──► Khớp Version ──► Kiểm tra Permission ──► Định tuyến Provider ──► Thực thi
 ```
 
-Nếu Validation thất bại, Runtime phải trả về Error.
+1. **Discovery**: Runtime tra cứu Capability Name trong registry cục bộ và Shared packages.
+2. **Version Matching**: So khớp phiên bản yêu cầu. Nếu có nhiều provider, ưu tiên bản khớp cấu hình trong manifest.
+3. **Permission Check**: Runtime đối chiếu Capability yêu cầu với phân quyền được cấp.
+4. **Routing**: Trỏ đến code thực thi tương ứng (Provider path).
+5. **Conflict & Fallback**: Nếu hai plugin cung cấp cùng một Capability name:
+   - Ưu tiên provider được khai báo cục bộ (Local override).
+   - Nếu không có, ném lỗi `CapabilityConflict` và dừng lại (không tự suy đoán).
+
+## 2.2 Capability Permission Model
+Mỗi Capability yêu cầu một mức đặc quyền (Permission Levels) cố định. Runtime bắt buộc phải kiểm tra quyền trước khi chạy:
+
+| Permission Name | Scope | Capability Whitelist | Security Isolation |
+|---|---|---|---|
+| `read_repo` | Read-only | `read_file`, `list_directory`, `get_repository_map` | Giới hạn trong Project Directory. |
+| `write_repo` | Read-write | `write_file` | Cấm sửa đổi thư mục Git metadata `.git/` và approved rules. |
+| `execute` | Shell execution | `execute_command` | MUST run trong Sandbox, cấm quyền root. |
+| `network` | Network access | `install_package`, `publish_package` | Phải khai báo URI whitelist trong manifest. |
+| `governance` | Write proposals | `create_proposal`, `submit_evidence` | Cho phép ghi vào `.harness/proposals/`. |
 
 ---
 
-# 4. Common Capability Contract
+# 3. Invocation, Result & Error Model
 
-Mọi Capability phải định nghĩa theo cấu trúc sau.
+## 3.1 Invocation Model
+Runtime hỗ trợ 3 mô hình gọi Capability:
+- **Synchronous (Sync)**: Chờ xử lý xong và trả kết quả ngay (ví dụ: `read_file`).
+- **Asynchronous (Async)**: Trả về Task ID lập tức, chạy ngầm và cho phép polling status (ví dụ: `validate_compliance` chạy test suite dài).
+- **Streaming**: Trả về dữ liệu liên tục theo dòng dữ liệu (ví dụ: log output của test runner).
 
-## Purpose
+Mọi Invocation phải qua 5 pha:
+```text
+Validate Input ──► Check Permission ──► Execute ──► Collect Result ──► Emit System Events ──► Clean Temporary Files
+```
 
-Capability dùng để làm gì.
+## 3.2 Standard Result Schema
+Capability không được tự ý thiết kế cấu trúc trả về mà bắt buộc phải trả về JSON khớp schema chuẩn sau:
+```json
+{
+  "capability": "execute_command",
+  "status": "Success",
+  "duration_ms": 1250,
+  "result": {
+    "stdout": "Test run pass.",
+    "stderr": "",
+    "exit_code": 0
+  },
+  "metadata": {
+    "timestamp": "2026-07-10T15:00:00Z",
+    "provider": "native_shell"
+  },
+  "warnings": [],
+  "diagnostics": {}
+}
+```
 
-## Definition
+## 3.3 Capability Error Model
+Khi thất bại, Runtime trả về Error Schema chuẩn:
+```json
+{
+  "capability": "execute_command",
+  "status": "Failed",
+  "error": {
+    "code": "EXECUTION_TIMEOUT",
+    "message": "Command exceeded timeout limit of 300s.",
+    "recoverable": false,
+    "retry_supported": false,
+    "details": {
+      "timeout_limit": 300
+    }
+  }
+}
+```
 
-Capability thực hiện chức năng gì.
-
-## Inputs
-
-Dữ liệu đầu vào.
-
-## Preconditions
-
-Điều kiện phải thỏa mãn trước khi thực hiện.
-
-## Outputs
-
-Dữ liệu đầu ra.
-
-## Postconditions
-
-Điều kiện phải đạt được sau khi hoàn thành.
-
-## Failure Conditions
-
-Các trường hợp Runtime phải trả về lỗi.
-
-## Responsibilities
-
-Những hành vi Runtime bắt buộc phải thực hiện.
-
-## Constraints
-
-Những điều Runtime không được làm.
-
-## Dependencies
-
-Capability phụ thuộc Capability nào.
-
-## Related Specifications
-
-Các Specification liên quan.
+Mã lỗi chuẩn hóa cho Capabilities:
+- `CAPABILITY_NOT_FOUND`: Không có provider nào đăng ký.
+- `PERMISSION_DENIED`: Không đủ quyền chạy.
+- `INVALID_ARGUMENTS`: Tham số đầu vào sai schema JSON.
+- `EXECUTION_FAILED`: Script của provider báo lỗi.
+- `EXECUTION_TIMEOUT`: Quá thời gian timeout cho phép.
 
 ---
+
+# 4. Core Capability Contracts
+
+... (giữ nguyên phần contract chi tiết của từng capability ở phía sau)
+
 
 # 5. Capability Levels
 
@@ -178,9 +218,10 @@ Chuẩn bị Repository để sử dụng Harness Specification.
 
 ## Outputs
 
-- Manifest
-- Agent Configuration
-- Repository Artifact
+- `harness.yaml` tại `.harness/harness.yaml`
+- `AGENTS.md` tại root Repository (nếu chưa tồn tại)
+- `repository-map.md` tại `.harness/repository-map.md` (ở trạng thái Draft)
+- Thư mục `.harness/rules/`, `.harness/knowledge/`, `.harness/adr/`, `.harness/proposals/`
 
 ## Postconditions
 
@@ -234,6 +275,18 @@ Xác định Manifest, Agent Configuration và Repository Artifact.
 ## Outputs
 
 - Repository Context
+
+## Discovery Order
+
+Runtime thực hiện Discovery theo thứ tự sau:
+
+1. Tìm `harness.yaml` tại `.harness/harness.yaml` (default path).
+2. Nếu không tìm thấy, tìm theo Platform-specific path if any.
+3. Parse và validate Manifest.
+4. Resolve tất cả đường dẫn Artifact trong Manifest.
+5. Trả về Repository Context.
+
+Nếu bất kỳ bước nào thất bại, trả về lỗi `MANIFEST_NOT_FOUND` hoặc `INVALID_YAML`.
 
 ## Postconditions
 
@@ -644,6 +697,24 @@ Một Harness Runtime được xem là tương thích khi:
 - Tuân thủ các Specification liên quan.
 
 Runtime có thể triển khai thêm Custom Capability ngoài Specification.
+
+---
+
+# 17. Capability Evolution & Vendor Extension
+
+## 17.1 Capability Evolution Lifecycle
+Mỗi Capability Contract trong đặc tả tuân theo trạng thái tiến hóa sau:
+- **Experimental (Thử nghiệm)**: Capability mới được đề xuất bởi vendor hoặc cộng đồng. Được đánh giá qua các dự án nhỏ. Trạng thái này có thể thay đổi contract không cần tương thích ngược.
+- **Preview (Xem trước)**: Hợp đồng đã tương đối ổn định, chờ feedback rộng rãi.
+- **Stable (Ổn định)**: Khóa cứng contract. Mọi thay đổi của Stable Capability phải tương thích ngược (hoặc nâng Major version của đặc tả).
+- **Deprecated (Khuyến cáo gỡ)**: Đánh dấu lỗi thời, sẽ bị gỡ bỏ trong phiên bản Spec tương lai. Runtime MUST đưa ra cảnh báo (Warning) khi AI gọi capability này.
+- **Removed (Đã xóa)**: Gỡ bỏ hoàn toàn khỏi đặc tả, Runtime không được phép thực thi.
+
+## 17.2 Vendor Extension Rules
+Vendor được quyền bổ sung custom capabilities để phục vụ các IDE hoặc tác vụ riêng biệt:
+- **Namespace Requirement**: Toàn bộ custom capabilities của vendor bắt buộc phải đặt tên kèm tiền tố namespace của vendor để tránh xung đột (ví dụ: `kiro.search`, `claude.memory`, `antigravity.optimize`).
+- **No Override**: Cấm tuyệt đối vendor custom capability sử dụng các tên trùng hoặc ghi đè (override) các chuẩn capability (như `read_file`, `write_file`).
+- **Discovery**: Custom capabilities phải được khai báo tường minh trong manifest dưới trường `vendor_capabilities` để Runtime đăng ký vào registry.
 
 ---
 

@@ -5,300 +5,126 @@
 
 ---
 
-# 1. Purpose
+# 1. Introduction & Onboarding
 
-Tài liệu này hướng dẫn cách áp dụng Harness Specification vào một Repository hoặc Platform.
+## 1.1 Harness là gì?
+Harness là bộ đặc tả giúp chuẩn hóa cách thức con người quản trị các AI coding assistant làm việc trên mã nguồn của dự án (Repository-Centric AI Governance). Thay vì viết promt thủ công hoặc phụ thuộc vào lịch sử chat, Harness lưu trữ quy tắc, kiến thức nghiệp vụ dưới dạng tệp văn bản trong Git để AI tự tìm kiếm, nạp ngữ cảnh và tuân thủ.
 
-Adoption Guide không định nghĩa Specification mới.
+## 1.2 Khi nào nên áp dụng Harness?
+- Khi dự án có nhiều quy tắc code (naming convention, architecture rules) mà AI thường xuyên vi phạm.
+- Khi cần tích lũy tri thức nghiệp vụ (Business Domain Knowledge) lâu dài trong dự án.
+- Khi muốn đảm bảo AI luôn chạy kiểm thử (Verification) trước khi đưa ra thay đổi.
+- Khi cần kiểm soát lịch sử AI thay đổi code thông qua cơ chế phê duyệt rõ ràng.
 
-Mục tiêu là giúp các nhóm triển khai Harness theo cách nhất quán và từng bước.
-
----
-
-# 2. Adoption Principles
-
-Việc áp dụng Harness nên tuân theo các nguyên tắc sau.
-
-- **Incremental** — Áp dụng từng bước.
-- **Repository First** — Chuẩn hóa Repository trước.
-- **Specification Driven** — Tuân thủ Specification.
-- **Platform Independent** — Không phụ thuộc AI Platform.
-- **Continuous Improvement** — Cải tiến liên tục.
+## 1.3 Cần cài đặt những gì?
+- **Harness CLI**: Bộ công cụ dòng lệnh cài trên máy cục bộ của Developer hoặc CI/CD runner.
+- **MCP Server (tùy chọn)**: Nếu bạn dùng các AI Client hỗ trợ MCP như Claude Code, Cline, Roo Code.
+- **Shared Harness Package (tùy chọn)**: Gói quy tắc chung của công ty.
 
 ---
 
-# 3. Adoption Levels
+# 2. Deployment Architecture Flow
 
-Harness có thể được áp dụng theo nhiều mức.
-
-| Level | Description |
-|--------|-------------|
-| Level 1 | Repository được chuẩn hóa |
-| Level 2 | AI sử dụng Repository Knowledge |
-| Level 3 | Workflow tuân thủ Execution Model |
-| Level 4 | Governance được áp dụng |
-| Level 5 | Runtime tự động hóa toàn bộ Harness |
-
-Mỗi Repository có thể dừng ở bất kỳ Level nào.
-
----
-
-# 4. Level 1 – Repository Standardization
-
-## Goal
-
-Chuẩn hóa Repository theo Harness Specification.
-
-### Required Tasks
-
-- Tạo Manifest.
-- Tạo Agent Configuration.
-- Tạo Repository Knowledge.
-- Chuẩn hóa Artifact.
-
-### Success Criteria
-
-- Repository có Manifest hợp lệ.
-- AI có thể khám phá Repository.
-- Repository Knowledge được tổ chức theo Specification.
-
----
-
-# 5. Level 2 – Knowledge-Driven AI
-
-## Goal
-
-Cho phép AI sử dụng Repository Knowledge.
-
-### Required Tasks
-
-- Hoàn thiện Repository Map.
-- Hoàn thiện Repository Rules.
-- Bổ sung Knowledge.
-- Ghi nhận ADR.
-
-### Success Criteria
-
-- AI có thể đọc Repository Knowledge.
-- AI giảm phụ thuộc vào Prompt thủ công.
-- Repository Knowledge được cập nhật thường xuyên.
-
----
-
-# 6. Level 3 – Standardized Execution
-
-## Goal
-
-Áp dụng Execution Model.
-
-### Required Tasks
-
-- Chuẩn hóa Task.
-- Chuẩn hóa Execution Workflow.
-- Chuẩn hóa Execution Result.
-
-### Success Criteria
-
-- AI thực hiện Task theo Execution Model.
-- Execution Result nhất quán.
-- Workflow có thể lặp lại.
-
----
-
-# 7. Level 4 – Governance
-
-## Goal
-
-Quản lý và cải tiến Repository Knowledge.
-
-### Required Tasks
-
-- Thu thập Evidence.
-- Thực hiện Review.
-- Tạo Proposal.
-- Cập nhật Repository Knowledge.
-
-### Success Criteria
-
-- Repository Knowledge được kiểm soát.
-- Thay đổi có Evidence.
-- Thay đổi được Review trước khi áp dụng.
-
----
-
-# 8. Level 5 – Runtime Automation
-
-## Goal
-
-Tự động hóa Harness.
-
-### Required Tasks
-
-- Triển khai Harness Runtime.
-- Validate Repository.
-- Tự động Discovery.
-- Tự động Report.
-- Thu thập Metrics.
-
-### Success Criteria
-
-- Runtime hỗ trợ Required Capability.
-- Workflow được tự động hóa.
-- Harness được tích hợp vào quy trình phát triển.
-
----
-
-# 9. Recommended Adoption Roadmap
+Luồng triển khai và phân phối tri thức trong Harness:
 
 ```text
-Repository
-      │
-      ▼
-Manifest
-      │
-      ▼
-Agent Configuration
-      │
-      ▼
-Repository Knowledge
-      │
-      ▼
-Execution
-      │
-      ▼
-Governance
-      │
-      ▼
-Automation
+Harness Spec (Logic Chuẩn)
+     │
+     ▼
+Shared Harness Repo (Tri thức dùng chung của Công ty)
+     │ (CLI package)
+     ▼
+Tool Global Workspace (Cache ~/.kiro/ trên máy trạm Developer)
+     │
+     ▼ [CLI Resolve & Merge]
+Unified Workspace ◄─── Project Repository (.harness/ cục bộ & Source code)
+(Không gian tri thức của AI)
 ```
 
-Không nên triển khai toàn bộ Specification trong một lần.
-
-Nên hoàn thành từng giai đoạn trước khi chuyển sang giai đoạn tiếp theo.
-
----
-
-# 10. Repository Checklist
-
-Một Repository nên đáp ứng các tiêu chí sau.
-
-### Foundation
-
-- [ ] Manifest
-- [ ] Agent Configuration
-- [ ] Repository Map
-- [ ] Repository Rules
-
-### Knowledge
-
-- [ ] Knowledge
-- [ ] ADR
-
-### Execution
-
-- [ ] Execution Model
-- [ ] Execution Result
-
-### Governance
-
-- [ ] Evidence
-- [ ] Review
-- [ ] Proposal
+- **Shared Repository**: Team DevOps/Platform duy trì các rule chung.
+- **Tool Global Workspace**: Bộ đệm cục bộ giúp AI truy cập offline nhanh chóng.
+- **Project Repository**: Chứa `.harness/harness.yaml` khai báo dependency imports và các rules đặc thù cục bộ.
 
 ---
 
-# 11. Runtime Checklist
+# 3. Quick Start Guide (5 Bước)
 
-Một Harness Runtime nên đáp ứng các tiêu chí sau.
+### Bước 1: Khởi tạo CLI và cấu hình Workspace
+Cài đặt Harness CLI (ví dụ: `npm install -g @kiro/harness-cli` hoặc binary tương đương).
 
-### Required
+### Bước 2: Tạo dự án tri thức dùng chung (Shared Harness)
+1. Tạo thư mục mới và chạy lệnh khởi tạo Shared Harness:
+   ```bash
+   harness init --shared --path ./shared-assets
+   ```
+2. Soạn thảo các rule lập trình trong `shared-assets/rules/naming-rules.md`.
+3. Đóng gói và publish lên Git server hoặc package registry:
+   ```bash
+   harness build
+   harness publish --uri "https://github.com/my-org/shared-harness.git"
+   ```
 
-- [ ] Discovery
-- [ ] Read
-- [ ] Execute
+### Bước 3: Khởi tạo Harness trong Project Repository
+Di chuyển vào thư mục dự án nguồn của bạn và chạy:
+```bash
+harness init
+```
+CLI sẽ tự động tạo ra file `AGENTS.md` tại thư mục gốc và thư mục cấu hình cục bộ `.harness/`.
 
-### Recommended
+### Bước 4: Khai báo imports Shared Harness
+Mở tệp `.harness/harness.yaml` vừa sinh ra và khai báo:
+```yaml
+version: 1
+specification: "1.1"
+repository:
+  root: "."
+agent:
+  repository: "AGENTS.md"
+sources:
+  - id: shared-core
+    type: git
+    uri: "https://github.com/my-org/shared-harness.git"
+    version: "v1.0.0"
+artifacts:
+  - type: repository-map
+    path: ".harness/repository-map.md"
+  - type: rule
+    path: ".harness/rules/"
+```
+Chạy lệnh tải và đồng bộ:
+```bash
+harness resolve
+```
 
-- [ ] Bootstrap
-- [ ] Validate
-- [ ] Review
-
-### Optional
-
-- [ ] Update
-- [ ] Report
-- [ ] Metrics
-
----
-
-# 12. Migration Strategy
-
-Đối với Repository hiện có.
-
-### Step 1
-
-Thêm Manifest.
-
-### Step 2
-
-Thêm Agent Configuration.
-
-### Step 3
-
-Tạo Repository Knowledge.
-
-### Step 4
-
-Chuẩn hóa Artifact.
-
-### Step 5
-
-Áp dụng Execution Model.
-
-### Step 6
-
-Áp dụng Governance.
-
-### Step 7
-
-Tích hợp Harness Runtime.
-
----
-
-# 13. Common Pitfalls
-
-Các lỗi phổ biến khi áp dụng Harness.
-
-- Thiếu Repository Knowledge.
-- Không cập nhật Repository Knowledge sau thay đổi.
-- Đặt quá nhiều thông tin vào Agent Configuration.
-- Không sử dụng Manifest làm nguồn cấu hình duy nhất.
-- Bỏ qua Governance Workflow.
-- Phụ thuộc vào Prompt thay vì Repository Knowledge.
+### Bước 5: Thực hiện Task đầu tiên với AI
+1. AI Agent đọc tệp `AGENTS.md` tại root dự án để hiểu cách nạp tri thức Harness.
+2. AI Agent gọi tool `harness_resolve_context` để nạp rules và repository-map vào prompt ngữ cảnh.
+3. AI tiến hành thay đổi code, chạy test kiểm chứng.
+4. AI tạo Proposal nháp lưu trong `.harness/proposals/` đề xuất cập nhật tri thức nếu phát hiện quy luật mới.
+5. Con người phê duyệt Proposal qua Git pull request hoặc lệnh CLI:
+   ```bash
+   harness approve <proposal-id>
+   ```
 
 ---
 
-# 14. Best Practices
+# 4. Adoption Levels
 
-- Giữ Repository Knowledge ngắn gọn và chính xác.
-- Chỉ lưu tri thức có giá trị lâu dài.
-- Cập nhật Knowledge thông qua Governance Workflow.
-- Chuẩn hóa Artifact theo Template.
-- Để Runtime xử lý Discovery và Validation.
-- Để AI tập trung vào Execution.
+Harness hỗ trợ triển khai tiệm tiến theo các mức:
+
+| Level | Name | Focus | Required Artifacts |
+|---|---|---|---|
+| **Level 1** | Standardized Repo | Chuẩn hóa cấu trúc vật lý | `AGENTS.md`, `harness.yaml` |
+| **Level 2** | Knowledge-Driven | AI đọc tri thức thay vì chat | `repository-map.md`, `rules/` |
+| **Level 3** | Verified Exec | Bắt buộc chạy test trước khi pass | `logs/`, test capabilities |
+| **Level 4** | Governed Evolution | Quản lý đề xuất và phê duyệt tri thức | `proposals/`, human approval |
 
 ---
 
-# 15. Relationship to Other Specifications
+# 5. Relationship to Other Specifications
 
 | Document | Responsibility |
 |----------|----------------|
-| 02. REPOSITORY MODEL | Repository Knowledge |
-| 03. EXECUTION MODEL | Execution Workflow |
-| 04. GOVERNANCE MODEL | Knowledge Governance |
-| 05. PLATFORM MODEL | Runtime Architecture |
-| 06. AGENT CONFIGURATION | Agent Configuration |
-| 08. MANIFEST SPECIFICATION | Repository Discovery |
-| 09. RUNTIME CAPABILITY SPECIFICATION | Runtime Capability Contract |
-
-Adoption Guide cung cấp lộ trình triển khai Harness Specification, giúp Repository và Harness Runtime được áp dụng từng bước một cách nhất quán và bền vững.
+| 02. REPOSITORY MODEL | Định nghĩa chi tiết cấu trúc 3 loại repository |
+| 03. EXECUTION MODEL | Định nghĩa máy trạng thái thực thi task |
+| 13. EXAMPLE REPOSITORY | Ví dụ code và cấu hình tối giản chạy thử |

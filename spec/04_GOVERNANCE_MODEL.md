@@ -5,336 +5,174 @@
 
 ---
 
-# 1. Purpose
+# 1. Purpose & Governance Overview
 
-Tài liệu này định nghĩa cách Repository Knowledge được quản trị và phát triển.
+## 1.1 Purpose
+Governance Model định nghĩa cách thức quản trị, kiểm soát chất lượng và điều phối sự thay đổi của Repository Knowledge trong hệ sinh thái Harness. Mục tiêu là đảm bảo mọi tri thức (Rules, ADR, Map) đều phát triển một cách an toàn, có kiểm chứng và có sự phê duyệt của con người.
 
-Governance Model chuẩn hóa các Entity và quy trình giúp Repository Knowledge được cải tiến một cách có kiểm soát, có thể kiểm chứng và phát triển liên tục.
-
-Governance Model không thực hiện Task.
-
-Governance Model chỉ xử lý kết quả của Execution.
-
----
-
-# 2. Governance Principles
-
-Governance Model tuân thủ các nguyên tắc sau.
-
-- **Evidence First** — Mọi quyết định phải dựa trên Evidence.
-- **Human Approval** — Chỉ con người có quyền phê duyệt Repository Knowledge.
-- **Continuous Improvement** — Repository Knowledge được cải tiến liên tục.
-- **Repository First** — Luôn ưu tiên lợi ích lâu dài của Repository.
-- **Traceability** — Mọi thay đổi phải có nguồn gốc rõ ràng.
+## 1.2 Responsibilities
+- **MUST**: Quản lý quy trình thay đổi thông qua Proposals.
+- **MUST**: Kiểm soát chất lượng thông qua Reviews và Evidence.
+- **MUST**: Kiểm soát quyền chỉnh sửa chặt chẽ giữa AI và Human.
+- **MUST**: Cung cấp cơ chế Audit log bất biến (immutable traces).
+- **MUST NOT**: Can thiệp vào Runtime Execution hoặc Capability Engine.
 
 ---
 
-# 3. Governance Flow
+# 2. Governance Roles & Ownership Model
 
-Sau khi Execution hoàn thành, Governance xử lý kết quả theo vòng đời sau.
+## 2.1 Governance Roles
+Hệ thống phân định 3 vai trò (Roles) cốt lõi tham gia vận hành:
+
+### 1. Repository Owner (Human)
+- **Purpose**: Con người sở hữu cao nhất đối với Project Repository.
+- **Responsibilities**: Đưa ra quyết định cuối cùng, phê duyệt/từ chối các Proposals, cập nhật cấu hình manifest.
+- **Permissions**: Full Access (Đọc/Ghi/Approve/Reject/Override).
+- **Restrictions**: Phải chịu trách nhiệm trước các vi phạm Conformance.
+
+### 2. Reviewer (Human)
+- **Purpose**: Thành viên chuyên môn tham gia thẩm định.
+- **Responsibilities**: Đọc đề xuất, chạy thử nghiệm kiểm chứng và đưa ra quyết định Review (Approve/Request Changes).
+- **Permissions**: Đọc tri thức, viết Review, đề xuất sửa đổi.
+- **Restrictions**: Cấm tự ý merge Proposals nếu không có quyền Approver.
+
+### 3. AI Agent
+- **Purpose**: Tác nhân AI thực thi tác vụ.
+- **Responsibilities**: Chạy task, phát hiện lỗi tri thức, sinh đề xuất Proposal mới ở dạng nháp.
+- **Permissions**: Read-only đối với rules/adr cục bộ và shared. Quyền ghi nháp vào thư mục `proposals/`.
+- **Restrictions**: Tuyệt đối không có quyền tự duyệt (self-approval), tự merge hoặc sửa trực tiếp các tệp tin tri thức đã được duyệt.
+
+## 2.2 Artifact Ownership Matrix
+
+Quyền hạn đối với từng loại tài sản (Artifact) được phân vai rõ rệt:
+
+| Artifact | Owner | Editor | Reviewer | Approver | Runtime Permission | CLI Permission |
+|---|---|---|---|---|---|---|
+| **Manifest** | Repository Owner | Human | Human | Repository Owner | Read-only | Read/Write (CLI upgrade) |
+| **Repo Map** | Project Team | Human / AI | Human | Repository Owner | Read-only | Read/Write (CLI sync) |
+| **Rule** | Project Lead | Human | Human | Project Lead | Read-only | Read-only |
+| **ADR** | Architect | Human | Human | Architect | Read-only | Read-only |
+| **Proposal** | Creator (AI/Human) | Creator | Human | Repository Owner | Read/Write (Draft) | Read/Write (Draft) |
+| **Logs** | Runtime Engine | Runtime | Human | None | Read/Write (Append) | Read-only |
+
+---
+
+# 3. Change Classification & Risk Levels
+
+Mọi đề xuất thay đổi tri thức đều phải được phân loại để xác định quy trình phê duyệt:
+
+| Change Type | Target Artifact | Risk Level | Review Requirement | Approval Requirement | Rollback Requirement |
+|---|---|---|---|---|---|
+| **Documentation** | Knowledge topic | **Low** | 1 Reviewer | Auto-approve if tests pass | Git revert |
+| **Rule Update** | Repository Rule | **Medium** | 1 Peer Reviewer | Human Approval required | Revert change and re-verify |
+| **Manifest Update** | `harness.yaml` | **High** | 2 Peer Reviewers | Repo Owner Approval | CLI repair / restore config |
+| **Shared Package** | Shared sources | **Critical** | Core Platform Team | Organization Owner | Revert registry package |
+
+---
+
+# 4. Proposal Model & Lifecycle
+
+## 4.1 Proposal Structure
+Mỗi Proposal được lưu dưới dạng một tệp Markdown trong `.harness/proposals/` và có cấu trúc:
+- **Identity (ID)**: Chuỗi định danh dạng `<YYYYMMDD>-<title-slug>.md`.
+- **Author**: Định danh người hoặc AI tạo đề xuất (ví dụ: `agent::gemini`).
+- **Target**: Artifact ID cần thay đổi.
+- **Reason**: Lý do thực hiện thay đổi.
+- **Evidence**: Liên kết đến tệp log chứa bằng chứng.
+- **Status**: Trạng thái hiện tại.
+
+## 4.2 Proposal Lifecycle State Machine
 
 ```text
-Execution Result
-        │
-        ▼
-Evidence
-        │
-        ▼
-Review
-        │
-        ▼
-Proposal
-        │
-        ▼
-Human Approval
-        │
-        ▼
-Repository Knowledge
+[Draft] ──► [Submitted] ──► [Reviewing] ──► [Approved] ──► [Implemented] ──► [Closed]
+                                 │
+                                 ├──► [Rejected]
+                                 └──► [Changes Requested]
 ```
 
-Chỉ những Proposal được phê duyệt mới được cập nhật vào Repository Knowledge.
+- **Draft**: AI tạo đề xuất, lưu tạm trong `proposals/`.
+- **Submitted**: Gửi đề xuất, sẵn sàng cho con người review.
+- **Reviewing**: Reviewer đang xem xét và chạy verify.
+- **Approved**: Được Approver ký duyệt.
+- **Implemented**: Runtime hoặc CLI tự động merge nội dung vào thư mục chính thức (`rules/`, `adr/`).
+- **Closed**: Lưu trữ proposal đã xong.
+- **Rejected**: Đề xuất bị từ chối, đóng băng tệp và không được merge.
 
 ---
 
-# 4. Governance Entity Classification
+# 5. Review & Approval Model
 
-Governance Model bao gồm các Entity sau.
+## 5.1 Review Decision Model
+Reviewer đưa ra một trong các quyết định sau:
+- **Approve**: Đạt yêu cầu, chuyển tiếp lên chain phê duyệt.
+- **Reject**: Không đạt, đóng Proposal.
+- **Request Changes**: Yêu cầu AI/Tác giả sửa đổi nội dung và gửi lại.
+- **Need More Info**: Yêu cầu bổ sung thêm Evidence.
 
-| Entity | Purpose |
-|---------|---------|
-| Evidence | Bằng chứng hỗ trợ việc ra quyết định |
-| Review | Đánh giá kết quả của Execution |
-| Proposal | Đề xuất thay đổi Repository Knowledge |
-| Knowledge Update | Cập nhật Repository Knowledge sau khi được phê duyệt |
+## 5.2 Approval Chain & Threshold
+- **Threshold**: Các thay đổi có rủi ro từ mức Medium trở lên bắt buộc phải có chữ ký số hoặc phê duyệt bằng lệnh CLI của con người (Human Approval).
+- **Automatic Approval**: Chỉ được áp dụng đối với các tệp tin Descriptive Knowledge bổ trợ (Low risk) khi toàn bộ conformance validator check đạt 100% PASS.
 
-Các Entity này tạo thành quá trình cải tiến Repository Knowledge.
+## 5.3 Approval Detection Mechanism
 
----
+Runtime phát hiện thay đổi trạng thái Proposal qua hai cơ chế:
 
-# 5. Entity Specifications
+**1. File-based Polling (Default)**
+- Runtime poll thư mục `.harness/proposals/` mỗi 60 giây.
+- Approval được xác nhận khi trường `status` trong frontmatter của Proposal thay đổi từ `submitted` sang `approved` (do Human sửa thủ công hoặc CLI `harness approve <id>`).
 
-## 5.1 Evidence
-
-### Purpose
-
-Cung cấp cơ sở để đánh giá và ra quyết định.
-
-### Definition
-
-Evidence là thông tin được thu thập trong quá trình Execution nhằm hỗ trợ Review và Proposal.
-
-### Responsibilities
-
-- Hỗ trợ xác minh kết quả.
-- Hỗ trợ Review.
-- Hỗ trợ Proposal.
-
-### Required Contents
-
-- Source
-- Observation
-- Reference
-
-### Lifecycle
-
-```text
-Collect
-    │
-    ▼
-Review
-    │
-    ▼
-Use
+**2. CLI Command (Recommended)**
+Human chạy lệnh:
+```bash
+harness approve <proposal-id>   # Approve
+harness reject <proposal-id>    # Reject
 ```
+CLI cập nhật trường Status và Runtime tự động nhận ra thay đổi ở poll cycle tiếp theo.
 
-### Constraints
+### Timeout Behavior
+Khi Human Approval Timeout (mặc định 24h) hết hạn mà Proposal vẫn ở trạng thái `submitted`:
+- Task chuyển sang `Failed (Terminal)` với lý do `ApprovalTimeout`.
+- Proposal KHÔNG bị xóa — vẫn nằm ở `proposals/` với status `TimedOut`.
+- AI có thể tạo lại Proposal mới cho Task tiếp theo.
 
-- Phải có nguồn gốc rõ ràng.
-- Phải có thể kiểm chứng.
-- Không được tạo từ giả định.
-- Không phải Repository Knowledge.
+## 5.4 Auto-Approve Eligibility
+Auto-approve CHỈ được phép khi Runtime đạt Level 3 (Full Compliance).
 
-### Related Components
+| Compliance Level | Auto-Approve | Manual Approve |
+|---|---|---|
+| Level 1 (Core) | ❌ Không được phép | ✅ Bắt buộc với mọi Proposal |
+| Level 2 (Standard) | ❌ Không được phép | ✅ Bắt buộc với mọi Proposal |
+| Level 3 (Full) | ✅ Chỉ với Low-risk + tests 100% PASS | ✅ Medium/High/Critical |
 
-- Execution Result
-- Review
-- Proposal
-
----
-
-## 5.2 Review
-
-### Purpose
-
-Đánh giá chất lượng và tính đúng đắn của Execution.
-
-### Definition
-
-Review là quá trình phân tích Execution Result và Evidence nhằm xác định có cần cải tiến Repository Knowledge hay không.
-
-### Responsibilities
-
-- Đánh giá kết quả.
-- Phân tích Evidence.
-- Xác định cơ hội cải tiến.
-- Tạo Proposal nếu cần.
-
-### Required Contents
-
-- Findings
-- Supporting Evidence
-- Recommendation
-
-### Lifecycle
-
-```text
-Start
-   │
-   ▼
-Analyze
-   │
-   ▼
-Complete
-```
-
-### Constraints
-
-- Phải dựa trên Evidence.
-- Không cập nhật Repository Knowledge trực tiếp.
-- Có thể không tạo Proposal nếu không cần thiết.
-
-### Related Components
-
-- Evidence
-- Proposal
-- Execution Result
+Level 1 và Level 2 Runtime MUST từ chối tự động merge Proposal bất kể risk level.
 
 ---
 
-## 5.3 Proposal
+# 6. Conflict Resolution & Audit Model
 
-### Purpose
+## 6.1 Conflict Resolution
+- **AI-AI Conflict**: Nếu hai AI sửa đổi cùng một tệp Rule cục bộ, Runtime so khớp checksum và thời gian nạp. Sửa đổi sau sẽ bị báo lỗi `ConflictDetected`.
+- **Merge Conflict**: Khi có xung đột git merge, con người (Human Owner) bắt buộc phải đứng ra giải quyết thủ công bằng Git.
+- **Shared vs Local Conflict**: Tri thức Local luôn có độ ưu tiên cao nhất và ghi đè Shared.
 
-Đề xuất thay đổi Repository Knowledge.
+## 6.2 Audit & Traceability Model
+Để phục vụ việc kiểm toán (Audit), mọi hoạt động thay đổi phải ghi nhận đầy đủ các thông tin:
+- **Who**: Tên tác nhân thực hiện (Human ID hoặc Agent ID).
+- **When**: Timestamp ISO 8601.
+- **What**: File diff (Before vs After).
+- **Why**: Lý do thay đổi nghiệp vụ.
+- **Evidence**: Log chạy test kiểm chứng.
 
-### Definition
-
-Proposal mô tả một thay đổi được đề xuất dựa trên kết quả Review.
-
-### Responsibilities
-
-- Mô tả thay đổi.
-- Giải thích lý do.
-- Liên kết với Evidence.
-
-### Required Contents
-
-- Target Artifact
-- Change
-- Rationale
-- Supporting Evidence
-
-### Lifecycle
-
-```text
-Draft
-   │
-   ▼
-Review
-   │
-   ▼
-Approved
-   │
-   ├────────► Rejected
-   ▼
-Ready for Update
-```
-
-### Constraints
-
-- Phải tham chiếu ít nhất một Evidence.
-- Không được áp dụng trực tiếp.
-- Phải được Human phê duyệt.
-
-### Related Components
-
-- Evidence
-- Review
-- Knowledge Update
+Các tệp Audit log này được commit trực tiếp vào Git lịch sử của Repository để đảm bảo tính bất biến (Immutability) và khả năng truy vết lâu dài (Traceability).
 
 ---
 
-## 5.4 Knowledge Update
-
-### Purpose
-
-Cập nhật Repository Knowledge sau khi Proposal được phê duyệt.
-
-### Definition
-
-Knowledge Update là quá trình áp dụng Proposal vào Repository Knowledge.
-
-### Responsibilities
-
-- Cập nhật Repository Knowledge.
-- Đồng bộ Repository Artifact.
-- Lưu lịch sử thay đổi thông qua Git.
-
-### Required Contents
-
-- Approved Proposal
-- Updated Artifact
-
-### Lifecycle
-
-```text
-Pending
-   │
-   ▼
-Applied
-   │
-   ▼
-Completed
-```
-
-### Constraints
-
-- Chỉ được thực hiện sau Human Approval.
-- Phải cập nhật đúng Artifact được chỉ định.
-- Mọi thay đổi phải được quản lý bằng Git.
-
-### Related Components
-
-- Proposal
-- Repository Knowledge
-- Repository Model
-
----
-
-# 6. Human Governance
-
-AI có thể:
-
-- Thu thập Evidence.
-- Thực hiện Review.
-- Tạo Proposal.
-
-Con người chịu trách nhiệm:
-
-- Đánh giá Proposal.
-- Phê duyệt hoặc từ chối Proposal.
-- Cập nhật chính sách của Repository.
-
-Human luôn là người chịu trách nhiệm cuối cùng đối với Repository Knowledge.
-
----
-
-# 7. Governance Metrics
-
-Governance nên được đo lường để đánh giá chất lượng của Repository Knowledge.
-
-Ví dụ:
-
-- Số lượng Proposal được tạo.
-- Tỷ lệ Proposal được chấp thuận.
-- Tỷ lệ Proposal bị từ chối.
-- Số Repository Rule được bổ sung.
-- Số Knowledge được cập nhật.
-- Thời gian xử lý Proposal.
-
-Chi tiết cách thu thập Metrics được định nghĩa trong **05. PLATFORM & TOOLKIT**.
-
----
-
-# 8. Governance Boundaries
-
-Governance Model chịu trách nhiệm:
-
-- Đánh giá Execution.
-- Quản lý Evidence.
-- Quản lý Proposal.
-- Cập nhật Repository Knowledge.
-
-Governance Model không chịu trách nhiệm:
-
-- Thực hiện Task.
-- Thay đổi Source Code.
-- Triển khai Platform hoặc Toolkit.
-
-Các trách nhiệm trên thuộc Execution Model hoặc Platform & Toolkit.
-
----
-
-# 9. Relationship to Other Specifications
+# 7. Relationship to Other Specifications
 
 | Document | Responsibility |
 |----------|----------------|
 | 02. REPOSITORY MODEL | Định nghĩa Repository Knowledge và Repository Artifact |
 | 03. EXECUTION MODEL | Định nghĩa Task, Execution và Execution Result |
-| 05. PLATFORM & TOOLKIT | Định nghĩa cách Governance được triển khai và tự động hóa |
+| 05. PLATFORM MODEL | Định nghĩa cách Governance được triển khai và tự động hóa |
 
 Governance Model định nghĩa cách kết quả của Execution được chuyển thành Repository Knowledge thông qua một quy trình có kiểm soát và có thể kiểm chứng.
-
-Required Template
-
-Repository Rule Template (07. ARTIFACT_TEMPLATES)

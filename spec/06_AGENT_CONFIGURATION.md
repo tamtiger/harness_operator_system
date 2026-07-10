@@ -1,5 +1,7 @@
 # 06. AGENT CONFIGURATION
 
+AGENTS.md là tài liệu hướng dẫn hoàn toàn free-form dành cho con người và AI đọc hiểu context. Runtime KHÔNG thực hiện parse cấu trúc của tệp này, chỉ dùng làm human-readable context. Manifest luôn ở fixed path `.harness/harness.yaml` theo convention.
+
 > **Version:** 1.1
 > **Status:** Draft
 
@@ -220,8 +222,8 @@ Ví dụ:
 
 ```yaml
 harness:
-  specification: 1.1
-  repository_knowledge: .harness/
+  specification: "1.1"
+  manifest: .harness/harness.yaml
 ```
 
 Platform có thể mở rộng thông tin khai báo nhưng phải giữ tương thích với Specification.

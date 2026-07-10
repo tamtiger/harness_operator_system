@@ -36,35 +36,44 @@ Harness được thiết kế để giải quyết các vấn đề trên bằng
 
 ---
 
-# 3. Goals
+# 3. Specification Philosophy
 
-Harness hướng tới các mục tiêu sau.
+Triết lý của Harness Specification được định hình bởi các giá trị cốt lõi sau:
 
-- Chuẩn hóa cách AI tương tác với Repository.
-- Xây dựng Repository Knowledge làm nguồn tri thức lâu dài của dự án.
-- Giúp AI đưa ra quyết định dựa trên Evidence thay vì giả định.
-- Tích lũy kinh nghiệm sau mỗi lần thực hiện Task.
-- Hoạt động độc lập với AI Platform và IDE.
-- Có thể triển khai theo từng giai đoạn với chi phí thấp.
-
----
-
-# 4. Non-Goals
-
-Harness không có mục tiêu thay thế các thành phần sau.
-
-- Software Architecture
-- Project Management
-- Issue Tracking
-- Source Control
-- CI/CD
-- AI Coding Assistant
-
-Harness chỉ tập trung vào việc quản trị cách AI tham gia vào quá trình phát triển phần mềm.
+- **Specification First**: Đặc tả đi trước, định nghĩa chuẩn hành vi giao dịch và cấu hình dữ liệu rõ ràng. Mọi implementation phải tuân thủ đặc tả thay vì đặc tả chạy theo implementation.
+- **Implementation Independent**: Không phụ thuộc vào cách triển khai thực tế. Một CLI, một IDE extension, một CI/CD runner hay một MCP Server đều có thể triển khai Harness thành công.
+- **Tool Agnostic**: Không phụ thuộc vào các công cụ cụ thể hoặc AI platform riêng biệt (như Claude Code, Cursor, Windsurf, Cline). Đặc tả là lớp trừu tượng chung cho tất cả các tác vụ.
+- **Repository Agnostic**: Không giả định hay áp đặt cấu hình ngôn ngữ lập trình, hệ quản trị cơ sở dữ liệu hay mô hình hạ tầng của project repository.
+- **Extensible**: Hỗ trợ khả năng mở rộng thông qua các vendor-specific custom fields và capabilities mà không làm ảnh hưởng đến tính tuân thủ của đặc tả cốt lõi.
+- **Backward Compatible**: Đảm bảo các thay đổi của đặc tả và các tệp cấu hình (như manifest) luôn có lộ trình tương thích ngược để bảo vệ tài nguyên cũ.
 
 ---
 
-# 5. Design Principles
+# 4. Design Goals
+
+Harness Specification được thiết kế nhằm đạt được các mục tiêu kỹ thuật sau:
+
+- **Portable**: Tri thức dự án được lưu trữ dưới dạng text file đơn giản, dễ dàng di chuyển và áp dụng sang bất kỳ môi trường làm việc hay nền tảng AI mới nào.
+- **Reusable**: Các gói tri thức chung (Shared Harness) có thể được đóng gói và tái sử dụng cho hàng ngàn repository khác nhau trong tổ chức.
+- **Deterministic**: Hành vi của Runtime trong việc phân giải context, xử lý trạng thái và quản trị lỗi phải hoàn toàn nhất quán và dự đoán được.
+- **Observable**: Mọi hoạt động của AI phải được ghi vết bằng log chi tiết và có thể audit ngược lại bất kỳ lúc nào.
+- **Testable**: Cung cấp các tiêu chí rõ ràng để dễ dàng xây dựng bộ conformance validator tự động kiểm tra tính tuân thủ của repository và runtime.
+
+---
+
+# 5. Non-Goals
+
+Harness không có mục tiêu thay thế hay giải quyết các khía cạnh sau:
+
+- **UI/UX của IDE**: Không định nghĩa giao diện người dùng, cách hiển thị hay tương tác trực quan của IDE.
+- **Ngôn ngữ lập trình & Công nghệ**: Không quy định Runtime phải được viết bằng TypeScript, Rust hay Go; không ràng buộc ngôn ngữ lập trình của project nguồn.
+- **Giao thức mạng & Database**: Không định nghĩa cách thức truyền tải dữ liệu ở tầng mạng (network protocol) hay cấu trúc lưu trữ của cơ sở dữ liệu.
+- **Hệ thống Quản lý Dự án & CI/CD**: Không thay thế các công cụ quản lý dự án (Jira, GitHub Issues) hoặc các công cụ CI/CD (GitHub Actions, Jenkins).
+- **AI Assistant Logic**: Không can thiệp vào mô hình ngôn ngữ lớn (LLM) hoặc giải thuật suy luận riêng của AI Coding Assistant.
+
+---
+
+# 6. Design Principles
 
 Harness được xây dựng dựa trên các nguyên tắc sau.
 
@@ -135,6 +144,8 @@ Platform & Toolkit
 | Execution Model | Chuẩn hóa cách AI thực hiện Task |
 | Governance Model | Quản trị và phát triển Repository Knowledge |
 | Platform & Toolkit | Hiện thực Harness Specification trên các AI Platform |
+| Manifest          | Điểm truy cập machine-readable để Runtime khám phá Repository     |
+| Agent Configuration | Hướng dẫn cho AI Agent khi làm việc với Repository             |
 
 ---
 
@@ -184,7 +195,7 @@ Tuy nhiên, các Artifact và Entity cốt lõi nên tuân theo cấu trúc này
 
 ---
 
-# 9. Intended Audience
+# 10. Intended Audience
 
 Harness Specification dành cho:
 
@@ -197,7 +208,7 @@ Harness Specification dành cho:
 
 ---
 
-# 10. Document Structure
+# 11. Document Structure
 
 | Document | Responsibility |
 |----------|----------------|
@@ -206,8 +217,15 @@ Harness Specification dành cho:
 | 02. REPOSITORY MODEL | Repository và Repository Knowledge |
 | 03. EXECUTION MODEL | Task, Workflow và Execution |
 | 04. GOVERNANCE MODEL | Governance, Evidence, Proposal và Review |
-| 05. PLATFORM & TOOLKIT | Toolkit và Platform Integration |
-| 06. ADOPTION GUIDE | Hướng dẫn triển khai Harness |
+| 05. PLATFORM MODEL | Toolkit và Platform Integration |
+| 06. AGENT CONFIGURATION | Cách AI khám phá và áp dụng Agent Configuration |
+| 07. ARTIFACT_TEMPLATES | Template và Logical Schema của các Artifact |
+| 08. MANIFEST SPECIFICATION | Cấu trúc và Schema của Manifest |
+| 09. CAPABILITY SPECIFICATION | Runtime Capability Contract |
+| 10. ADOPTION GUIDE | Hướng dẫn triển khai Harness |
+| 11. GLOSSARY | Thuật ngữ chuẩn |
+| 12. CONFORMANCE | Tiêu chí đánh giá tuân thủ Specification |
+| 13. EXAMPLE REPOSITORY | Ví dụ Repository minimal hoàn chỉnh |
 
 Các tài liệu được tổ chức từ tổng quan đến chi tiết.
 
