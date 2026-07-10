@@ -84,6 +84,9 @@ sources:
     type: git
     uri: "https://github.com/my-org/shared-security-rules.git"
     version: "v2.1"
+vendor:
+  kiro:
+    auto_repair: true
 artifacts:
   - type: repository-map
     path: .harness/repository-map.md

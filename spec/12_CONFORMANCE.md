@@ -89,7 +89,7 @@ Bộ test suite tiêu chuẩn được chia thành các nhóm con:
 
 ### 1. Repository & Manifest Test
 - **Purpose**: Đảm bảo tệp manifest được parse chuẩn xác.
-- **Pass Condition**: Parser trả về đúng đối tượng cấu hình khi YAML đúng và ném ra lỗi `MANIFEST_INVALID` khi YAML sai.
+- **Pass Condition**: Parser trả về đúng đối tượng cấu hình khi YAML đúng và ném ra lỗi `MANIFEST_INVALID` khi YAML sai. Đồng thời, Parser phải bỏ qua các trường không xác định ở cấp cao nhất hoặc nằm trong vùng namespace `vendor:`.
 
 ### 2. Artifact Format Test
 - **Purpose**: Đảm bảo tệp markdown rules/adr có metadata frontmatter đúng quy chuẩn.

@@ -14,6 +14,9 @@ Manifest (lưu tại `.harness/harness.yaml`) là điểm khai báo cấu hình 
 - **Declarative Only**: Manifest chỉ khai báo thông tin cấu trúc và dependencies. Nghiêm cấm ghi nội dung tri thức nghiệp vụ (rules, business knowledge) trực tiếp trong manifest.
 - **Single Point of Declaration**: Mọi imports, capabilities và mapping artifact đều phải khai báo tại đây.
 - **Strictly Validated**: Manifest bắt buộc phải vượt qua bộ validate schema trước khi bất kỳ tác vụ nào được chạy.
+- **Parsing Rules**:
+  - **MUST IGNORE**: Runtime MUST bỏ qua các trường không thuộc đặc tả ở cấp cao nhất hoặc nằm dưới vùng namespace `vendor:` để đảm bảo tính tương thích xuôi.
+  - **MUST FAIL**: Runtime MUST từ chối thực thi và trả về lỗi `MANIFEST_INVALID` nếu các trường chuẩn bị sai kiểu dữ liệu (data type mismatch), thiếu các trường bắt buộc, hoặc có custom fields nằm ngoài vùng `vendor:`.
 
 ---
 

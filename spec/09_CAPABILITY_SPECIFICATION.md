@@ -266,15 +266,22 @@ Xác định Manifest, Agent Configuration và Repository Artifact.
 
 ## Inputs
 
-- Repository
+- `repository_path`: Đường dẫn gốc của Repository (relative hoặc absolute).
 
 ## Preconditions
 
-- Repository tồn tại.
+- Repository tồn tại và truy cập được.
 
 ## Outputs
 
-- Repository Context
+- `repository_context`: Object chứa thông tin:
+  - `manifest_path`: Đường dẫn manifest thực tế.
+  - `specification_version`: Phiên bản đặc tả được nạp.
+  - `discovered_artifacts`: Danh sách các tệp tin rules, adr, map được mapping thành công.
+
+## Capability-Specific Errors
+- `MANIFEST_NOT_FOUND`: Không tìm thấy tệp `harness.yaml`.
+- `MANIFEST_INVALID`: Cú pháp manifest hoặc kiểu dữ liệu không hợp lệ.
 
 ## Discovery Order
 
@@ -330,15 +337,21 @@ Tải Repository Knowledge phục vụ Execution.
 
 ## Inputs
 
-- Repository Context
+- `artifact_path`: Đường dẫn tương đối của artifact cần đọc trong Unified Workspace.
 
 ## Preconditions
 
 - Discovery hoàn thành.
+- Đối tượng yêu cầu thuộc phạm vi Unified Workspace.
 
 ## Outputs
 
-- Repository Knowledge
+- `content`: Nội dung chi tiết của artifact (chuỗi văn bản hoặc nội dung file).
+- `metadata`: Metadata header của artifact (ví dụ: ID, Version, Status).
+
+## Capability-Specific Errors
+- `ARTIFAT_NOT_FOUND`: Không tìm thấy artifact tại đường dẫn yêu cầu.
+- `PERMISSION_DENIED`: Không có quyền đọc đối tượng này.
 
 ## Postconditions
 
@@ -437,17 +450,24 @@ Triển khai Execution Model.
 
 ## Inputs
 
-- Task
-- Repository Knowledge
+- `command`: Lệnh shell cần thực thi.
+- `timeout_ms`: Hạn mức thời gian thực thi (mặc định 300,000ms).
 
 ## Preconditions
 
 - Read hoàn thành.
+- Lệnh thực thi không vi phạm Security Sandbox Constraints.
 
 ## Outputs
 
-- Execution Result
-- Execution Log
+- `stdout`: Kết quả đầu ra tiêu chuẩn.
+- `stderr`: Log lỗi tiêu chuẩn.
+- `exit_code`: Mã thoát chương trình (0 là thành công).
+
+## Capability-Specific Errors
+- `EXECUTION_TIMEOUT`: Quá hạn mức thời gian timeout cho phép.
+- `EXECUTION_FAILED`: Lệnh chạy bị lỗi (exit code khác 0).
+- `SANDBOX_VIOLATION`: Lệnh cố gắng truy cập tài nguyên bị cấm ngoài sandbox.
 
 ## Postconditions
 
