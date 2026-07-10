@@ -7,13 +7,13 @@
 
 # 1. Purpose
 
-Tài liệu này định nghĩa cách Repository khai báo cấu hình của Harness.
+Tài liệu này định nghĩa Manifest của Harness.
 
-Manifest là điểm truy cập chuẩn để Platform khám phá Repository Harness mà không cần phụ thuộc vào cấu trúc thư mục cụ thể.
+Manifest là điểm truy cập chuẩn (Single Source of Truth) giúp Harness Runtime khám phá Repository, Agent Configuration và Repository Knowledge mà không phụ thuộc vào cấu trúc thư mục cụ thể.
 
-Manifest không chứa Repository Knowledge.
+Manifest chỉ dành cho **machine configuration**.
 
-Manifest chỉ mô tả vị trí và cấu hình của Repository Harness.
+Manifest không chứa Repository Knowledge hoặc AI instructions.
 
 ---
 
@@ -22,10 +22,10 @@ Manifest chỉ mô tả vị trí và cấu hình của Repository Harness.
 Manifest tuân thủ các nguyên tắc sau.
 
 - **Single Source of Truth** — Mọi cấu hình Harness được khai báo tại một nơi.
+- **Machine Readable** — Dễ đọc và xử lý tự động.
 - **Platform Independent** — Không phụ thuộc AI Platform.
-- **Location Independent** — Không phụ thuộc cấu trúc thư mục.
-- **Extensible** — Cho phép mở rộng trong tương lai.
-- **Machine Readable** — Dễ phân tích và xác thực.
+- **Location Independent** — Không phụ thuộc cấu trúc Repository.
+- **Extensible** — Có thể mở rộng mà vẫn tương thích Specification.
 
 ---
 
@@ -33,15 +33,18 @@ Manifest tuân thủ các nguyên tắc sau.
 
 Manifest chịu trách nhiệm:
 
-- Khai báo phiên bản Harness.
-- Khai báo vị trí Repository Knowledge.
+- Khai báo Harness Specification.
+- Khai báo Repository Root.
 - Khai báo Agent Configuration.
+- Khai báo Repository Knowledge.
+- Khai báo Artifact Registry.
 - Khai báo Artifact Templates.
-- Khai báo Platform Configuration (nếu có).
+- Khai báo Platform Requirements.
 
 Manifest không chịu trách nhiệm:
 
 - Lưu Repository Knowledge.
+- Lưu AI Instructions.
 - Lưu Execution Data.
 - Lưu Governance Data.
 
@@ -59,13 +62,16 @@ Read
 Validate
    │
    ▼
-Use
+Discover
+   │
+   ▼
+Execute
    │
    ▼
 Update
 ```
 
-Platform nên đọc Manifest trước khi thực hiện bất kỳ Task nào.
+Harness Runtime nên đọc Manifest trước khi thực hiện bất kỳ Task nào.
 
 ---
 
@@ -77,8 +83,9 @@ Platform nên đọc Manifest trước khi thực hiện bất kỳ Task nào.
 | specification | Yes | Harness Specification version |
 | repository | Yes | Repository configuration |
 | agent | Yes | Agent Configuration |
-| knowledge | Yes | Repository Knowledge |
+| artifacts | Yes | Artifact Registry |
 | templates | No | Artifact Templates |
+| requirements | No | Platform requirements |
 | platform | No | Platform-specific configuration |
 
 ---
@@ -109,28 +116,35 @@ Khai báo Agent Configuration.
 
 | Field | Required | Description |
 |--------|----------|-------------|
-| repository | Yes | Repository Configuration |
+| repository | Yes | Repository Configuration file |
 | global | No | Global Configuration |
 | discovery | No | Discovery strategy |
 
 ---
 
-# 8. Knowledge Schema
+# 8. Artifact Registry
 
 ## Purpose
 
-Khai báo vị trí Repository Knowledge.
+Khai báo toàn bộ Repository Artifact.
 
 ### Fields
 
 | Field | Required | Description |
 |--------|----------|-------------|
-| repository_map | Yes | Repository Map |
-| rules | Yes | Repository Rules |
-| knowledge | Yes | Knowledge |
-| adr | No | Architecture Decision Records |
+| type | Yes | Artifact type |
+| path | Yes | Artifact location |
 
-Platform có thể bổ sung Artifact mới.
+Ví dụ các Artifact Type:
+
+- repository-map
+- rule
+- knowledge
+- adr
+- glossary
+- playbook
+
+Platform có thể bổ sung Artifact Type mới.
 
 ---
 
@@ -144,30 +158,56 @@ Khai báo vị trí Artifact Templates.
 
 | Field | Required | Description |
 |--------|----------|-------------|
-| root | Yes | Template directory |
+| path | Yes | Template directory |
 
 ---
 
-# 10. Platform Schema
+# 10. Platform Requirements
 
 ## Purpose
 
-Khai báo cấu hình dành riêng cho Platform.
+Khai báo các Capability mà Repository yêu cầu.
 
 ### Fields
 
-Platform tự định nghĩa.
+| Field | Required | Description |
+|--------|----------|-------------|
+| capabilities | No | Required Platform Capabilities |
 
-Harness Specification không chuẩn hóa nội dung của phần này.
+Ví dụ:
+
+- bootstrap
+- discovery
+- read
+- validate
+- execute
+- review
+- update
+- report
+- metrics
+
+Platform có thể hỗ trợ nhiều Capability hơn.
 
 ---
 
-# 11. Reference Manifest
+# 11. Platform Configuration
+
+## Purpose
+
+Lưu cấu hình dành riêng cho từng Platform.
+
+Harness Specification không chuẩn hóa nội dung của phần này.
+
+Platform có thể tự mở rộng.
+
+---
+
+# 12. Reference Manifest
 
 ```yaml
-version: 1.0
+version: 1
 
-specification: 1.1
+specification: "1.1"
 
 repository:
   name: sample-repository
@@ -176,93 +216,115 @@ repository:
 agent:
   repository: AGENTS.md
 
-knowledge:
-  repository_map: .harness/repository-map.md
-  rules: .harness/rules/
-  knowledge: .harness/knowledge/
-  adr: .harness/adr/
+artifacts:
+
+  - type: repository-map
+    path: .harness/repository-map.md
+
+  - type: rule
+    path: .harness/rules/
+
+  - type: knowledge
+    path: .harness/knowledge/
+
+  - type: adr
+    path: .harness/adr/
 
 templates:
-  root: .harness/templates/
+  path: .harness/templates/
+
+requirements:
+
+  capabilities:
+    - discovery
+    - read
+    - execute
+    - validate
 
 platform: {}
 ```
 
-Đây là **Reference Manifest**.
+Reference Manifest chỉ là ví dụ.
 
-Platform có thể sử dụng cấu trúc Repository khác miễn là Manifest phản ánh chính xác vị trí của các Artifact.
+Repository có thể sử dụng cấu trúc khác miễn là Manifest phản ánh chính xác vị trí của các Artifact.
 
 ---
 
-# 12. Discovery Process
+# 13. Discovery Process
 
-Platform nên khám phá Repository theo thứ tự sau.
+Harness Runtime nên khám phá Repository theo trình tự sau.
 
 ```text
 Repository
       │
       ▼
-Manifest
+Read Manifest
       │
       ▼
-Agent Configuration
+Discover AGENT Configuration
       │
       ▼
-Repository Knowledge
+Discover Repository Artifacts
       │
       ▼
-Execution
+Load Repository Knowledge
+      │
+      ▼
+Start Execution
 ```
 
-Nếu Manifest không tồn tại, Platform có thể sử dụng cơ chế Discovery riêng.
+Platform có thể tối ưu quy trình nhưng không được thay đổi hành vi của Specification.
 
 ---
 
-# 13. Validation Rules
+# 14. Validation Rules
 
 Manifest hợp lệ khi:
 
 - Có đầy đủ Required Field.
 - Mọi đường dẫn đều hợp lệ.
+- Artifact Type hợp lệ.
 - Phiên bản Specification được hỗ trợ.
-- Không có Field bắt buộc bị thiếu.
+- Không có Required Field bị thiếu.
 
 Platform có thể bổ sung Validation Rule riêng.
 
 ---
 
-# 14. Compatibility
+# 15. Compatibility
 
 Manifest nên tương thích ngược giữa các phiên bản của Harness Specification.
 
 Platform nên bỏ qua các Field không nhận biết thay vì báo lỗi.
 
-Điều này giúp Specification có thể mở rộng mà không phá vỡ các Platform hiện có.
+Điều này cho phép Specification mở rộng mà không phá vỡ các Runtime hiện có.
 
 ---
 
-# 15. Extensibility
+# 16. Extensibility
 
 Platform có thể:
 
 - Thêm Custom Field.
 - Thêm Platform Metadata.
-- Thêm Artifact mới.
+- Thêm Artifact Type.
+- Thêm Platform Capability.
 
 Platform không được:
 
-- Thay đổi ý nghĩa của các Field chuẩn.
+- Thay đổi ý nghĩa của Required Field.
 - Loại bỏ Required Field.
+- Thay đổi Logical Schema của Manifest.
 
 ---
 
-# 16. Relationship to Other Specifications
+# 17. Relationship to Other Specifications
 
 | Document | Responsibility |
 |----------|----------------|
-| 02. REPOSITORY MODEL | Định nghĩa Repository Knowledge |
-| 05. PLATFORM MODEL | Định nghĩa cách Platform sử dụng Manifest |
+| 02. REPOSITORY MODEL | Định nghĩa Repository Artifact |
+| 05. PLATFORM MODEL | Định nghĩa Platform Capability |
 | 06. AGENT CONFIGURATION | Định nghĩa Agent Configuration |
 | 07. ARTIFACT_TEMPLATES | Định nghĩa Artifact Template và Schema |
 
-Manifest là điểm truy cập chuẩn giúp Platform khám phá và sử dụng Harness một cách nhất quán mà không phụ thuộc vào cấu trúc Repository.
+Manifest là điểm truy cập chuẩn của Harness, cho phép mọi Harness Runtime khám phá Repository, Agent Configuration và Repository Knowledge theo một cách nhất quán mà không phụ thuộc vào cấu trúc Repository.
