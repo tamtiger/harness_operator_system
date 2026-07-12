@@ -2,6 +2,18 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.13] - 2026-07-12
+
+### Added
+- **M11 — Production Hardening:**
+  - **T11.1 — Security Validation:** 29 tests for path traversal (30+ cases), audit log append-only, checksum verification, MCP approve() negative test.
+  - **T11.2 — Performance Benchmarks:** `vitest.config.ts` + `npm run bench` script; 5 bench suites measuring context build, capability invocation, doctor, validate, path resolution.
+  - **T11.3 — Memory Tests:** 5 tests covering 1000 sequential calls, cache eviction (max 10), large asset collections (1500+ entries).
+  - **T11.4 — Concurrency Tests:** 5 tests for 10 concurrent `run()` calls, governance proposal concurrency, cache race conditions.
+  - **T11.5 — Error Recovery:** 5 tests for atomic write cleanup, graceful timeout handling, interrupted install cleanup.
+  - **T11.6 — Structured Logging:** `src/shared/utils/logger.ts` with `HARNESS_LOG_LEVEL` env support, JSON log entries, sensitive data sanitization (passwords, tokens, secrets).
+  - **T11.7 — Compatibility:** 11 tests for Node.js >= 20, POSIX/Windows paths, CRLF/LF line endings, UTF-8 encoding.
+
 ## [0.0.12] - 2026-07-12
 
 ### Fixed
