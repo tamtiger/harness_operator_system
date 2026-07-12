@@ -2,6 +2,19 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.3] - 2026-07-12
+
+### Added
+- **M2 Asset Loading Implementation:**
+  - Standard regex metadata partitioner `FrontMatterParser` supporting markdown blocks and pure YAML configurations.
+  - Strict property evaluator `AssetValidator` checking type constraints and semver formatting.
+  - Recursive loader `AssetLoader` performing shared checksum validation, size filtering, and boundaries scanning.
+  - Merging processor `ResolutionEngine` applying override, merge, registry, and hook appending rules.
+  - Context generator `ContextBuilder` applying deep freezing constraints to build immutable environments.
+  - Atomic writer `FileSystemPersistence` writing temp buffer transactions and performing safe renames.
+  - CLI `harness status [--json]` query printing details on loaded components.
+  - Asset test suite covering parser validations, checksum mismatch exceptions, circular extends loops, and context freeze states.
+
 ## [0.0.2] - 2026-07-12
 
 ### Added

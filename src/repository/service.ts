@@ -7,14 +7,19 @@ import { ValidationResult } from '../shared/types/platform';
 import { RepositoryDiscovery } from './discovery/RepositoryDiscovery';
 import { ManifestLoader } from './manifest/ManifestLoader';
 import { RepositoryValidator } from './validation/RepositoryValidator';
-import { repoError } from '../shared/errors/factories';
-import * as fs from 'fs';
-import * as path from 'path';
+import { AssetLoader } from './assets/AssetLoader';
+import { ResolutionEngine } from './resolution/ResolutionEngine';
+import { ContextBuilder } from './context/ContextBuilder';
+import { FileSystemPersistence } from './persistence/FileSystemPersistence';
 
 export class RepositoryServiceImpl implements RepositoryService {
   private discovery = new RepositoryDiscovery();
   private loader = new ManifestLoader();
   private validator = new RepositoryValidator();
+  private assetLoader = new AssetLoader();
+  private resolutionEngine = new ResolutionEngine();
+  private contextBuilder = new ContextBuilder();
+  private persistence = new FileSystemPersistence();
 
   discover(workingDir: string): RepositoryRoot {
     return this.discovery.discover(workingDir);
@@ -25,35 +30,23 @@ export class RepositoryServiceImpl implements RepositoryService {
   }
 
   loadSharedAssets(sharedPath: string): AssetCollection {
-    throw new Error('Not implemented yet');
+    return this.assetLoader.loadSharedAssets(sharedPath);
   }
 
   loadLocalAssets(root: RepositoryRoot, manifest: Manifest): AssetCollection {
-    throw new Error('Not implemented yet');
+    return this.assetLoader.loadLocalAssets(root, manifest);
   }
 
   resolveAssets(shared: AssetCollection, local: AssetCollection): EffectiveAssetCollection {
-    throw new Error('Not implemented yet');
+    return this.resolutionEngine.resolve(shared, local);
   }
 
   buildContext(assets: EffectiveAssetCollection, metadata: RepositoryMetadata): RepositoryContext {
-    throw new Error('Not implemented yet');
+    return this.contextBuilder.build(assets, metadata);
   }
 
-  persist(root: RepositoryRoot, relativePath: RelativePath, data: string): void {
-    if (relativePath.includes('..') || path.isAbsolute(relativePath)) {
-      throw repoError('REPO_014', { details: `Invalid path: ${relativePath}` });
-    }
-    const absPath = path.resolve(root.path, '.harness', relativePath);
-    const parent = path.dirname(absPath);
-    if (!fs.existsSync(parent)) {
-      fs.mkdirSync(parent, { recursive: true });
-    }
-    
-    // Atomic Write
-    const tempFile = absPath + '.tmp.' + Math.random().toString(36).substring(2, 10);
-    fs.writeFileSync(tempFile, data, 'utf8');
-    fs.renameSync(tempFile, absPath);
+  persist(root: RepositoryRoot, path: RelativePath, data: string): void {
+    this.persistence.write(root, path, data);
   }
 
   validate(root: RepositoryRoot, options?: { mode: 'strict' | 'lenient' }): ValidationResult {

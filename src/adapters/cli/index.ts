@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { runInit } from './commands/init';
 import { runValidate } from './commands/validate';
+import { runStatus } from './commands/status';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -13,11 +14,15 @@ if (command === 'init') {
   const strict = args.includes('--strict');
   const targetPath = args.slice(1).find(arg => !arg.startsWith('-'));
   runValidate(targetPath, { strict });
+} else if (command === 'status') {
+  const json = args.includes('--json');
+  runStatus({ json });
 } else {
   console.log(`Harness Operator CLI
 Usage:
   harness init [path] [--force]
   harness validate [path] [--strict]
+  harness status [--json]
 `);
   process.exit(1);
 }
