@@ -2,6 +2,18 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.4] - 2026-07-12
+
+### Added
+- **M3 Context Builder Implementation:**
+  - Scope path filter, tag overlap evaluator, and deprecated asset filter in `ContextFilter`.
+  - Recency, priority, and relevance score calculator in `ContextRanker`.
+  - Token allocation and trimming processor in `BudgetAllocator` supporting `priority_trim` and `hard_limit`.
+  - In-memory LRU cache with key hashing in `ContextCache` (max 10 entries).
+  - Context building pipeline and freeze constraints in `ContextBuilder`.
+  - CLI `harness context --task` parsing matching context constraints.
+  - Tests covering filtering, ranking, cache invalidation, and budget overrides.
+
 ## [0.0.3] - 2026-07-12
 
 ### Added

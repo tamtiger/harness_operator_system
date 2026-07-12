@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as yaml from 'js-yaml';
+import * as crypto from 'crypto';
 import { AssetLoader } from '../src/repository/assets/AssetLoader';
 import { ResolutionEngine } from '../src/repository/resolution/ResolutionEngine';
 import { ContextBuilder } from '../src/repository/context/ContextBuilder';
@@ -132,13 +133,15 @@ status: "active"
     const effective = resolver.resolve(sharedColl, localColl);
 
     const context = builder.build(effective, {
-      root: localDir,
+      root: { path: localDir, hasGit: false, discoveredAt: '' },
       name: 'test',
-      version: '0.0.1',
-      description: 'test-desc',
-      sharedHarnessVersion: '2.1.0',
-      repositoryMapContent: '# Map',
-      agentsMdContent: '# AGENTS',
+      manifest: {
+        version: 2,
+        specification: '4.0',
+        repository: { root: '.' },
+        agent: { entry_point: 'AGENTS.md' },
+        artifacts: []
+      },
       discoveredAt: new Date().toISOString()
     });
 
