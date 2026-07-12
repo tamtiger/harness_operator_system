@@ -2,6 +2,18 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.6] - 2026-07-12
+
+### Added
+- **M5 Execution Runtime Implementation:**
+  - Transition controller `TaskStateManager` tracking statuses.
+  - Topological sort resolver `StepScheduler` sorting execution schedules and catching cyclic dependencies (`EXEC_009`).
+  - Output checker `ResultVerifier` with support for `fail_fast` and `collect_all` modes.
+  - Delays and retry rules evaluator `RetryManager` supporting exponential backoff calculations.
+  - Stateless execution engine `ExecutionRuntime` mapping triggers, calling registries, and handling task cancellation checks (`EXEC_005`).
+  - CLI `harness run "task description"` command.
+  - Unit tests covering lifecycle validations, backoff delay calculations, cycle scheduling errors, and task execution runs.
+
 ## [0.0.5] - 2026-07-12
 
 ### Added

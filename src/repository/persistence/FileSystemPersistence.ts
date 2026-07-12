@@ -10,7 +10,7 @@ export class FileSystemPersistence {
       throw repoError('REPO_014', { details: `Path traversal detected: ${relativePath}` });
     }
 
-    const absPath = path.resolve(root.path, '.harness', relativePath);
+    const absPath = path.resolve(root.path, relativePath);
     if (!isWithinBoundary(root.path, path.relative(root.path, absPath))) {
       throw repoError('REPO_014', { details: `Path traversal detected: ${relativePath}` });
     }
@@ -48,7 +48,7 @@ export class FileSystemPersistence {
       throw repoError('REPO_014', { details: `Path traversal detected: ${relativePath}` });
     }
 
-    const absPath = path.resolve(root.path, '.harness', relativePath);
+    const absPath = path.resolve(root.path, relativePath);
     if (!isWithinBoundary(root.path, path.relative(root.path, absPath))) {
       throw repoError('REPO_014', { details: `Path traversal detected: ${relativePath}` });
     }
