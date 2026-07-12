@@ -1,24 +1,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export function runInit(targetPathArg?: string, options: { force?: boolean } = {}) {
-  const targetDir = path.resolve(targetPathArg || '.');
+export async function runInit(targetDirArg?: string) {
+  const targetDir = path.resolve(targetDirArg || '.');
   const harnessDir = path.join(targetDir, '.harness');
   const manifestPath = path.join(harnessDir, 'harness.yaml');
+  const agentsPath = path.join(targetDir, 'AGENTS.md');
   const repoMapPath = path.join(harnessDir, 'repository-map.md');
   const rulesDir = path.join(harnessDir, 'rules');
-  const agentsPath = path.join(targetDir, 'AGENTS.md');
 
-  if (fs.existsSync(harnessDir) && !options.force) {
-    console.error(`[ERROR] .harness/ directory already exists. Use --force to overwrite.`);
-    process.exit(2);
+  if (fs.existsSync(manifestPath)) {
+    console.error('✗ Project is already initialized (.harness/harness.yaml exists).');
+    process.exit(1);
   }
 
-  // Create directories
-  fs.mkdirSync(rulesDir, { recursive: true });
+  try {
+    fs.mkdirSync(rulesDir, { recursive: true });
 
-  // 1. Create harness.yaml
-  const manifestTemplate = `version: 2
+    const defaultManifest = `version: 2
 specification: "4.0"
 repository:
   root: "."
@@ -30,38 +29,28 @@ artifacts:
   - type: rule
     path: ".harness/rules/"
 `;
-  fs.writeFileSync(manifestPath, manifestTemplate, 'utf8');
+    fs.writeFileSync(manifestPath, defaultManifest, 'utf8');
 
-  // 2. Create repository-map.md
-  const repoMapTemplate = `# Repository Map
-  
-This file contains the structure map of the repository.
-`;
-  fs.writeFileSync(repoMapPath, repoMapTemplate, 'utf8');
+    const defaultAgents = `# AGENTS.md — Harness Platform
 
-  // 3. Create AGENTS.md using template if exists, else generic
-  let agentsContent = '';
-  const templatePath = path.resolve(__dirname, '../../../src/shared/templates/AGENTS_TEMPLATE.md');
-  if (fs.existsSync(templatePath)) {
-    const template = fs.readFileSync(templatePath, 'utf8');
-    agentsContent = template
-      .replace('{{HARNESS_VERSION}}', '4.0')
-      .replace('{{TEMPLATE_VERSION}}', '1.0')
-      .replace('{{GENERATED_TIME}}', new Date().toISOString())
-      .replace('{{PROJECT_NAME}}', path.basename(targetDir))
-      .replace('{{PROJECT_DOMAIN}}', 'Development')
-      .replace('{{PROJECT_ARCHITECTURE_OVERVIEW}}', 'Standard Architecture')
-      .replace('{{PROJECT_ENTRY_POINT}}', 'AGENTS.md')
-      .replace('{{BUILD_COMMAND_RESTORE}}', 'npm install')
-      .replace('{{BUILD_COMMAND_BUILD}}', 'npm run build')
-      .replace('{{BUILD_COMMAND_TEST}}', 'npm run test');
-  } else {
-    agentsContent = `# AGENTS.md
 > **Harness Version:** 4.0
-> **Purpose:** Operational Contract for AI Agents.
+> **Purpose:** Operational Contract for all AI Agents contributing to the Harness Platform.
 `;
-  }
-  fs.writeFileSync(agentsPath, agentsContent, 'utf8');
+    fs.writeFileSync(agentsPath, defaultAgents, 'utf8');
 
-  console.log(`✓ Initialized .harness/ in ${targetDir}`);
+    const defaultRepoMap = `# Repository Map
+`;
+    fs.writeFileSync(repoMapPath, defaultRepoMap, 'utf8');
+
+    console.log('✓ Project successfully initialized!');
+    console.log('Created:');
+    console.log('  - .harness/harness.yaml');
+    console.log('  - .harness/repository-map.md');
+    console.log('  - .harness/rules/');
+    console.log('  - AGENTS.md');
+    process.exit(0);
+  } catch (err: any) {
+    console.error(`✗ Initialization failed: ${err.message}`);
+    process.exit(2);
+  }
 }

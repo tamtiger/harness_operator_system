@@ -5,8 +5,16 @@ import { ProposalId } from '../shared/types/primitives';
 import { ProposalStatus } from '../shared/types/enums';
 
 export class GovernanceServiceImpl implements GovernanceService {
-  private proposals = new Map<string, Proposal>();
-  private auditLogs = new Map<string, AuditRecord[]>();
+  private static proposals = new Map<string, Proposal>();
+  private static auditLogs = new Map<string, AuditRecord[]>();
+
+  private get proposalsMap() {
+    return GovernanceServiceImpl.proposals;
+  }
+
+  private get auditLogsMap() {
+    return GovernanceServiceImpl.auditLogs;
+  }
 
   submitProposal(request: ProposalRequest): Proposal {
     const id = 'prop-' + Math.random().toString(36).substring(2, 9);
@@ -27,13 +35,13 @@ export class GovernanceServiceImpl implements GovernanceService {
       comments: [],
       tags: []
     };
-    this.proposals.set(id, proposal);
-    this.auditLogs.set(id, []);
+    this.proposalsMap.set(id, proposal);
+    this.auditLogsMap.set(id, []);
     return proposal;
   }
 
   listProposals(filter: ProposalFilter): Proposal[] {
-    let list = Array.from(this.proposals.values());
+    let list = Array.from(this.proposalsMap.values());
     if (filter.status) {
       list = list.filter(p => p.status === filter.status);
     }
@@ -44,7 +52,7 @@ export class GovernanceServiceImpl implements GovernanceService {
   }
 
   getProposal(id: ProposalId): Proposal {
-    const prop = this.proposals.get(id);
+    const prop = this.proposalsMap.get(id);
     if (!prop) throw new Error(`Proposal not found: ${id}`);
     return prop;
   }
@@ -89,6 +97,6 @@ export class GovernanceServiceImpl implements GovernanceService {
   }
 
   getAuditLog(proposalId: ProposalId): AuditRecord[] {
-    return this.auditLogs.get(proposalId) || [];
+    return this.auditLogsMap.get(proposalId) || [];
   }
 }

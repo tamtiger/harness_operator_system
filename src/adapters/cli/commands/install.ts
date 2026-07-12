@@ -1,29 +1,25 @@
 import { createPlatformService } from '../factory';
-import * as path from 'path';
+import { OutputFormatter } from '../formatter/OutputFormatter';
+import { ErrorFormatter } from '../formatter/ErrorFormatter';
 
-export async function runInstall(source: string, version?: string) {
-  const rootPath = path.resolve('.');
-  const service = createPlatformService(rootPath);
+export async function runInstall(source: string, version: string | undefined, options: any = {}) {
+  const formatter = new OutputFormatter();
+  const errFormatter = new ErrorFormatter();
+  const service = createPlatformService(options.cwd, options.harnessHome);
 
   try {
-    console.log(`Installing Harness from ${source}...`);
     const res = await service.install({
       source,
       version
     });
 
-    if (res.success) {
-      console.log(`✓ Shared Harness v${res.installedVersion} successfully installed at ${res.path}`);
-      process.exit(0);
-    } else {
-      console.error(`✗ Installation failed`);
-      if (res.error) {
-        console.error(`  [ERROR] ${res.error.code}: ${res.error.message}`);
-      }
-      process.exit(2);
+    const formatted = formatter.format(res, 'install', options);
+    if (formatted) {
+      console.log(formatted);
     }
+    process.exit(res.success ? 0 : 2);
   } catch (err: any) {
-    console.error(`✗ Installation command failed: ${err.message}`);
+    console.error(errFormatter.formatError(err, options));
     process.exit(2);
   }
 }

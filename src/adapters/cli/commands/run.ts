@@ -1,42 +1,41 @@
 import { createPlatformService } from '../factory';
-import * as path from 'path';
+import { OutputFormatter } from '../formatter/OutputFormatter';
+import { ErrorFormatter } from '../formatter/ErrorFormatter';
 
-export async function runTask(description: string) {
-  const rootPath = path.resolve('.');
-  const service = createPlatformService(rootPath);
+export async function runTask(description: string, options: any = {}) {
+  const formatter = new OutputFormatter();
+  const errFormatter = new ErrorFormatter();
+  const service = createPlatformService(options.cwd, options.harnessHome);
 
   try {
-    console.log('[PLANNING] Building execution plan...');
-    console.log('[RUNNING] Executing steps...');
-    const start = Date.now();
+    if (!options.quiet && !options.json) {
+      console.log('[PLANNING] Building execution plan...');
+      console.log('[RUNNING] Executing steps...');
+    }
+
     const result = await service.run({
       description,
-      workingDirectory: '.'
+      workingDirectory: options.cwd || '.'
     });
-    const duration = Date.now() - start;
+
+    const formatted = formatter.format(result, 'run', options);
+    if (formatted) {
+      console.log(formatted);
+    }
 
     if (result.status === 'COMPLETED') {
-      console.log('[VERIFYING] Checking results...');
-      console.log(`[COMPLETED] Task finished in ${duration}ms\n`);
-      console.log('Results:');
-      if (result.results && result.results.length > 0) {
-        result.results.forEach((res: any, idx: number) => {
-          console.log(`  Step ${idx + 1} (${res.capabilityId}): Success`);
-          console.log(`  Output: ${JSON.stringify(res.output, null, 2)}`);
-        });
-      } else {
-        console.log('  No step results produced.');
-      }
       process.exit(0);
     } else {
-      console.error(`✗ Task execution failed with status: ${result.status}`);
-      if (result.error) {
-        console.error(`  [ERROR] ${result.error.code}: ${result.error.message}`);
+      if (result.error?.code === 'EXEC_006') {
+        process.exit(3); // verification-failed
       }
-      process.exit(2);
+      process.exit(2); // failed
     }
   } catch (err: any) {
-    console.error(`✗ Command failed: ${err.message}`);
+    console.error(errFormatter.formatError(err, options));
+    if (err.code === 'EXEC_006') {
+      process.exit(3);
+    }
     process.exit(2);
   }
 }

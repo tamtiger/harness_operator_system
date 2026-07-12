@@ -2,6 +2,19 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.8] - 2026-07-12
+
+### Added
+- **M7 CLI End-to-End Implementation:**
+  - Output Formatter (`OutputFormatter`) formatting console outputs into human-readable styled text or parsed JSON blocks (stripping colors if requested).
+  - Error Formatter (`ErrorFormatter`) writing standardized error alerts with static lookup remedies (such as `REPO_008`, `REPO_009`).
+  - Environment overrides configurations (`CliConfig`) reading `HARNESS_HOME`, `HARNESS_LOG_LEVEL`, and `HARNESS_NO_COLOR`.
+  - Project Initializer command (`init`) scaffoldings workspace configs, rules dirs, and `AGENTS.md` directly.
+  - Active proposals CLI manager subcommands (`proposal list`, `proposal submit`, `proposal approve`).
+  - Command routing index handler, SIGINT (Ctrl+C) catcher (exit 130), and global flags overrides.
+  - State sharing static properties inside `GovernanceServiceImpl` enabling cross-command integrations testing.
+  - Test suites (`cli.test.ts`) validating command triggers, formatted logs, and error remedies under vitest.
+
 ## [0.0.7] - 2026-07-12
 
 ### Added

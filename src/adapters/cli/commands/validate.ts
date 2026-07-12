@@ -1,31 +1,39 @@
 import { createPlatformService } from '../factory';
+import { OutputFormatter } from '../formatter/OutputFormatter';
+import { ErrorFormatter } from '../formatter/ErrorFormatter';
 import * as path from 'path';
 
-export async function runValidate(targetPathArg?: string, options: { strict?: boolean } = {}) {
-  const targetDir = path.resolve(targetPathArg || '.');
-  const platform = createPlatformService(targetDir);
+export async function runValidate(targetPathArg?: string, options: any = {}) {
+  const formatter = new OutputFormatter();
+  const errFormatter = new ErrorFormatter();
+  const targetDir = path.resolve(targetPathArg || options.cwd || '.');
+  const platform = createPlatformService(targetDir, options.harnessHome);
 
-  const result = await platform.validate(targetDir);
+  try {
+    const result = await platform.validate(targetDir);
+    
+    // Strict mode logic: treat warnings as failure
+    const isStrict = !!options.strict;
+    const hasWarnings = result.warnings && result.warnings.length > 0;
 
-  if (result.valid) {
-    console.log('✓ Repository structure is valid.');
-    if (result.warnings.length > 0) {
-      console.log('\nWarnings:');
-      result.warnings.forEach(w => console.log(`  - ${w}`));
-      process.exit(1);
+    const formatted = formatter.format(result, 'validate', options);
+    if (formatted) {
+      if (result.valid) {
+        console.log(formatted);
+      } else {
+        console.error(formatted);
+      }
+    }
+
+    if (!result.valid) {
+      process.exit(2); // errors
+    }
+    if (isStrict && hasWarnings) {
+      process.exit(1); // warnings in strict mode
     }
     process.exit(0);
-  } else {
-    console.error('✗ Repository validation failed:');
-    result.errors.forEach(e => {
-      console.error(`  [ERROR] ${e.code}: ${e.message}`);
-      if (e.details) {
-        console.error(`    Details: ${JSON.stringify(e.details)}`);
-      }
-    });
-    result.warnings.forEach(w => {
-      console.warn(`  [WARNING] ${w}`);
-    });
+  } catch (err: any) {
+    console.error(errFormatter.formatError(err, options));
     process.exit(2);
   }
 }
