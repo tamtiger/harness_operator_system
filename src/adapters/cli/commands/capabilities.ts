@@ -1,14 +1,13 @@
-import { CapabilityServiceImpl } from '../../../capability/service';
-import { CapabilityDefinition } from '../../../shared/types/assets';
+import { createPlatformService } from '../factory';
 
-export function runCapabilities() {
-  const service = new CapabilityServiceImpl();
-  const list = service.list();
+export async function runCapabilities(options?: { cwd?: string; harnessHome?: string }) {
+  const platform = createPlatformService(options?.cwd, options?.harnessHome);
+  const list = await platform.listCapabilities();
 
   console.log(`Built-in capabilities (${list.length}):`);
-  list.forEach((def: CapabilityDefinition) => {
-    console.log(`  ${def.capabilityId.padEnd(24)} — ${def.metadata.name}`);
+  list.forEach(def => {
+    console.log(`  ${def.capabilityId.padEnd(24)} \u2014 ${def.metadata.name}`);
   });
-  
+
   process.exit(0);
 }

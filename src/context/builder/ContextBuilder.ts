@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { RepositoryContext, RuntimeContext } from '../../shared/types/repository';
 import { TaskRequest } from '../../shared/types/execution';
 import { ContextFilter } from '../filter/ContextFilter';
@@ -14,7 +16,14 @@ export class ContextBuilder {
     const ranked = this.ranker.rank(filtered, request);
     const allocated = this.allocator.allocate(ranked);
 
-    return this.deepFreeze(allocated);
+    // Load AGENTS.md from repository root
+    let agentsMd: string | undefined;
+    const agentsPath = path.join(repoContext.metadata.root.path, 'AGENTS.md');
+    if (fs.existsSync(agentsPath)) {
+      agentsMd = fs.readFileSync(agentsPath, 'utf8');
+    }
+
+    return this.deepFreeze({ ...allocated, agentsMd });
   }
 
   private deepFreeze(obj: any): any {

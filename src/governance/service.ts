@@ -1,8 +1,8 @@
 import { GovernanceService, RepositoryService } from '../shared/contracts/services';
 import { Proposal, AuditRecord } from '../shared/types/governance';
 import { ProposalRequest, ProposalFilter, PromotionResult } from '../shared/types/platform';
-import { ProposalStatus } from '../shared/types/enums';
-import { ProposalId, RepositoryRoot } from '../shared/types/primitives';
+import { ProposalId } from '../shared/types/primitives';
+import { RepositoryRoot } from '../shared/types/repository';
 import { ProposalManager } from './proposal/ProposalManager';
 import { ReviewManager } from './review/ReviewManager';
 import { ApprovalEngine } from './approval/ApprovalEngine';
@@ -30,6 +30,10 @@ export class GovernanceServiceImpl implements GovernanceService {
   submitProposal(request: ProposalRequest): Proposal {
     const prop = this.proposals.create(request);
     return this.proposals.submit(prop.id);
+  }
+
+  submitExistingProposal(id: ProposalId): Proposal {
+    return this.proposals.submit(id);
   }
 
   listProposals(filter: ProposalFilter): Proposal[] {

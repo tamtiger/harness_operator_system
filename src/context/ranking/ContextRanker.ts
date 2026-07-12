@@ -1,6 +1,6 @@
 import { RepositoryContext } from '../../shared/types/repository';
 import { TaskRequest } from '../../shared/types/execution';
-import { Rule, Knowledge, Asset } from '../../shared/types/assets';
+import { Rule, Asset } from '../../shared/types/assets';
 
 export interface RankingConfig {
   strategy?: 'weighted';
@@ -16,8 +16,8 @@ export class ContextRanker {
     const weights = config.weights || { priority: 0.4, recency: 0.3, relevance: 0.3 };
 
     const scoreAsset = (asset: Asset): number => {
-      // 1. Priority Score
-      const priority = (asset.metadata as any).priority || 'medium';
+      // 1. Priority Score (only Rules have native priority)
+      const priority = asset.metadata.type === 'rule' ? (asset as Rule).priority : 'medium';
       let priorityScore = 0.5;
       if (priority === 'critical') priorityScore = 1.0;
       else if (priority === 'high') priorityScore = 0.75;

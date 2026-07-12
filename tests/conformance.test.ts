@@ -21,7 +21,7 @@ describe('M10 Conformance Suite CLI Runner', () => {
     const reportContent = fs.readFileSync(reportPath, 'utf8');
     const report = JSON.parse(reportContent);
 
-    process.stderr.write('FAILED CASES: ' + JSON.stringify(report.results.filter((r: any) => r.status === 'FAIL')) + '\n');
+    process.stderr.write('FAILED CASES: ' + JSON.stringify(report.results.filter((r: any) => r.status === 'fail')) + '\n');
 
     // Validate schema
     expect(report.conformance_version).toBe('4.0');
@@ -38,7 +38,7 @@ describe('M10 Conformance Suite CLI Runner', () => {
       const padId = `TC-${String(i).padStart(2, '0')}`;
       expect(ids).toContain(padId);
       const resultObj = report.results.find((r: any) => r.test_id === padId);
-      expect(resultObj.status).toBe('PASS');
+      expect(resultObj.status).toBe('pass');
     }
 
     // Cleanup report file

@@ -1,8 +1,8 @@
 import { RepositoryService, PlatformService } from '../src/shared/contracts/services';
-import { RepositoryRoot, RelativePath } from '../src/shared/types/primitives';
-import { Manifest, RepositoryMetadata, RepositoryContext } from '../src/shared/types/repository';
+import { RelativePath } from '../src/shared/types/primitives';
+import { Manifest, RepositoryMetadata, RepositoryContext, RepositoryRoot } from '../src/shared/types/repository';
 import { AssetCollection, EffectiveAssetCollection } from '../src/shared/types/assets';
-import { ValidationResult, InstallConfig, InstallResult, UpdateConfig, UpdateResult, SyncConfig, SyncResult, PublishRequest, PublishResult, DiagnosticReport, PlatformStatus, ProposalRequest, ProposalFilter, PromotionResult } from '../src/shared/types/platform';
+import { ValidationResult, InstallConfig, InstallResult, UpdateConfig, UpdateResult, SyncConfig, SyncResult, PublishRequest, PublishResult, DiagnosticReport, PlatformStatus, ProposalRequest, ProposalFilter } from '../src/shared/types/platform';
 import { TaskRequest, ExecutionResult } from '../src/shared/types/execution';
 import { Proposal } from '../src/shared/types/governance';
 

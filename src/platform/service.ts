@@ -1,9 +1,31 @@
 import { PlatformService, RepositoryService } from '../shared/contracts/services';
 import { PlatformOrchestrator } from './orchestration/PlatformOrchestrator';
-import { TaskRequest, ExecutionResult, TaskState } from '../shared/types/execution';
-import { InstallConfig, InstallResult, UpdateConfig, UpdateResult, SyncConfig, SyncResult, PublishRequest, PublishResult, DiagnosticReport, PlatformStatus, ValidationResult, ProposalRequest, ProposalFilter } from '../shared/types/platform';
+import { TaskRequest, ExecutionResult, CancelResult } from '../shared/types/execution';
+import { InstallConfig, InstallResult, UpdateConfig, UpdateResult, SyncConfig, SyncResult, PublishRequest, PublishResult, DiagnosticReport, PlatformStatus, AssetCountEntry, ValidationResult, ProposalRequest, ProposalFilter } from '../shared/types/platform';
 import { Proposal } from '../shared/types/governance';
-import { ProposalId } from '../shared/types/primitives';
+import { ProposalId, CapabilityId } from '../shared/types/primitives';
+import { CapabilityDefinition, AssetCollection } from '../shared/types/assets';
+import { CapabilityResult } from '../shared/types/capability';
+import { RuntimeContext } from '../shared/types/repository';
+import * as fs from 'fs';
+import * as path from 'path';
+
+function getPackageVersion(): string {
+  const candidates = [
+    path.join(__dirname, '..', '..', 'package.json'),
+    path.join(process.cwd(), 'package.json'),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf8')).version || '0.0.0';
+      }
+    } catch {
+      // try next
+    }
+  }
+  return '0.0.0';
+}
 
 export class PlatformServiceImpl implements PlatformService {
   constructor(
@@ -35,20 +57,88 @@ export class PlatformServiceImpl implements PlatformService {
     return this.orchestrator.doctor.runChecks();
   }
 
-  async validate(root: string): Promise<ValidationResult> {
-    return this.repoService.validate({ path: root, hasGit: false, discoveredAt: '' });
+  async validate(root?: string): Promise<ValidationResult> {
+    const targetPath = root || this.orchestrator.rootPath;
+    return this.repoService.validate({ path: targetPath, hasGit: false, discoveredAt: '' });
   }
 
   async status(): Promise<PlatformStatus> {
+    const root = this.orchestrator.repo.discover(this.orchestrator.rootPath);
+    const manifest = this.orchestrator.repo.loadManifest(root);
+
+    let sharedAssets: AssetCollection = { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [] };
+    let sharedInstalled = false;
+    let sharedVersion = 'unknown';
+    try {
+      sharedAssets = this.orchestrator.repo.loadSharedAssets('');
+      sharedInstalled = true;
+      sharedVersion = manifest.version.toString();
+    } catch {
+      // Shared harness not installed
+    }
+
+    const localAssets = this.orchestrator.repo.loadLocalAssets(root, manifest);
+    const effective = this.orchestrator.repo.resolveAssets(sharedAssets, localAssets);
+    const validation = this.orchestrator.repo.validate(root);
+
+    const makeEntry = (type: string): AssetCountEntry => ({
+      shared: (sharedAssets as any)[type]?.length || 0,
+      local: (localAssets as any)[type]?.length || 0,
+      effective: (effective as any)[type]?.length || 0,
+    });
+
     return {
       status: 'active',
-      version: '0.0.6',
-      uptimeMs: process.uptime() * 1000
+      version: getPackageVersion(),
+      uptimeMs: process.uptime() * 1000,
+      repository: { path: root.path, valid: validation.valid },
+      sharedHarness: { installed: sharedInstalled, version: sharedVersion },
+      assets: {
+        rules: makeEntry('rules'),
+        prompts: makeEntry('prompts'),
+        templates: makeEntry('templates'),
+        workflows: makeEntry('workflows'),
+        knowledge: makeEntry('knowledge'),
+        hooks: makeEntry('hooks'),
+        capabilities: makeEntry('capabilities'),
+      }
     };
+  }
+
+  async listCapabilities(): Promise<CapabilityDefinition[]> {
+    return this.orchestrator.registry.list();
+  }
+
+  async previewContext(request: TaskRequest): Promise<RuntimeContext> {
+    return this.orchestrator.buildContextPreview(request);
+  }
+
+  async invokeCapability(id: CapabilityId, context: RuntimeContext, input: unknown): Promise<CapabilityResult> {
+    return this.orchestrator.registry.invoke(id, context, input);
+  }
+
+  async cancelTask(taskId: string): Promise<CancelResult> {
+    return this.orchestrator.exec.cancel(taskId);
+  }
+
+  async getProposal(id: ProposalId): Promise<Proposal> {
+    return this.orchestrator.gov.getProposal(id);
+  }
+
+  async reviewProposal(id: ProposalId, reviewer: string): Promise<Proposal> {
+    return this.orchestrator.gov.review(id, reviewer);
+  }
+
+  async rejectProposal(id: ProposalId, reviewer: string, comments: string): Promise<Proposal> {
+    return this.orchestrator.gov.reject(id, reviewer, comments);
   }
 
   async submitProposal(request: ProposalRequest): Promise<Proposal> {
     return this.orchestrator.gov.submitProposal(request);
+  }
+
+  async submitExistingProposal(id: ProposalId): Promise<Proposal> {
+    return this.orchestrator.gov.submitExistingProposal(id);
   }
 
   async listProposals(filter: ProposalFilter): Promise<Proposal[]> {

@@ -1,5 +1,5 @@
 import { CapabilityRegistry } from '../../shared/contracts/services';
-import { FileSystemPersistence } from '../../repository/persistence/FileSystemPersistence';
+import type { FileSystemPersistence } from '../../repository/persistence/FileSystemPersistence';
 
 // Import definitions and capabilities
 import {
@@ -60,15 +60,15 @@ export function registerBuiltins(registry: CapabilityRegistry, deps: BuiltinDeps
   registry.register(fileAppendDef, new FileAppendCapability(deps.persistence));
   registry.register(fileDeleteDef, new FileDeleteCapability(deps.persistence));
   registry.register(fileExistsDef, new FileExistsCapability(deps.persistence));
-  registry.register(fileListDef, new FileListCapability());
-  registry.register(fileMoveDef, new FileMoveCapability());
-  registry.register(fileCopyDef, new FileCopyCapability());
+  registry.register(fileListDef, new FileListCapability(deps.persistence));
+  registry.register(fileMoveDef, new FileMoveCapability(deps.persistence));
+  registry.register(fileCopyDef, new FileCopyCapability(deps.persistence));
 
   // Dir Ops
-  registry.register(dirCreateDef, new DirCreateCapability());
-  registry.register(dirDeleteDef, new DirDeleteCapability());
-  registry.register(dirListDef, new DirListCapability());
-  registry.register(dirExistsDef, new DirExistsCapability());
+  registry.register(dirCreateDef, new DirCreateCapability(deps.persistence));
+  registry.register(dirDeleteDef, new DirDeleteCapability(deps.persistence));
+  registry.register(dirListDef, new DirListCapability(deps.persistence));
+  registry.register(dirExistsDef, new DirExistsCapability(deps.persistence));
 
   // Search Ops
   registry.register(searchTextDef, new SearchTextCapability());

@@ -4,7 +4,7 @@ import { ContextRanker } from '../src/context/ranking/ContextRanker';
 import { BudgetAllocator } from '../src/context/budget/BudgetAllocator';
 import { ContextCache, buildCacheKey } from '../src/context/cache/ContextCache';
 import { ContextBuilder } from '../src/context/builder/ContextBuilder';
-import { RepositoryContext, RuntimeContext } from '../src/shared/types/repository';
+import { RepositoryContext } from '../src/shared/types/repository';
 import { TaskRequest } from '../src/shared/types/execution';
 import { AssetType, AssetScope } from '../src/shared/types/enums';
 
@@ -174,6 +174,24 @@ describe('M3 Context Builder Pipeline', () => {
       }
       expect(cache.get('key-1')).toBeNull(); // oldest key-1 is evicted
       expect(cache.get('key-2')).not.toBeNull();
+    });
+
+    it('invalidate() should remove entry from cache', () => {
+      const cache = new ContextCache();
+      const key = buildCacheKey('2', 'sha-shared', 'sha-local');
+      cache.set(key, { id: 'test-ctx' } as any);
+      expect(cache.get(key)).not.toBeNull();
+      cache.invalidate(key);
+      expect(cache.get(key)).toBeNull();
+    });
+
+    it('clear() should remove all entries', () => {
+      const cache = new ContextCache();
+      cache.set('k1', { id: 'ctx-1' } as any);
+      cache.set('k2', { id: 'ctx-2' } as any);
+      cache.clear();
+      expect(cache.get('k1')).toBeNull();
+      expect(cache.get('k2')).toBeNull();
     });
   });
 

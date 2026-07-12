@@ -5,6 +5,7 @@ import { pltError } from '../../shared/errors/factories';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import * as yaml from 'js-yaml';
 
 export class SharedHarnessInstaller {
   constructor(
@@ -50,30 +51,31 @@ export class SharedHarnessInstaller {
       { rel: 'rules/rule-1.md', content: `# Rule 1\nTag: verification` }
     ];
 
-    const checksumLines: string[] = [];
+    const checksumMap: Record<string, string> = {};
     sampleFiles.forEach(file => {
-      const absPath = path.join(targetPath, 'shared', file.rel);
+      const relKey = `shared/${file.rel}`;
+      const absPath = path.join(targetPath, relKey);
       fs.mkdirSync(path.dirname(absPath), { recursive: true });
       fs.writeFileSync(absPath, file.content, 'utf8');
 
       // Compute sha256
       const sha = crypto.createHash('sha256').update(file.content).digest('hex');
-      checksumLines.push(`${file.rel}: ${sha}`);
+      checksumMap[relKey] = sha;
     });
 
     // Handle checksum validation failure mock
     if (source.includes('checksum-fail')) {
-      checksumLines[0] = 'manifest.yaml: badhash1234567890';
+      checksumMap['shared/manifest.yaml'] = 'badhash1234567890';
     }
 
-    const checksumContent = checksumLines.join('\n');
-    fs.writeFileSync(path.join(targetPath, 'metadata', 'checksum.yaml'), checksumContent, 'utf8');
+    const checksumYaml = yaml.dump({ checksums: checksumMap });
+    fs.writeFileSync(path.join(targetPath, 'metadata', 'checksum.yaml'), checksumYaml, 'utf8');
 
     // Write installed.yaml
     const installedYaml = `version: "${version}"
 source: "${source}"
 installedAt: "${new Date().toISOString()}"
-checksum: "sha256:${crypto.createHash('sha256').update(checksumContent).digest('hex')}"
+checksum: "sha256:${crypto.createHash('sha256').update(checksumYaml).digest('hex')}"
 specificationVersion: "4.0"
 `;
     fs.writeFileSync(path.join(targetPath, 'metadata', 'installed.yaml'), installedYaml, 'utf8');

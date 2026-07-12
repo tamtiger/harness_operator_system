@@ -15,12 +15,11 @@ export class SharedHarnessSynchronizer {
       return { success: false, syncedAssets: 0, error: new Error('Shared harness not installed') as any };
     }
 
-    // Invalidate Context Cache
     this.contextService.invalidateCache('assets-cache-key');
 
     return {
       success: true,
-      syncedAssets: 1 // mock files updated
+      syncedAssets: 0
     };
   }
 }

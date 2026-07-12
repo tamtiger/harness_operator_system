@@ -95,9 +95,9 @@ if (command === 'version') {
 } else if (command === 'context') {
   const taskIndex = args.indexOf('--task');
   const task = taskIndex !== -1 && args[taskIndex + 1] ? args[taskIndex + 1] : 'default';
-  runContext({ task });
+  runContext({ task, ...options });
 } else if (command === 'capability' && cleanArgs[1] === 'list') {
-  runCapabilities();
+  runCapabilities(options);
 } else if (command === 'run') {
   const taskDesc = cleanArgs.slice(1).join(' ') || 'default description';
   runTask(taskDesc, options);

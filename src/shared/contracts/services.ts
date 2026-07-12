@@ -1,9 +1,9 @@
-import { RepositoryRoot, RelativePath, CacheKey, CapabilityId, ProposalId } from '../types/primitives';
-import { Manifest, RepositoryMetadata, RepositoryContext, RuntimeContext } from '../types/repository';
+import { RelativePath, CacheKey, CapabilityId, ProposalId } from '../types/primitives';
+import { Manifest, RepositoryMetadata, RepositoryContext, RuntimeContext, RepositoryRoot } from '../types/repository';
 import { AssetCollection, EffectiveAssetCollection, CapabilityDefinition } from '../types/assets';
+import { CapabilityResult } from '../types/capability';
 import { ValidationResult, InstallConfig, InstallResult, UpdateConfig, UpdateResult, SyncConfig, SyncResult, PublishRequest, PublishResult, DiagnosticReport, PlatformStatus, ProposalRequest, ProposalFilter, PromotionResult } from '../types/platform';
 import { TaskRequest, TaskState, ExecutionResult, CancelResult } from '../types/execution';
-import { CapabilityResult } from '../types/capability';
 import { Proposal, AuditRecord } from '../types/governance';
 
 export interface RepositoryService {
@@ -14,6 +14,11 @@ export interface RepositoryService {
   resolveAssets(shared: AssetCollection, local: AssetCollection): EffectiveAssetCollection;
   buildContext(assets: EffectiveAssetCollection, metadata: RepositoryMetadata): RepositoryContext;
   persist(root: RepositoryRoot, path: RelativePath, data: string): void;
+  readFile(root: RepositoryRoot, path: RelativePath): string;
+  fileExists(root: RepositoryRoot, path: RelativePath): boolean;
+  dirExists(root: RepositoryRoot, path: RelativePath): boolean;
+  ensureDir(root: RepositoryRoot, path: RelativePath): void;
+  readDir(root: RepositoryRoot, path: RelativePath): string[];
   validate(root: RepositoryRoot): ValidationResult;
 }
 
@@ -36,6 +41,7 @@ export interface CapabilityRegistry {
   register(def: CapabilityDefinition, impl: CapabilityImpl): void;
   unregister(id: CapabilityId): void;
   resolve(id: CapabilityId): CapabilityImpl;
+  getDefinition(id: CapabilityId): CapabilityDefinition;
   invoke(id: CapabilityId, context: RuntimeContext, input: unknown): Promise<CapabilityResult>;
   list(): CapabilityDefinition[];
   isRegistered(id: CapabilityId): boolean;
@@ -43,6 +49,7 @@ export interface CapabilityRegistry {
 
 export interface GovernanceService {
   submitProposal(request: ProposalRequest): Proposal;
+  submitExistingProposal(id: ProposalId): Proposal;
   listProposals(filter: ProposalFilter): Proposal[];
   getProposal(id: ProposalId): Proposal;
   review(id: ProposalId, reviewer: string): Proposal;
@@ -60,9 +67,17 @@ export interface PlatformService {
   sync(config: SyncConfig): Promise<SyncResult>;
   publish(request: PublishRequest): Promise<PublishResult>;
   doctor(): Promise<DiagnosticReport>;
-  validate(root: string): Promise<ValidationResult>;
+  validate(root?: string): Promise<ValidationResult>;
   status(): Promise<PlatformStatus>;
+  listCapabilities(): Promise<CapabilityDefinition[]>;
+  previewContext(request: TaskRequest): Promise<RuntimeContext>;
+  invokeCapability(id: CapabilityId, context: RuntimeContext, input: unknown): Promise<CapabilityResult>;
+  cancelTask(taskId: string): Promise<CancelResult>;
   submitProposal(request: ProposalRequest): Promise<Proposal>;
+  submitExistingProposal(id: ProposalId): Promise<Proposal>;
   listProposals(filter: ProposalFilter): Promise<Proposal[]>;
+  getProposal(id: ProposalId): Promise<Proposal>;
+  reviewProposal(id: ProposalId, reviewer: string): Promise<Proposal>;
   approveProposal(id: ProposalId, reviewer: string, comments?: string): Promise<Proposal>;
+  rejectProposal(id: ProposalId, reviewer: string, comments: string): Promise<Proposal>;
 }

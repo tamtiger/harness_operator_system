@@ -47,7 +47,7 @@ describe('M8 Governance Workflow', () => {
 
   it('submit() should throw GOV_004 if evidence is empty', () => {
     // We bypass direct submitProposal to create draft and then submit manually
-    const root = repo.discover(tempDir);
+    repo.discover(tempDir);
     // Directly use ProposalsManager for draft creation
     const proposalsManager = (gov as any).proposals;
     const prop = proposalsManager.create({

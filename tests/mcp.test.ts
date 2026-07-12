@@ -1,6 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { startMcpServer } from '../src/adapters/mcp/server';
-import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 describe('M9 MCP Adapter', () => {
   let mockPlatform: any;
@@ -12,13 +11,7 @@ describe('M9 MCP Adapter', () => {
       validate: vi.fn().mockResolvedValue({ valid: true }),
       listProposals: vi.fn().mockResolvedValue([]),
       submitProposal: vi.fn().mockResolvedValue({ id: 'PROP-1', status: 'SUBMITTED' }),
-      orchestrator: {
-        gov: {
-          proposals: {
-            submit: vi.fn().mockReturnValue({ id: 'PROP-1', status: 'SUBMITTED' })
-          }
-        }
-      }
+      submitExistingProposal: vi.fn().mockResolvedValue({ id: 'PROP-1', status: 'SUBMITTED' })
     };
 
     server = await startMcpServer(mockPlatform);
@@ -116,6 +109,6 @@ describe('M9 MCP Adapter', () => {
     });
 
     expect(res.isError).toBe(false);
-    expect(mockPlatform.orchestrator.gov.proposals.submit).toHaveBeenCalledWith('PROP-1');
+    expect(mockPlatform.submitExistingProposal).toHaveBeenCalledWith('PROP-1');
   });
 });

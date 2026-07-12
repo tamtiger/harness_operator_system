@@ -1,9 +1,5 @@
-import { RuntimeContext } from '../../shared/types/repository';
-import { RepositoryRoot } from '../../shared/types/primitives';
-
-export interface CapabilityImpl {
-  execute(context: RuntimeContext, input: unknown): Promise<unknown>;
-}
+import { RuntimeContext, RepositoryRoot } from '../../shared/types/repository';
+import { CapabilityImpl } from '../../shared/contracts/services';
 
 export abstract class BaseCapability implements CapabilityImpl {
   abstract execute(context: RuntimeContext, input: unknown): Promise<unknown>;

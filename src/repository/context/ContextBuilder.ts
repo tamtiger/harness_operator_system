@@ -16,7 +16,7 @@ export class ContextBuilder {
     const adrs: ADR[] = [];
     const adrDir = path.join(metadata.root.path, '.harness', 'adr');
     if (fs.existsSync(adrDir) && fs.statSync(adrDir).isDirectory()) {
-      const files = fs.readdirSync(adrDir);
+      const files = fs.readdirSync(adrDir).sort();
       for (const file of files) {
         if (file.endsWith('.md')) {
           const content = fs.readFileSync(path.join(adrDir, file), 'utf8');

@@ -64,10 +64,14 @@ export class ResolutionEngine {
       return result;
     };
 
-    // Helper for Append (hooks)
-    const resolveAppend = <T extends Asset>(sharedList: T[], localList: T[]): T[] => {
-      // Shared hooks first, then Local hooks
-      return [...sharedList, ...localList];
+    // Helper for Merge (hooks) — dedup by ID, local overrides shared
+    const resolveHookMerge = <T extends Asset>(sharedList: T[], localList: T[]): T[] => {
+      const mergedMap = new Map<string, T>();
+      sharedList.forEach(asset => mergedMap.set(asset.metadata.id, asset));
+      localList.forEach(localAsset => {
+        mergedMap.set(localAsset.metadata.id, localAsset);
+      });
+      return Array.from(mergedMap.values());
     };
 
     // Helper for Registry (capabilities)
@@ -101,7 +105,7 @@ export class ResolutionEngine {
       templates: resolveOverride(shared.templates, local.templates),
       workflows: resolveOverride(shared.workflows, local.workflows),
       knowledge: resolveMerge(shared.knowledge, local.knowledge),
-      hooks: resolveAppend(shared.hooks, local.hooks),
+      hooks: resolveHookMerge(shared.hooks, local.hooks),
       capabilities: resolveRegistry(shared.capabilities, local.capabilities)
     };
 

@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { AuditRecord } from '../../shared/types/governance';
-import { ProposalId, RepositoryRoot } from '../../shared/types/primitives';
+import { ProposalId } from '../../shared/types/primitives';
+import { RepositoryRoot } from '../../shared/types/repository';
 import { RepositoryService } from '../../shared/contracts/services';
 
 export class AuditLogger {

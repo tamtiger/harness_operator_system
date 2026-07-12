@@ -1,14 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as yaml from 'js-yaml';
 import { ValidationResult } from '../../shared/types/platform';
-import { repoError, mftError } from '../../shared/errors/factories';
+import { repoError } from '../../shared/errors/factories';
 import { isWithinBoundary } from '../../shared/utils/path';
 import { ManifestLoader } from '../manifest/ManifestLoader';
+import { FrontMatterParser } from '../assets/FrontMatterParser';
 import { HarnessError } from '../../shared/errors/HarnessError';
 
 export class RepositoryValidator {
   private loader = new ManifestLoader();
+  private frontMatterParser = new FrontMatterParser();
 
   validate(root: string, options: { mode: 'strict' | 'lenient' } = { mode: 'lenient' }): ValidationResult {
     const errors: HarnessError[] = [];
@@ -126,7 +127,7 @@ export class RepositoryValidator {
   }
 
   private scanDir(dir: string, root: string, callback: (filePath: string, content: string) => void) {
-    const files = fs.readdirSync(dir);
+    const files = fs.readdirSync(dir).sort();
     for (const file of files) {
       const fullPath = path.join(dir, file);
       const relative = path.relative(root, fullPath);
@@ -147,22 +148,10 @@ export class RepositoryValidator {
   }
 
   private parseFrontmatter(content: string, filePath: string): { id: string; extends?: string } | null {
-    if (filePath.endsWith('.md')) {
-      const match = content.match(/^---\r?\n([\s\S]+?)\r?\n---/);
-      if (!match) {
-        throw new Error('Missing frontmatter');
-      }
-      const fm = yaml.load(match[1]) as any;
-      if (!fm || !fm.id) {
-        throw new Error('Missing ID in frontmatter');
-      }
-      return { id: fm.id, extends: fm.extends };
-    } else {
-      const parsed = yaml.load(content) as any;
-      if (!parsed || !parsed.id) {
-        throw new Error('Missing ID in workflow/hook file');
-      }
-      return { id: parsed.id, extends: parsed.extends };
+    const { metadata } = this.frontMatterParser.parse(filePath, content);
+    if (!metadata || !metadata.id) {
+      throw new Error('Missing ID in asset metadata');
     }
+    return { id: metadata.id, extends: metadata.extends };
   }
 }

@@ -1,4 +1,8 @@
-import { FormatOptions } from './ErrorFormatter';
+export interface FormatOptions {
+  json: boolean;
+  noColor: boolean;
+  quiet: boolean;
+}
 
 export class OutputFormatter {
   private stripAnsi(str: string): string {
@@ -140,7 +144,7 @@ export class OutputFormatter {
         const res = data as any;
         if (res.success) {
           text = `${colorGreen}✓ Shared Harness synchronized!${colorReset}\n`;
-          text += `Updated ${res.capabilitiesAdded || 0} capabilities and ${res.assetsSynced || 0} assets.`;
+          text += `Updated ${res.syncedAssets || 0} assets.`;
         } else {
           text = `${colorRed}✗ Sync failed: ${res.error?.message || 'Unknown error'}${colorReset}`;
         }
@@ -151,7 +155,9 @@ export class OutputFormatter {
         const res = data as any;
         if (res.success) {
           text = `${colorGreen}✓ Asset published successfully!${colorReset}\n`;
-          text += `Proposal ID: ${res.proposalId}`;
+          if (res.proposalId) {
+            text += `Proposal ID: ${res.proposalId}`;
+          }
         } else {
           text = `${colorRed}✗ Publish failed: ${res.error?.message || 'Unknown error'}${colorReset}`;
         }

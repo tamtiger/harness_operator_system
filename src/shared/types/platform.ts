@@ -27,7 +27,7 @@ export interface InstalledMetadata {
   source: string;
   installedAt: ISO8601;
   checksum: string;
-  specificationVersion: string;
+  specificationVersion: SemVer;
 }
 
 export interface InstallConfig {
@@ -79,10 +79,27 @@ export interface PublishResult {
   error?: HarnessError;
 }
 
+export interface AssetCountEntry {
+  shared: number;
+  local: number;
+  effective: number;
+}
+
 export interface PlatformStatus {
   status: 'active' | 'offline' | 'degraded';
   version: SemVer;
   uptimeMs: number;
+  repository?: { path: string; valid: boolean };
+  sharedHarness?: { installed: boolean; version: string };
+  assets?: {
+    rules: AssetCountEntry;
+    prompts: AssetCountEntry;
+    templates: AssetCountEntry;
+    workflows: AssetCountEntry;
+    knowledge: AssetCountEntry;
+    hooks: AssetCountEntry;
+    capabilities: AssetCountEntry;
+  };
 }
 
 export interface ProposalRequest {

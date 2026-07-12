@@ -3,8 +3,6 @@ import { RuntimeContext } from '../../shared/types/repository';
 import { FileSystemPersistence } from '../../repository/persistence/FileSystemPersistence';
 import { CapabilityDefinition } from '../../shared/types/assets';
 import { AssetType, AssetScope, Permission } from '../../shared/types/enums';
-import * as fs from 'fs';
-import * as path from 'path';
 
 export const fileReadDef: CapabilityDefinition = {
   metadata: {
@@ -175,10 +173,7 @@ export class FileDeleteCapability extends BaseCapability {
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absPath = path.resolve(root.path, input.path);
-    if (fs.existsSync(absPath)) {
-      fs.unlinkSync(absPath);
-    }
+    this.persistence.deleteFile(root, input.path);
     return { success: true };
   }
 }
@@ -220,8 +215,7 @@ export class FileExistsCapability extends BaseCapability {
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absPath = path.resolve(root.path, input.path);
-    return { exists: fs.existsSync(absPath) && fs.statSync(absPath).isFile() };
+    return { exists: this.persistence.existsFile(root, input.path) };
   }
 }
 
@@ -260,13 +254,14 @@ export const fileListDef: CapabilityDefinition = {
 };
 
 export class FileListCapability extends BaseCapability {
+  constructor(private persistence: FileSystemPersistence) {
+    super();
+  }
+
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absDir = path.resolve(root.path, input.directory);
-    if (!fs.existsSync(absDir) || !fs.statSync(absDir).isDirectory()) {
-      return { files: [] };
-    }
-    const files = fs.readdirSync(absDir).filter(f => fs.statSync(path.join(absDir, f)).isFile());
+    const entries = this.persistence.listDir(root, input.directory);
+    const files = entries.filter(e => e.type === 'file').map(e => e.name);
     return { files };
   }
 }
@@ -303,17 +298,13 @@ export const fileMoveDef: CapabilityDefinition = {
 };
 
 export class FileMoveCapability extends BaseCapability {
+  constructor(private persistence: FileSystemPersistence) {
+    super();
+  }
+
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absSrc = path.resolve(root.path, input.source);
-    const absDest = path.resolve(root.path, input.destination);
-    if (fs.existsSync(absSrc)) {
-      const parent = path.dirname(absDest);
-      if (!fs.existsSync(parent)) {
-        fs.mkdirSync(parent, { recursive: true });
-      }
-      fs.renameSync(absSrc, absDest);
-    }
+    this.persistence.moveFile(root, input.source, input.destination);
     return { success: true };
   }
 }
@@ -350,17 +341,13 @@ export const fileCopyDef: CapabilityDefinition = {
 };
 
 export class FileCopyCapability extends BaseCapability {
+  constructor(private persistence: FileSystemPersistence) {
+    super();
+  }
+
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absSrc = path.resolve(root.path, input.source);
-    const absDest = path.resolve(root.path, input.destination);
-    if (fs.existsSync(absSrc)) {
-      const parent = path.dirname(absDest);
-      if (!fs.existsSync(parent)) {
-        fs.mkdirSync(parent, { recursive: true });
-      }
-      fs.copyFileSync(absSrc, absDest);
-    }
+    this.persistence.copyFile(root, input.source, input.destination);
     return { success: true };
   }
 }
@@ -398,10 +385,13 @@ export const dirCreateDef: CapabilityDefinition = {
 };
 
 export class DirCreateCapability extends BaseCapability {
+  constructor(private persistence: FileSystemPersistence) {
+    super();
+  }
+
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absPath = path.resolve(root.path, input.path);
-    fs.mkdirSync(absPath, { recursive: input.recursive ?? true });
+    this.persistence.mkDir(root, input.path, input.recursive ?? true);
     return { success: true };
   }
 }
@@ -438,12 +428,13 @@ export const dirDeleteDef: CapabilityDefinition = {
 };
 
 export class DirDeleteCapability extends BaseCapability {
+  constructor(private persistence: FileSystemPersistence) {
+    super();
+  }
+
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absPath = path.resolve(root.path, input.path);
-    if (fs.existsSync(absPath)) {
-      fs.rmSync(absPath, { recursive: input.recursive ?? true, force: true });
-    }
+    this.persistence.rmDir(root, input.path, input.recursive ?? true);
     return { success: true };
   }
 }
@@ -489,19 +480,13 @@ export const dirListDef: CapabilityDefinition = {
 };
 
 export class DirListCapability extends BaseCapability {
+  constructor(private persistence: FileSystemPersistence) {
+    super();
+  }
+
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absPath = path.resolve(root.path, input.path);
-    if (!fs.existsSync(absPath) || !fs.statSync(absPath).isDirectory()) {
-      return { entries: [] };
-    }
-    const entries = fs.readdirSync(absPath).map(name => {
-      const stats = fs.statSync(path.join(absPath, name));
-      return {
-        name,
-        type: stats.isDirectory() ? 'dir' : 'file'
-      };
-    });
+    const entries = this.persistence.listDir(root, input.path);
     return { entries };
   }
 }
@@ -537,9 +522,12 @@ export const dirExistsDef: CapabilityDefinition = {
 };
 
 export class DirExistsCapability extends BaseCapability {
+  constructor(private persistence: FileSystemPersistence) {
+    super();
+  }
+
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    const absPath = path.resolve(root.path, input.path);
-    return { exists: fs.existsSync(absPath) && fs.statSync(absPath).isDirectory() };
+    return { exists: this.persistence.existsDir(root, input.path) };
   }
 }

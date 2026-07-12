@@ -1,6 +1,5 @@
 import { UpdateConfig, UpdateResult } from '../../shared/types/platform';
 import { CapabilityRegistry } from '../../shared/contracts/services';
-import { DiagnosticsEngine } from '../doctor/DiagnosticsEngine';
 import { SharedHarnessInstaller } from '../install/SharedHarnessInstaller';
 import { pltError } from '../../shared/errors/factories';
 import * as fs from 'fs';

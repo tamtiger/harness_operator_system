@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { CapabilityServiceImpl } from '../src/capability/service';
+import { FileSystemPersistence } from '../src/repository/persistence/FileSystemPersistence';
 import { RuntimeContext } from '../src/shared/types/repository';
 import { AssetType, AssetScope, Permission } from '../src/shared/types/enums';
 import * as fs from 'fs';
@@ -13,7 +14,7 @@ describe('M4 Capability Registry & Invocation', () => {
 
   beforeAll(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-m4-test-'));
-    service = new CapabilityServiceImpl();
+    service = new CapabilityServiceImpl(new FileSystemPersistence());
 
     mockContext = {
       metadata: {
@@ -130,5 +131,41 @@ describe('M4 Capability Registry & Invocation', () => {
     const res = await service.invoke('mock.slow', mockContext, {});
     expect(res.success).toBe(false);
     expect(res.error?.code).toBe('CAP_005');
+  });
+
+  it('should throw CAP_003 on output validation mismatch', async () => {
+    // Register capability with output schema expecting specific shape
+    const def = {
+      metadata: {
+        id: 'mock.output',
+        type: AssetType.CAPABILITY,
+        version: '1.0.0',
+        name: 'Bad Output',
+        scope: AssetScope.LOCAL,
+        source: 'local',
+        createdAt: '',
+        updatedAt: ''
+      },
+      content: '',
+      capabilityId: 'mock.output',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: {
+        type: 'object',
+        required: ['result'],
+        properties: { result: { type: 'string' } }
+      }
+    };
+
+    const badImpl = {
+      async execute(): Promise<any> {
+        return { result: 42 }; // number, but schema expects string
+      }
+    };
+
+    service.register(def as any, badImpl);
+
+    const res = await service.invoke('mock.output', mockContext, {});
+    expect(res.success).toBe(false);
+    expect(res.error?.code).toBe('CAP_003');
   });
 });

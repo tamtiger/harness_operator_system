@@ -95,11 +95,7 @@ export async function startMcpServer(platform: PlatformService): Promise<Server>
         if (!id) {
           return formatter.toToolResult({ error: 'Missing required argument: id' }, true);
         }
-        const gov = (platform as any).orchestrator?.gov;
-        if (!gov) {
-          return formatter.toToolResult({ error: 'Governance service not available' }, true);
-        }
-        const res = gov.proposals.submit(id);
+        const res = await platform.submitExistingProposal(id);
         return formatter.toToolResult(res);
       }
 

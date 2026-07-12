@@ -13,6 +13,16 @@ function runGitCmd(cmd: string, cwd: string): string {
   }
 }
 
+// Safe alternative using spawnSync (no shell injection risk)
+function runGitCmdSafe(args: string[], cwd: string): string {
+  try {
+    const result = child_process.spawnSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    return (result.stdout || '').trim();
+  } catch {
+    return '';
+  }
+}
+
 export const gitStatusDef: CapabilityDefinition = {
   metadata: {
     id: 'harness.git.status',
@@ -143,7 +153,7 @@ export class GitCommitCapability extends BaseCapability {
     } else {
       runGitCmd('add .', root.path);
     }
-    const res = runGitCmd(`commit -m "${input.message}"`, root.path);
+    runGitCmdSafe(['commit', '-m', input.message], root.path);
     const hash = runGitCmd('rev-parse HEAD', root.path) || 'mock-commit-hash';
     return { commitHash: hash };
   }

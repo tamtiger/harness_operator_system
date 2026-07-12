@@ -5,16 +5,15 @@ import { RuntimeContext } from '../shared/types/repository';
 import { CapabilityId } from '../shared/types/primitives';
 import { CapabilityRegistryImpl } from './registry/CapabilityRegistry';
 import { registerBuiltins } from './builtin';
-import { FileSystemPersistence } from '../repository/persistence/FileSystemPersistence';
+import type { FileSystemPersistence } from '../repository/persistence/FileSystemPersistence';
 
 export class CapabilityServiceImpl implements CapabilityRegistry {
   private registry: CapabilityRegistry = new CapabilityRegistryImpl();
 
-  constructor() {
-    // Register built-ins with file persistence dependency
-    registerBuiltins(this.registry, {
-      persistence: new FileSystemPersistence()
-    });
+  constructor(persistence?: FileSystemPersistence) {
+    if (persistence) {
+      registerBuiltins(this.registry, { persistence });
+    }
   }
 
   register(def: CapabilityDefinition, impl: any): void {
@@ -34,8 +33,7 @@ export class CapabilityServiceImpl implements CapabilityRegistry {
   }
 
   getDefinition(id: CapabilityId): CapabilityDefinition {
-    // Cast to access internal helper if needed or use resolved def
-    return (this.registry as any).getDefinition(id);
+    return this.registry.getDefinition(id);
   }
 
   list(): CapabilityDefinition[] {

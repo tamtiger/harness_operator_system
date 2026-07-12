@@ -9,6 +9,7 @@ import { SharedHarnessSynchronizer } from '../../platform/sync/SharedHarnessSync
 import { AssetPublisher } from '../../platform/publish/AssetPublisher';
 import { DiagnosticsEngine } from '../../platform/doctor/DiagnosticsEngine';
 import { PlatformOrchestrator, getDefaultSharedPath } from '../../platform/orchestration/PlatformOrchestrator';
+import { FileSystemPersistence } from '../../repository/persistence/FileSystemPersistence';
 import { PlatformServiceImpl } from '../../platform/service';
 import * as path from 'path';
 
@@ -23,9 +24,9 @@ export function createPlatformService(rootPath?: string, sharedPath?: string): P
     repoRoot = { path: finalRoot, hasGit: false, discoveredAt: '' };
   }
   const ctx = new ContextServiceImpl();
-  const exec = new ExecutionServiceImpl();
+  const registry = new CapabilityServiceImpl(new FileSystemPersistence());
+  const exec = new ExecutionServiceImpl(registry);
   const gov = new GovernanceServiceImpl(repo, repoRoot);
-  const registry = new CapabilityServiceImpl();
 
   const installer = new SharedHarnessInstaller(registry, finalShared, finalRoot);
   const updater = new SharedHarnessUpdater(registry, finalShared, finalRoot);
@@ -35,7 +36,8 @@ export function createPlatformService(rootPath?: string, sharedPath?: string): P
 
   const orchestrator = new PlatformOrchestrator(
     repo, ctx, exec, gov, registry,
-    installer, updater, synchronizer, publisher, doctor
+    installer, updater, synchronizer, publisher, doctor,
+    finalRoot, finalShared
   );
 
   return new PlatformServiceImpl(orchestrator, repo);

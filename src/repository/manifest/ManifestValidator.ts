@@ -19,7 +19,7 @@ export class ManifestValidator {
         throw mftError('MFT_005', { details: `Specification mismatch: ${(issue as any).received || 'unknown'}` });
       }
       if (issue.code === 'unrecognized_keys') {
-        throw mftError('MFT_012', { details: `Custom field outside vendor: ${(issue as any).keys.join(', ')}` });
+        throw mftError('MFT_012', { field: (issue as any).keys.join(', ') });
       }
       
       throw mftError('MFT_003', { details: `Missing or invalid field: ${field} - ${issue.message}` });
@@ -66,8 +66,7 @@ export class ManifestValidator {
     // 6. Capability IDs format validation namespace.name
     if (manifest.capabilities) {
       for (const cap of manifest.capabilities) {
-        // Regex: /^\w+(?:\.\w+)+$/ (namespace.name structure)
-        if (!/^\w+(?:\.\w+)+$/.test(cap.id)) {
+        if (!/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/.test(cap.id)) {
           throw mftError('MFT_016', { details: `Invalid capability ID format: ${cap.id}` });
         }
       }

@@ -1,30 +1,28 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { ProposalRequest, ProposalFilter } from '../../shared/types/platform';
 import { Proposal } from '../../shared/types/governance';
 import { ProposalStatus } from '../../shared/types/enums';
-import { ProposalId, RepositoryRoot } from '../../shared/types/primitives';
+import { ProposalId, RelativePath } from '../../shared/types/primitives';
+import { RepositoryRoot } from '../../shared/types/repository';
 import { RepositoryService } from '../../shared/contracts/services';
 import { govError } from '../../shared/errors/factories';
 import { serializeProposal, deserializeProposal } from './ProposalFileFormat';
 import { AuditLogger } from '../audit/AuditLogger';
 
 export class ProposalManager {
+  private proposalCache = new Map<ProposalId, Proposal>();
+
   constructor(
     private repo: RepositoryService,
     private root: RepositoryRoot,
     private audit: AuditLogger
   ) {}
 
-  private getProposalsDir(): string {
-    return path.join(this.root.path, '.harness', 'proposals');
+  private getProposalsDir(): RelativePath {
+    return '.harness/proposals';
   }
 
   private ensureDirExists() {
-    const dir = this.getProposalsDir();
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    this.repo.ensureDir(this.root, this.getProposalsDir());
   }
 
   create(request: ProposalRequest): Proposal {
@@ -36,7 +34,7 @@ export class ProposalManager {
     
     let maxSeq = 0;
     try {
-      const files = fs.readdirSync(this.getProposalsDir());
+      const files = this.repo.readDir(this.root, this.getProposalsDir());
       files.forEach(file => {
         if (file.startsWith(prefix) && file.endsWith('.md')) {
           const seqStr = file.replace(prefix, '').replace('.md', '');
@@ -71,8 +69,7 @@ export class ProposalManager {
       tags: []
     };
 
-    const content = serializeProposal(proposal);
-    this.repo.persist(this.root, `.harness/proposals/${id}.md`, content);
+    this.persist(proposal);
 
     return proposal;
   }
@@ -92,8 +89,7 @@ export class ProposalManager {
     proposal.status = ProposalStatus.SUBMITTED;
     proposal.updatedAt = new Date().toISOString();
 
-    const content = serializeProposal(proposal);
-    this.repo.persist(this.root, `.harness/proposals/${id}.md`, content);
+    this.persist(proposal);
 
     this.audit.log({
       id: 'aud-' + Math.random().toString(36).substring(2, 9),
@@ -110,15 +106,22 @@ export class ProposalManager {
   }
 
   get(id: ProposalId): Proposal {
+    const cached = this.proposalCache.get(id);
+    if (cached) {
+      return { ...cached };
+    }
+
     this.ensureDirExists();
-    const filePath = path.join(this.getProposalsDir(), `${id}.md`);
-    if (!fs.existsSync(filePath)) {
+    const fileRelPath = `.harness/proposals/${id}.md`;
+    if (!this.repo.fileExists(this.root, fileRelPath)) {
       throw govError('GOV_001');
     }
 
     try {
-      const content = fs.readFileSync(filePath, 'utf8');
-      return deserializeProposal(content);
+      const content = this.repo.readFile(this.root, fileRelPath);
+      const proposal = deserializeProposal(content);
+      this.proposalCache.set(id, { ...proposal });
+      return proposal;
     } catch (err: any) {
       throw govError('GOV_001', err.message);
     }
@@ -128,12 +131,19 @@ export class ProposalManager {
     this.ensureDirExists();
     const list: Proposal[] = [];
     try {
-      const files = fs.readdirSync(this.getProposalsDir());
+      const files = this.repo.readDir(this.root, this.getProposalsDir());
       files.forEach(file => {
         if (file.endsWith('.md')) {
+          const id = file.replace('.md', '');
+          const cached = this.proposalCache.get(id);
+          if (cached) {
+            list.push(cached);
+            return;
+          }
           try {
-            const content = fs.readFileSync(path.join(this.getProposalsDir(), file), 'utf8');
+            const content = this.repo.readFile(this.root, `.harness/proposals/${file}`);
             const prop = deserializeProposal(content);
+            this.proposalCache.set(id, { ...prop });
             list.push(prop);
           } catch (e) {
             // skip corrupted files
@@ -160,5 +170,11 @@ export class ProposalManager {
   persist(proposal: Proposal) {
     const content = serializeProposal(proposal);
     this.repo.persist(this.root, `.harness/proposals/${proposal.id}.md`, content);
+    // Update cache with latest state
+    this.proposalCache.set(proposal.id, { ...proposal });
+  }
+
+  invalidateCache(id: ProposalId): void {
+    this.proposalCache.delete(id);
   }
 }

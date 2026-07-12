@@ -1,4 +1,10 @@
-import { RepositoryRoot, RelativePath, ISO8601, CapabilityId } from './primitives';
+import { RelativePath, ISO8601, CapabilityId } from './primitives';
+
+export interface RepositoryRoot {
+  path: string;
+  hasGit: boolean;
+  discoveredAt: string;
+}
 import { EffectiveAssetCollection, Rule, Knowledge, Workflow } from './assets';
 import { ADR } from './governance';
 import { Permission } from './enums';
@@ -100,4 +106,5 @@ export interface RuntimeContext extends RepositoryContext {
   activeWorkflow?: Workflow;
   availableCapabilities: CapabilityId[];
   permissions?: Permission[];
+  agentsMd?: string;
 }

@@ -30,7 +30,7 @@ export class ContextServiceImpl implements ContextService {
     return runtime;
   }
 
-  invalidateCache(key: string): void {
+  invalidateCache(key: CacheKey): void {
     this.cache.invalidate(key);
   }
 }

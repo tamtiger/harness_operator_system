@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { RepositoryRoot } from '../../shared/types/primitives';
 import { repoError } from '../../shared/errors/factories';
 
 export class RepositoryDiscovery {

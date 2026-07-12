@@ -6,13 +6,16 @@ import { RetryManager, calcBackoff } from '../src/execution/retry/RetryManager';
 import { TaskStatus } from '../src/shared/types/enums';
 import { RuntimeContext } from '../src/shared/types/repository';
 import { Permission } from '../src/shared/types/enums';
-import { execError, capError } from '../src/shared/errors/factories';
+import { capError } from '../src/shared/errors/factories';
+import { CapabilityServiceImpl } from '../src/capability/service';
+import { FileSystemPersistence } from '../src/repository/persistence/FileSystemPersistence';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
 describe('M5 Execution Runtime', () => {
   let execService: ExecutionServiceImpl;
+  let registry: CapabilityServiceImpl;
   let mockContext: RuntimeContext;
   let tempDir: string;
 
@@ -22,7 +25,8 @@ describe('M5 Execution Runtime', () => {
     // Write package.json so the file read test passes
     fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'mock-pkg' }), 'utf8');
 
-    execService = new ExecutionServiceImpl();
+    registry = new CapabilityServiceImpl(new FileSystemPersistence());
+    execService = new ExecutionServiceImpl(registry);
     mockContext = {
       metadata: {
         root: { path: tempDir, hasGit: false, discoveredAt: '' },
@@ -59,7 +63,6 @@ describe('M5 Execution Runtime', () => {
     };
 
     // Register a mock slow capability for cancellation tests
-    const registry = (execService as any).runtime.registry;
     registry.register({
       metadata: {
         id: 'mock.slow',

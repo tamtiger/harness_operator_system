@@ -1,6 +1,6 @@
 import { RepositoryService } from '../shared/contracts/services';
-import { RepositoryRoot, RelativePath } from '../shared/types/primitives';
-import { Manifest, RepositoryMetadata, RepositoryContext } from '../shared/types/repository';
+import { RelativePath } from '../shared/types/primitives';
+import { Manifest, RepositoryMetadata, RepositoryContext, RepositoryRoot } from '../shared/types/repository';
 import { AssetCollection, EffectiveAssetCollection } from '../shared/types/assets';
 import { ValidationResult } from '../shared/types/platform';
 
@@ -47,6 +47,26 @@ export class RepositoryServiceImpl implements RepositoryService {
 
   persist(root: RepositoryRoot, path: RelativePath, data: string): void {
     this.persistence.write(root, path, data);
+  }
+
+  readFile(root: RepositoryRoot, path: RelativePath): string {
+    return this.persistence.read(root, path);
+  }
+
+  fileExists(root: RepositoryRoot, path: RelativePath): boolean {
+    return this.persistence.existsFile(root, path);
+  }
+
+  dirExists(root: RepositoryRoot, path: RelativePath): boolean {
+    return this.persistence.existsDir(root, path);
+  }
+
+  ensureDir(root: RepositoryRoot, path: RelativePath): void {
+    this.persistence.mkDir(root, path);
+  }
+
+  readDir(root: RepositoryRoot, path: RelativePath): string[] {
+    return this.persistence.listDir(root, path).map(e => e.name);
   }
 
   validate(root: RepositoryRoot, options?: { mode: 'strict' | 'lenient' }): ValidationResult {

@@ -1,9 +1,8 @@
-import { CapabilityRegistry } from '../../shared/contracts/services';
+import { CapabilityRegistry, CapabilityImpl } from '../../shared/contracts/services';
 import { CapabilityDefinition } from '../../shared/types/assets';
 import { CapabilityResult } from '../../shared/types/capability';
 import { RuntimeContext } from '../../shared/types/repository';
 import { CapabilityId } from '../../shared/types/primitives';
-import { CapabilityImpl } from './types';
 import { CapabilityValidator } from '../validation/CapabilityValidator';
 import { capError } from '../../shared/errors/factories';
 import { HarnessError } from '../../shared/errors/HarnessError';
@@ -48,24 +47,18 @@ export class CapabilityRegistryImpl implements CapabilityRegistry {
 
   async invoke(id: CapabilityId, context: RuntimeContext, input: unknown): Promise<CapabilityResult> {
     const start = Date.now();
-    let def: CapabilityDefinition;
-    let impl: CapabilityImpl;
 
-    try {
-      const reg = this.registrations.get(id);
-      if (!reg) {
-        throw capError('CAP_001', { capability: id });
-      }
-      def = reg.def;
-      impl = reg.impl;
-    } catch (err: any) {
+    const reg = this.registrations.get(id);
+    if (!reg) {
       return {
         capabilityId: id,
         success: false,
-        error: err instanceof HarnessError ? err : capError('CAP_001', { capability: id }),
+        error: capError('CAP_001', { capability: id }),
         durationMs: Date.now() - start
       };
     }
+    const def: CapabilityDefinition = reg.def;
+    const impl: CapabilityImpl = reg.impl;
 
     try {
       // 2. Validate input schema

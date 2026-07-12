@@ -74,7 +74,7 @@ export class DiagnosticsEngine {
     let manifestError: string | undefined;
     try {
       const rootMeta = { path: this.rootPath, hasGit: false, discoveredAt: '' };
-      const manifest = this.repoService.loadManifest(rootMeta);
+      this.repoService.loadManifest(rootMeta);
       const validation = this.repoService.validate(rootMeta);
       manifestValid = validation.valid;
       if (!manifestValid && validation.errors.length > 0) {

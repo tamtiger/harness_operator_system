@@ -26,14 +26,18 @@ export class ContextFilter {
       if (!includeDeprecated && rule.metadata.deprecated) {
         return false;
       }
-      // Path scope check
+      // Path scope check — exact directory boundary
       if (rule.metadata.tags && rule.metadata.tags.some(t => t.startsWith('scope:'))) {
         const scopes = rule.metadata.tags
           .filter(t => t.startsWith('scope:'))
           .map(t => t.substring(6));
         
         if (scopes.length > 0 && request.workingDirectory) {
-          const matched = scopes.some(scope => request.workingDirectory && request.workingDirectory.startsWith(scope));
+          const wd = request.workingDirectory.replace(/\\/g, '/');
+          const matched = scopes.some(scope => {
+            const normalized = scope.replace(/\\/g, '/');
+            return wd === normalized || wd.startsWith(normalized.endsWith('/') ? normalized : normalized + '/');
+          });
           if (!matched) return false;
         }
       }
@@ -53,8 +57,8 @@ export class ContextFilter {
         if (!hasOverlap) return false;
       }
 
-      // Confidence check (stub/mock metadata parsing has confidence tag or property)
-      const conf = (knowledge.metadata as any).confidence || 'medium';
+      // Confidence check
+      const conf = knowledge.confidence || 'medium';
       if (confidenceValue(conf) < targetConfValue) {
         return false;
       }
@@ -67,7 +71,7 @@ export class ContextFilter {
       if (!includeDeprecated && wf.metadata.deprecated) {
         return false;
       }
-      const triggers = (wf.metadata as any).triggers || [];
+      const triggers = wf.triggers || [];
       if (triggers.length > 0 && request.taskType) {
         if (!triggers.includes(request.taskType)) {
           return false;

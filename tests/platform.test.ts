@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createPlatformService } from '../src/adapters/cli/factory';
 import { PlatformServiceImpl } from '../src/platform/service';
 import { TaskStatus } from '../src/shared/types/enums';
-import { ProposalStatus } from '../src/shared/types/enums';
 import { ProposalType } from '../src/shared/types/enums';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -174,7 +173,7 @@ scope: "local"
       // Approve proposal
       await platformService.approveProposal(proposal.id, 'reviewer-1', 'Approve');
 
-      // Promote mock
+      // Promote
       const govService = (platformService as any).orchestrator.gov;
       govService.promote(proposal.id);
 

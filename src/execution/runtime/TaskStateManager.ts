@@ -6,7 +6,7 @@ const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   [TaskStatus.CREATED]:    [TaskStatus.PLANNING],
   [TaskStatus.PLANNING]:   [TaskStatus.RUNNING, TaskStatus.FAILED],
   [TaskStatus.RUNNING]:    [TaskStatus.VERIFYING, TaskStatus.FAILED, TaskStatus.CANCELLED],
-  [TaskStatus.VERIFYING]:  [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.RUNNING],
+  [TaskStatus.VERIFYING]:  [TaskStatus.COMPLETED, TaskStatus.FAILED],
   [TaskStatus.COMPLETED]:  [],
   [TaskStatus.FAILED]:     [],
   [TaskStatus.CANCELLED]:  [],

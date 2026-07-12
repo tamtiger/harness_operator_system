@@ -1,6 +1,6 @@
 # Harness Operator System
 
-**Version:** 0.0.11 | **Status:** Active Development
+**Version:** 0.0.12 | **Status:** Active Development
 
 Harness Operator System is an **AI-native Knowledge Management Platform** designed to manage, distribute, and govern operational knowledge for AI Coding Tools (Cursor, Claude Code, Gemini CLI, Codex CLI, Kiro, OpenCode, and any MCP-compatible client).
 

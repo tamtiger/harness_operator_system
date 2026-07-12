@@ -3,6 +3,15 @@ import { ErrorDomain } from '../types/enums';
 
 type ErrorDef = { message: string; retryable: boolean };
 
+function interpolate(template: string, details: unknown): string {
+  if (!details || typeof details !== 'object') return template;
+  const obj = details as Record<string, unknown>;
+  return template.replace(/\{(\w+)\}/g, (_, key) => {
+    const val = obj[key];
+    return val !== undefined ? String(val) : `{${key}}`;
+  });
+}
+
 const REPO_ERRORS = {
   REPO_001: { message: 'Repository root not found', retryable: false },
   REPO_002: { message: 'harness.yaml not found', retryable: false },
@@ -98,35 +107,35 @@ const PLT_ERRORS = {
 
 export function repoError(code: keyof typeof REPO_ERRORS, details?: unknown): HarnessError {
   const e = REPO_ERRORS[code];
-  return new HarnessError(code, ErrorDomain.REPOSITORY, e.message, e.retryable, details);
+  return new HarnessError(code, ErrorDomain.REPOSITORY, interpolate(e.message, details), e.retryable, details);
 }
 
 export function mftError(code: keyof typeof MFT_ERRORS, details?: unknown): HarnessError {
   const e = MFT_ERRORS[code];
-  return new HarnessError(code, ErrorDomain.MANIFEST, e.message, e.retryable, details);
+  return new HarnessError(code, ErrorDomain.MANIFEST, interpolate(e.message, details), e.retryable, details);
 }
 
 export function ctxError(code: keyof typeof CTX_ERRORS, details?: unknown): HarnessError {
   const e = CTX_ERRORS[code];
-  return new HarnessError(code, ErrorDomain.CONTEXT, e.message, e.retryable, details);
+  return new HarnessError(code, ErrorDomain.CONTEXT, interpolate(e.message, details), e.retryable, details);
 }
 
 export function execError(code: keyof typeof EXEC_ERRORS, details?: unknown, retryableOverride?: boolean): HarnessError {
   const e = EXEC_ERRORS[code];
-  return new HarnessError(code, ErrorDomain.EXECUTION, e.message, retryableOverride !== undefined ? retryableOverride : e.retryable, details);
+  return new HarnessError(code, ErrorDomain.EXECUTION, interpolate(e.message, details), retryableOverride !== undefined ? retryableOverride : e.retryable, details);
 }
 
 export function capError(code: keyof typeof CAP_ERRORS, details?: unknown): HarnessError {
   const e = CAP_ERRORS[code];
-  return new HarnessError(code, ErrorDomain.CAPABILITY, e.message, e.retryable, details);
+  return new HarnessError(code, ErrorDomain.CAPABILITY, interpolate(e.message, details), e.retryable, details);
 }
 
 export function govError(code: keyof typeof GOV_ERRORS, details?: unknown): HarnessError {
   const e = GOV_ERRORS[code];
-  return new HarnessError(code, ErrorDomain.GOVERNANCE, e.message, e.retryable, details);
+  return new HarnessError(code, ErrorDomain.GOVERNANCE, interpolate(e.message, details), e.retryable, details);
 }
 
 export function pltError(code: keyof typeof PLT_ERRORS, details?: unknown): HarnessError {
   const e = PLT_ERRORS[code];
-  return new HarnessError(code, ErrorDomain.PLATFORM, e.message, e.retryable, details);
+  return new HarnessError(code, ErrorDomain.PLATFORM, interpolate(e.message, details), e.retryable, details);
 }

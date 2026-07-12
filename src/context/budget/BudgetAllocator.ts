@@ -59,7 +59,7 @@ export class BudgetAllocator {
           allocated[type] += tokens;
         } else {
           if (strategy === 'hard_limit') {
-            throw ctxError('CTX_003', { details: `Budget exceeded hard limit: ${type} exceeds allocated ${limit} tokens` });
+            throw ctxError('CTX_003', { tokens: allocated[type] + tokens, limit });
           }
           // trim (skip this and subsequent)
         }
@@ -69,10 +69,12 @@ export class BudgetAllocator {
 
     const finalRules = trimOrLimit(context.assets.rules, limits.rules, 'rules');
     const finalKnowledge = trimOrLimit(context.assets.knowledge, limits.knowledge, 'knowledge');
-    const finalPrompts = trimOrLimit(context.assets.prompts, limits.prompts, 'prompts');
     const finalWorkflows = trimOrLimit(context.assets.workflows, limits.workflows, 'workflows');
 
-    const totalUsed = allocated.rules + allocated.knowledge + allocated.prompts + allocated.workflows;
+    // Consume metadata slot: estimate from metadata fields
+    allocated.metadata = estimateTokens(JSON.stringify(context.metadata));
+
+    const totalUsed = allocated.rules + allocated.knowledge + allocated.prompts + allocated.workflows + allocated.metadata;
 
     const runtimeContext: RuntimeContext = {
       ...context,

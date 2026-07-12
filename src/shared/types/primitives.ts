@@ -2,11 +2,6 @@
  * Core Primitives used throughout the Harness system.
  */
 
-export interface RepositoryRoot {
-  path: string;
-  hasGit: boolean;
-  discoveredAt: string;
-}
 export type RelativePath = string;     // relative to RepositoryRoot
 export type SemVer = string;           // "X.Y.Z"
 export type ISO8601 = string;          // "2026-07-11T16:58:00Z"

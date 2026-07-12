@@ -10,6 +10,39 @@ import { execError } from '../../shared/errors/factories';
 import { HarnessError } from '../../shared/errors/HarnessError';
 import { CapabilityId } from '../../shared/types/primitives';
 
+function invokeWithTimeout<T>(
+  invoke: () => Promise<T>,
+  timeoutMs: number,
+  signal?: AbortSignal
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Step timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(execError('EXEC_005'));
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+
+    invoke().then(
+      (val) => {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+        resolve(val);
+      },
+      (err) => {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+        reject(err);
+      }
+    );
+  });
+}
+
 export class ExecutionRuntime {
   private scheduler = new StepScheduler();
   private verifier = new ResultVerifier();
@@ -20,7 +53,8 @@ export class ExecutionRuntime {
   async execute(
     context: RuntimeContext,
     request: TaskRequest,
-    cancelMap?: Map<string, boolean>
+    signal?: AbortSignal,
+    onStatus?: (status: TaskStatus) => void
   ): Promise<ExecutionResult> {
     const start = Date.now();
     const taskId = request.taskId || 'task-' + Math.random().toString(36).substring(2, 9);
@@ -31,23 +65,27 @@ export class ExecutionRuntime {
 
     const stateManager = new TaskStateManager(taskId);
     const results: any[] = [];
+    let currentCapId: string = 'unknown';
 
     try {
       // 1. Build execution plan
       stateManager.transition(TaskStatus.PLANNING);
+      onStatus?.(TaskStatus.PLANNING);
       const plan = this.buildPlan(taskId, context, request);
 
       // 2. Schedule steps
       stateManager.transition(TaskStatus.RUNNING);
+      onStatus?.(TaskStatus.RUNNING);
       const orderedSteps = this.scheduler.schedule(plan);
       stateManager.updateProgress(0, orderedSteps.length);
 
       // 3. Loop through steps
       for (let i = 0; i < orderedSteps.length; i++) {
         const step = orderedSteps[i];
+        currentCapId = step.capabilityId;
         
         // Check cancellation
-        if (cancelMap?.get(taskId)) {
+        if (signal?.aborted) {
           throw execError('EXEC_005');
         }
 
@@ -61,17 +99,21 @@ export class ExecutionRuntime {
         while (attempt < policy.maxAttempts && !success) {
           attempt++;
           // Check cancellation
-          if (cancelMap?.get(taskId)) {
+          if (signal?.aborted) {
             throw execError('EXEC_005');
           }
 
           try {
             // Setup timeout abort
             const timeout = step.timeout || 30000;
-            const res = await this.registry.invoke(step.capabilityId, context, step.input);
+            const res = await invokeWithTimeout(
+              () => this.registry.invoke(step.capabilityId, context, step.input),
+              timeout,
+              signal
+            );
             
             // Check cancellation
-            if (cancelMap?.get(taskId)) {
+            if (signal?.aborted) {
               throw execError('EXEC_005');
             }
 
@@ -106,10 +148,12 @@ export class ExecutionRuntime {
 
       // 4. Verification
       stateManager.transition(TaskStatus.VERIFYING);
+      onStatus?.(TaskStatus.VERIFYING);
       this.verifier.verify(results, context);
 
       // 5. Completion
       stateManager.transition(TaskStatus.COMPLETED);
+      onStatus?.(TaskStatus.COMPLETED);
       return {
         taskId,
         status: TaskStatus.COMPLETED,
@@ -121,14 +165,15 @@ export class ExecutionRuntime {
 
       } catch (err: any) {
         let status = TaskStatus.FAILED;
-        if (err.code === 'EXEC_005') {
+        if (err.code === 'EXEC_005' || signal?.aborted) {
           status = TaskStatus.CANCELLED;
         }
         try {
           stateManager.transition(status);
         } catch (e) { /* ignore */ }
+        onStatus?.(status);
 
-        const harnessErr = err instanceof HarnessError ? err : execError('EXEC_003', { capId: 'unknown', reason: err.message });
+        const harnessErr = err instanceof HarnessError ? err : execError('EXEC_003', { capId: currentCapId, reason: err.message });
         return {
           taskId,
           status,
@@ -166,12 +211,9 @@ export class ExecutionRuntime {
       // Default plan: single-step based on description mapping
       let capabilityId: CapabilityId = 'harness.file.list';
       let input: any = { directory: '.' };
-
       const desc = request.description.toLowerCase();
-      if (desc.includes('slow')) {
-        capabilityId = 'mock.slow';
-        input = {};
-      } else if (desc.includes('read') || desc.includes('view')) {
+
+      if (desc.includes('read') || desc.includes('view')) {
         capabilityId = 'harness.file.read';
         input = { path: 'package.json' }; // sample mapping fallback
       } else if (desc.includes('write') || desc.includes('create')) {

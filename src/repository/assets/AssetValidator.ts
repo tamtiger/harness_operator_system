@@ -32,6 +32,36 @@ export class AssetValidator {
       throw repoError('REPO_007', { path: filePath, details: `Invalid SemVer version: ${raw.version}` });
     }
 
+    // Validate deprecated and supersededBy consistency
+    if (raw.deprecated === true && raw.supersededBy) {
+      if (typeof raw.supersededBy !== 'string' || raw.supersededBy.trim() === '') {
+        throw repoError('REPO_007', { path: filePath, details: 'supersededBy must be a non-empty string when deprecated is true' });
+      }
+    }
+
+    // Validate dates if present
+    if (raw.createdAt && isNaN(Date.parse(raw.createdAt))) {
+      throw repoError('REPO_007', { path: filePath, details: `Invalid createdAt date: ${raw.createdAt}` });
+    }
+    if (raw.updatedAt && isNaN(Date.parse(raw.updatedAt))) {
+      throw repoError('REPO_007', { path: filePath, details: `Invalid updatedAt date: ${raw.updatedAt}` });
+    }
+
+    // Validate tags if present
+    if (raw.tags !== undefined && !Array.isArray(raw.tags)) {
+      throw repoError('REPO_007', { path: filePath, details: 'Tags must be an array of strings' });
+    }
+    if (Array.isArray(raw.tags)) {
+      for (const tag of raw.tags) {
+        if (typeof tag !== 'string') {
+          throw repoError('REPO_007', { path: filePath, details: `Invalid tag type: expected string, got ${typeof tag}` });
+        }
+        if (tag.startsWith('id:') || tag.startsWith('prop:')) {
+          throw repoError('REPO_007', { path: filePath, details: `Tag uses reserved prefix: ${tag}` });
+        }
+      }
+    }
+
     return {
       id: raw.id,
       type: raw.type,

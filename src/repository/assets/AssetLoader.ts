@@ -1,13 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import * as crypto from 'crypto';
 import * as yaml from 'js-yaml';
 import { AssetCollection, Asset } from '../../shared/types/assets';
-import { RepositoryRoot } from '../../shared/types/primitives';
-import { Manifest } from '../../shared/types/repository';
+import { Manifest, RepositoryRoot } from '../../shared/types/repository';
 import { repoError } from '../../shared/errors/factories';
-import { isWithinBoundary } from '../../shared/utils/path';
+import { isWithinBoundary, getDefaultHarnessPath } from '../../shared/utils/path';
 import { FrontMatterParser } from './FrontMatterParser';
 import { AssetValidator } from './AssetValidator';
 import { AssetScope } from '../../shared/types/enums';
@@ -17,7 +15,7 @@ export class AssetLoader {
   private validator = new AssetValidator();
 
   loadSharedAssets(sharedPath?: string): AssetCollection {
-    const resolvedPath = sharedPath || this.getDefaultSharedPath();
+    const resolvedPath = sharedPath || path.join(getDefaultHarnessPath(), 'shared');
     if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isDirectory()) {
       throw repoError('REPO_008', { details: `Shared path not found: ${resolvedPath}` });
     }
@@ -105,6 +103,7 @@ export class AssetLoader {
     }
 
     const repoRootAbs = root.path;
+    const coveredPaths = new Set<string>();
 
     for (const artifact of manifest.artifacts) {
       if (artifact.type === 'repository-map') {
@@ -127,12 +126,26 @@ export class AssetLoader {
 
       const stat = fs.statSync(artifactAbs);
       if (stat.isDirectory()) {
+        coveredPaths.add(path.resolve(artifactAbs));
         this.scanDir(artifactAbs, repoRootAbs, (filePath, content) => {
           this.loadAssetFile(filePath, content, collection, assetIds);
         });
       } else if (stat.isFile()) {
+        coveredPaths.add(path.resolve(artifactAbs));
         const content = fs.readFileSync(artifactAbs, 'utf8');
         this.loadAssetFile(artifactAbs, content, collection, assetIds);
+      }
+    }
+
+    // Auto-discover standard asset directories not already covered by manifest
+    const autoDirs = ['rules', 'prompts', 'templates', 'workflows', 'knowledge', 'hooks', 'capabilities'];
+    for (const subdir of autoDirs) {
+      const autoPath = path.resolve(repoRootAbs, '.harness', subdir);
+      if (coveredPaths.has(autoPath)) continue;
+      if (fs.existsSync(autoPath) && fs.statSync(autoPath).isDirectory()) {
+        this.scanDir(autoPath, repoRootAbs, (filePath, content) => {
+          this.loadAssetFile(filePath, content, collection, assetIds);
+        });
       }
     }
 
@@ -140,10 +153,11 @@ export class AssetLoader {
   }
 
   private loadAssetFile(filePath: string, content: string, collection: AssetCollection, assetIds: Set<string>) {
-    // Max file size 1MB
+    // Max file size 1MB — skip and warn instead of throw
     const stat = fs.statSync(filePath);
     if (stat.size > 1024 * 1024) {
-      throw repoError('REPO_013', { path: filePath, size: stat.size });
+      console.warn(`[WARNING] File exceeds 1MB size limit, skipping: ${filePath}`);
+      return;
     }
 
     // Binary file skip check (detect null bytes in first 8KB)
@@ -189,7 +203,7 @@ export class AssetLoader {
   }
 
   private scanDir(dirPath: string, rootBoundary: string, callback: (filePath: string, content: string) => void) {
-    const files = fs.readdirSync(dirPath);
+    const files = fs.readdirSync(dirPath).sort();
     for (const file of files) {
       // Skip hidden files
       if (file.startsWith('.')) continue;
@@ -212,9 +226,6 @@ export class AssetLoader {
   }
 
   getDefaultSharedPath(): string {
-    if (process.platform === 'win32') {
-      return path.join(process.env.APPDATA ?? os.homedir(), 'harness', 'shared');
-    }
-    return path.join(os.homedir(), '.harness', 'shared');
+    return path.join(getDefaultHarnessPath(), 'shared');
   }
 }

@@ -42,7 +42,7 @@ export interface AuditRecord {
   timestamp: ISO8601;
   action: string;
   actor: string;
-  proposalId: string;
+  proposalId: ProposalId;
   previousStatus?: ProposalStatus;
   newStatus?: ProposalStatus;
   details: string;

@@ -1,5 +1,6 @@
 import { ProposalStatus } from '../../shared/types/enums';
-import { ProposalId, RepositoryRoot } from '../../shared/types/primitives';
+import { ProposalId } from '../../shared/types/primitives';
+import { RepositoryRoot } from '../../shared/types/repository';
 import { PromotionResult } from '../../shared/types/platform';
 import { govError } from '../../shared/errors/factories';
 import { RepositoryService } from '../../shared/contracts/services';
@@ -54,8 +55,14 @@ export class PromotionEngine {
     const ext = assetType === 'knowledge' ? 'md' : 'yaml';
     const targetPath = `.harness/${folder}/${assetId}.${ext}`;
 
-    // Persist target asset
-    this.repo.persist(this.root, targetPath, proposal.proposedContent);
+    // Ensure scope: local is present in promoted content
+    let content = proposal.proposedContent;
+    if (!/^scope:\s*\w+/m.test(content)) {
+      content = `scope: local\n${content}`;
+    }
+    if (!content.endsWith('\n')) content += '\n';
+
+    this.repo.persist(this.root, targetPath, content);
 
     const prevStatus = proposal.status;
     proposal.status = ProposalStatus.PROMOTED;

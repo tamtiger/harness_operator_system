@@ -5,20 +5,22 @@ import { Manifest } from '../../shared/types/repository';
 import { CapabilityRegistry } from '../../shared/contracts/services';
 import { CapabilityDefinition } from '../../shared/types/assets';
 import { capError } from '../../shared/errors/factories';
-import * as os from 'os';
+import { getDefaultHarnessPath } from '../../shared/utils/path';
 
 export class CapabilityLoader {
+  constructor(private sharedPath?: string) {}
+
   loadFromManifest(manifest: Manifest, registry: CapabilityRegistry): void {
     if (!manifest.capabilities) return;
 
     for (const capConfig of manifest.capabilities) {
       if (capConfig.source === 'shared') {
-        const sharedDir = this.getDefaultSharedPath();
+        const sharedDir = this.sharedPath || path.join(getDefaultHarnessPath(), 'shared');
         const capFile = path.join(sharedDir, 'capabilities', `${capConfig.id}.yaml`);
         if (fs.existsSync(capFile)) {
           this.loadYamlCapability(capFile, registry);
         } else {
-          // Warning/Silent fallback
+          console.warn(`[WARNING] Shared capability file not found: ${capConfig.id}`);
         }
       } else if (capConfig.source === 'local') {
         const repoRoot = manifest.repository.root || '.';
@@ -31,17 +33,7 @@ export class CapabilityLoader {
           throw capError('CAP_008', { details: `Local capability file not found: ${relPath}` });
         }
       } else if (capConfig.source === 'external') {
-        // Mock external package loading (dynamic require stub)
-        try {
-          const pkgName = capConfig.package || capConfig.id;
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const pkg = require(pkgName);
-          if (pkg.definition && pkg.implementation) {
-            registry.register(pkg.definition, pkg.implementation);
-          }
-        } catch {
-          // dynamic import failed/mocked
-        }
+        console.warn(`[WARNING] External capabilities not supported (security): ${capConfig.id}`);
       }
     }
   }
@@ -63,10 +55,4 @@ export class CapabilityLoader {
     }
   }
 
-  private getDefaultSharedPath(): string {
-    if (process.platform === 'win32') {
-      return path.join(process.env.APPDATA ?? os.homedir(), 'harness', 'shared');
-    }
-    return path.join(os.homedir(), '.harness', 'shared');
-  }
 }

@@ -6,7 +6,6 @@ import { RepositoryDiscovery } from '../src/repository/discovery/RepositoryDisco
 import { ManifestLoader } from '../src/repository/manifest/ManifestLoader';
 import { ManifestValidator } from '../src/repository/manifest/ManifestValidator';
 import { RepositoryValidator } from '../src/repository/validation/RepositoryValidator';
-import { HarnessError } from '../src/shared/errors/HarnessError';
 
 describe('M1 Repository Discovery & Validation', () => {
   let tempDir: string;
@@ -213,6 +212,75 @@ artifacts:
       expect(result.errors.some(e => e.code === 'REPO_002')).toBe(true);
 
       fs.rmSync(badDir, { recursive: true, force: true });
+    });
+
+    it('should detect circular asset references', () => {
+      const badDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-circular-'));
+      fs.mkdirSync(path.join(badDir, '.harness', 'rules'), { recursive: true });
+      fs.writeFileSync(path.join(badDir, 'AGENTS.md'), '# AGENTS', 'utf8');
+
+      const manifestContent = `version: 2
+specification: "4.0"
+repository:
+  root: "."
+agent:
+  entry_point: "AGENTS.md"
+artifacts:
+  - type: rule
+    path: ".harness/rules/"
+`;
+      fs.writeFileSync(path.join(badDir, '.harness', 'harness.yaml'), manifestContent, 'utf8');
+      fs.writeFileSync(path.join(badDir, '.harness', 'repository-map.md'), '# Map', 'utf8');
+
+      // Create circular extends: A -> B -> A
+      fs.writeFileSync(path.join(badDir, '.harness', 'rules', 'rule-a.yaml'),
+        `id: "rule-a"\ntype: rule\nversion: 1.0.0\nname: Rule A\nscope: local\nextends: rule-b\n`, 'utf8');
+      fs.writeFileSync(path.join(badDir, '.harness', 'rules', 'rule-b.yaml'),
+        `id: "rule-b"\ntype: rule\nversion: 1.0.0\nname: Rule B\nscope: local\nextends: rule-a\n`, 'utf8');
+
+      const result = validator.validate(badDir, { mode: 'lenient' });
+      expect(result.errors.some(e => e.code === 'REPO_012')).toBe(true);
+
+      fs.rmSync(badDir, { recursive: true, force: true });
+    });
+
+    it('should warn on file exceeding 1MB size', () => {
+      const bigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-bigfile-'));
+      fs.mkdirSync(path.join(bigDir, '.harness', 'rules'), { recursive: true });
+      fs.writeFileSync(path.join(bigDir, 'AGENTS.md'), '# AGENTS', 'utf8');
+
+      const manifestContent = `version: 2
+specification: "4.0"
+repository:
+  root: "."
+agent:
+  entry_point: "AGENTS.md"
+artifacts:
+  - type: rule
+    path: ".harness/rules/"
+`;
+      fs.writeFileSync(path.join(bigDir, '.harness', 'harness.yaml'), manifestContent, 'utf8');
+      fs.writeFileSync(path.join(bigDir, '.harness', 'repository-map.md'), '# Map', 'utf8');
+
+      // Create file >1MB
+      const bigContent = 'x'.repeat(1024 * 1024 + 1);
+      fs.writeFileSync(path.join(bigDir, '.harness', 'rules', 'big-rule.yaml'),
+        `id: "big-rule"\ntype: rule\nversion: 1.0.0\nname: Big Rule\nscope: local\ncontent: "${bigContent}"\n`, 'utf8');
+
+      const result = validator.validate(bigDir, { mode: 'lenient' });
+      expect(result.warnings.some(w => w.includes('exceeds size limit'))).toBe(true);
+
+      fs.rmSync(bigDir, { recursive: true, force: true });
+    });
+
+    it('should throw in strict mode on first error', () => {
+      const strictDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-strict-'));
+      fs.mkdirSync(path.join(strictDir, '.harness'), { recursive: true });
+      // No AGENTS.md on purpose
+
+      expect(() => validator.validate(strictDir, { mode: 'strict' })).toThrow();
+
+      fs.rmSync(strictDir, { recursive: true, force: true });
     });
   });
 });

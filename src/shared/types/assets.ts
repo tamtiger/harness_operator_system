@@ -1,4 +1,5 @@
 import { AssetType, AssetScope, AssetPriority, HookEvent, Permission } from './enums';
+export { AssetType, AssetScope, AssetPriority, HookEvent, Permission } from './enums';
 import { SemVer, RelativePath, ISO8601, AssetId, CapabilityId, JSONSchema, Duration } from './primitives';
 
 export interface AssetMetadata {
