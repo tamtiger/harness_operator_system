@@ -1,6 +1,7 @@
 import { RepositoryRoot, RelativePath, ISO8601, CapabilityId } from './primitives';
 import { EffectiveAssetCollection, Rule, Knowledge, Workflow } from './assets';
 import { ADR } from './governance';
+import { Permission } from './enums';
 
 export interface ContextConfig {
   token_budget?: number;
@@ -98,4 +99,5 @@ export interface RuntimeContext extends RepositoryContext {
   relevantKnowledge: Knowledge[];
   activeWorkflow?: Workflow;
   availableCapabilities: CapabilityId[];
+  permissions?: Permission[];
 }

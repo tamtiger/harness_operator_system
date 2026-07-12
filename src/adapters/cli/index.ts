@@ -3,6 +3,7 @@ import { runInit } from './commands/init';
 import { runValidate } from './commands/validate';
 import { runStatus } from './commands/status';
 import { runContext } from './commands/context';
+import { runCapabilities } from './commands/capabilities';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -22,6 +23,8 @@ if (command === 'init') {
   const taskIndex = args.indexOf('--task');
   const task = taskIndex !== -1 && args[taskIndex + 1] ? args[taskIndex + 1] : 'default';
   runContext({ task });
+} else if (command === 'capability' && args[1] === 'list') {
+  runCapabilities();
 } else {
   console.log(`Harness Operator CLI
 Usage:
@@ -29,6 +32,7 @@ Usage:
   harness validate [path] [--strict]
   harness status [--json]
   harness context --task "task description"
+  harness capability list
 `);
   process.exit(1);
 }

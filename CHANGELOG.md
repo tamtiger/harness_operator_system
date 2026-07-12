@@ -2,6 +2,17 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.5] - 2026-07-12
+
+### Added
+- **M4 Capability Registry Implementation:**
+  - Installed `ajv` dependency for dynamic JSON Schema evaluations.
+  - Implemented 6-step invocation protocol (including schemas, permissions, and timeout aborts) in `CapabilityRegistryImpl`.
+  - Added 27 built-in capabilities across folders: File (8), Dir (4), Search (3), Git (6), Terminal (2), AI (2), Repo (2) operations.
+  - Configured custom YAML parser in `CapabilityLoader` supporting dynamic local script executions.
+  - Added CLI `harness capability list` for viewing descriptions.
+  - Added test suite covering invocation validation errors (`CAP_002`/`CAP_003`), permission denials (`CAP_004`), and timeout aborts (`CAP_005`).
+
 ## [0.0.4] - 2026-07-12
 
 ### Added
