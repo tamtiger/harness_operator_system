@@ -159,8 +159,14 @@ scope: "local"
         description: 'Mock prompt',
         type: ProposalType.PROMPT,
         rationale: 'Needed',
-        evidence: [],
-        proposedContent: 'package.json'
+        evidence: [{
+          id: 'ev-1',
+          type: 'human_observation',
+          source: 'cli',
+          content: 'Looks good',
+          timestamp: new Date().toISOString()
+        }],
+        proposedContent: 'id: test-prompt\ntype: prompt\nname: Test Prompt\nversion: 1.0.0\n'
       };
 
       const proposal = await platformService.submitProposal(request);

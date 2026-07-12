@@ -2,6 +2,18 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.9] - 2026-07-12
+
+### Added
+- **M8 Governance Workflow Implementation:**
+  - Real persistent proposals manager (`ProposalManager`) scaffolded as markdown files with parsed YAML frontmatter under `.harness/proposals/PROP-YYYY-MM-DD-NNN.md`.
+  - Active reviewer lock mechanism (`ReviewManager`) ensuring exclusive review leases with automatic 30-minute expiration takeover gates.
+  - Strict human approval validator (`ApprovalEngine`) preventing automated overrides on APPROVED/REJECTED decisions.
+  - Local asset promotion builder (`PromotionEngine`) writing approved contents to local path registries (`.harness/{type}/{asset-id}.yaml`).
+  - Append-only persistent JSONL audit logger (`AuditLogger`) logging historical operations under `.harness/logs/audit.jsonl`.
+  - Integration factory overrides wiring real managers into platform service runtime.
+  - Comprehensive unit & integration tests (`governance.test.ts`) validating state transitions, timeout locks, and promotions.
+
 ## [0.0.8] - 2026-07-12
 
 ### Added

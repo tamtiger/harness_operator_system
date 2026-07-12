@@ -56,6 +56,10 @@ export class PlatformServiceImpl implements PlatformService {
   }
 
   async approveProposal(id: ProposalId, reviewer: string, comments: string = ''): Promise<Proposal> {
+    const prop = this.orchestrator.gov.getProposal(id);
+    if (prop.status === 'SUBMITTED') {
+      await this.orchestrator.gov.review(id, reviewer);
+    }
     return this.orchestrator.gov.approve(id, reviewer, comments);
   }
 }

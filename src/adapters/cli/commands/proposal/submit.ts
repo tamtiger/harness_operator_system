@@ -14,8 +14,14 @@ export async function runProposalSubmit(id: string, options: any = {}) {
       type: options.type || 'rule',
       proposedContent: options.content || `content-for-${id}`,
       targetAsset: id,
-      rationale: options.rationale,
-      evidence: options.evidence ? options.evidence.split(',') : undefined
+      rationale: options.rationale || 'Auto rationale',
+      evidence: options.evidence ? options.evidence.split(',').map((content: string, idx: number) => ({
+        id: `ev-${idx}-${Date.now()}`,
+        type: 'human_observation' as const,
+        source: 'cli',
+        content: content.trim(),
+        timestamp: new Date().toISOString()
+      })) : []
     };
 
     const prop = await service.submitProposal(request);

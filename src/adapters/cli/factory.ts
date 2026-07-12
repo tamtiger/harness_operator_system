@@ -16,9 +16,15 @@ export function createPlatformService(rootPath?: string, sharedPath?: string): P
   const finalRoot = rootPath || path.resolve('.');
   const finalShared = sharedPath || getDefaultSharedPath();
   const repo = new RepositoryServiceImpl();
+  let repoRoot;
+  try {
+    repoRoot = repo.discover(finalRoot);
+  } catch (e) {
+    repoRoot = { path: finalRoot, hasGit: false, discoveredAt: '' };
+  }
   const ctx = new ContextServiceImpl();
   const exec = new ExecutionServiceImpl();
-  const gov = new GovernanceServiceImpl();
+  const gov = new GovernanceServiceImpl(repo, repoRoot);
   const registry = new CapabilityServiceImpl();
 
   const installer = new SharedHarnessInstaller(registry, finalShared, finalRoot);

@@ -1,102 +1,66 @@
-import { GovernanceService } from '../shared/contracts/services';
+import { GovernanceService, RepositoryService } from '../shared/contracts/services';
 import { Proposal, AuditRecord } from '../shared/types/governance';
 import { ProposalRequest, ProposalFilter, PromotionResult } from '../shared/types/platform';
-import { ProposalId } from '../shared/types/primitives';
 import { ProposalStatus } from '../shared/types/enums';
+import { ProposalId, RepositoryRoot } from '../shared/types/primitives';
+import { ProposalManager } from './proposal/ProposalManager';
+import { ReviewManager } from './review/ReviewManager';
+import { ApprovalEngine } from './approval/ApprovalEngine';
+import { PromotionEngine } from './promotion/PromotionEngine';
+import { AuditLogger } from './audit/AuditLogger';
 
 export class GovernanceServiceImpl implements GovernanceService {
-  private static proposals = new Map<string, Proposal>();
-  private static auditLogs = new Map<string, AuditRecord[]>();
+  private proposals: ProposalManager;
+  private reviewMgr: ReviewManager;
+  private approval: ApprovalEngine;
+  private promotion: PromotionEngine;
+  private audit: AuditLogger;
 
-  private get proposalsMap() {
-    return GovernanceServiceImpl.proposals;
-  }
-
-  private get auditLogsMap() {
-    return GovernanceServiceImpl.auditLogs;
+  constructor(
+    repo: RepositoryService,
+    root: RepositoryRoot
+  ) {
+    this.audit = new AuditLogger(repo, root);
+    this.proposals = new ProposalManager(repo, root, this.audit);
+    this.reviewMgr = new ReviewManager(this.proposals, this.audit);
+    this.approval = new ApprovalEngine(this.proposals, this.audit);
+    this.promotion = new PromotionEngine(this.proposals, repo, root, this.audit);
   }
 
   submitProposal(request: ProposalRequest): Proposal {
-    const id = 'prop-' + Math.random().toString(36).substring(2, 9);
-    const proposal: Proposal = {
-      id,
-      title: request.title,
-      description: request.description,
-      type: request.type,
-      status: ProposalStatus.SUBMITTED,
-      rationale: request.rationale,
-      proposedContent: request.proposedContent,
-      evidence: request.evidence,
-      targetAsset: request.targetAsset,
-      author: 'cli',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      reviewers: [],
-      comments: [],
-      tags: []
-    };
-    this.proposalsMap.set(id, proposal);
-    this.auditLogsMap.set(id, []);
-    return proposal;
+    const prop = this.proposals.create(request);
+    return this.proposals.submit(prop.id);
   }
 
   listProposals(filter: ProposalFilter): Proposal[] {
-    let list = Array.from(this.proposalsMap.values());
-    if (filter.status) {
-      list = list.filter(p => p.status === filter.status);
-    }
-    if (filter.type) {
-      list = list.filter(p => p.type === filter.type);
-    }
-    return list;
+    return this.proposals.list(filter);
   }
 
   getProposal(id: ProposalId): Proposal {
-    const prop = this.proposalsMap.get(id);
-    if (!prop) throw new Error(`Proposal not found: ${id}`);
-    return prop;
+    return this.proposals.get(id);
   }
 
   review(id: ProposalId, reviewer: string): Proposal {
-    const prop = this.getProposal(id);
-    prop.status = ProposalStatus.REVIEWING;
-    prop.updatedAt = new Date().toISOString();
-    return prop;
+    return this.reviewMgr.startReview(id, reviewer);
   }
 
   approve(id: ProposalId, reviewer: string, comments: string): Proposal {
-    const prop = this.getProposal(id);
-    prop.status = ProposalStatus.APPROVED;
-    prop.updatedAt = new Date().toISOString();
-    return prop;
+    return this.approval.approve(id, reviewer, comments);
   }
 
   reject(id: ProposalId, reviewer: string, comments: string): Proposal {
-    const prop = this.getProposal(id);
-    prop.status = ProposalStatus.REJECTED;
-    prop.updatedAt = new Date().toISOString();
-    return prop;
+    return this.approval.reject(id, reviewer, comments);
   }
 
   requestChanges(id: ProposalId, reviewer: string, comments: string): Proposal {
-    const prop = this.getProposal(id);
-    prop.status = ProposalStatus.DRAFT;
-    prop.updatedAt = new Date().toISOString();
-    return prop;
+    return this.reviewMgr.requestChanges(id, reviewer, comments);
   }
 
   promote(id: ProposalId): PromotionResult {
-    const prop = this.getProposal(id);
-    prop.status = ProposalStatus.PROMOTED;
-    prop.updatedAt = new Date().toISOString();
-    return {
-      proposalId: id,
-      promotedAssetPath: prop.proposedContent,
-      promotedAt: new Date().toISOString()
-    };
+    return this.promotion.promote(id);
   }
 
   getAuditLog(proposalId: ProposalId): AuditRecord[] {
-    return this.auditLogsMap.get(proposalId) || [];
+    return this.audit.getLog(proposalId);
   }
 }

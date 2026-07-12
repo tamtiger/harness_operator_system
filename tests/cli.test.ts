@@ -155,11 +155,11 @@ artifacts:
     });
 
     it('proposal submit and approve should work', async () => {
-      await runProposalSubmit('rule-1', { cwd: tempDir, quiet: false, noColor: true });
+      await runProposalSubmit('rule-1', { cwd: tempDir, quiet: false, noColor: true, evidence: 'log-1' });
       expect(exitSpy).toHaveBeenCalledWith(0);
       
       const loggedObj = logSpy.mock.calls[logSpy.mock.calls.length - 1][0];
-      const propIdMatch = loggedObj.match(/ID:\s*(\w+-\w+)/);
+      const propIdMatch = loggedObj.match(/ID:\s*([\w-]+)/);
       const propId = propIdMatch ? propIdMatch[1] : 'prop-1';
 
       await runProposalApprove(propId, { cwd: tempDir, quiet: true, noColor: true });
