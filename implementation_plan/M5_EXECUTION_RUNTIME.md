@@ -107,7 +107,7 @@ export class TaskStateManager {
 
   transition(to: TaskStatus): void {
     if (!VALID_TRANSITIONS[this.state].includes(to)) {
-      throw execError('EXEC_002', { from: this.state, to })
+      throw execError('EXEC_010', { from: this.state, to })
     }
     this.state = to
   }

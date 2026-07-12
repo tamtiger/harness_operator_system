@@ -53,6 +53,14 @@ src/shared/
 
 ## Tasks
 
+### T0.0 — AGENTS.md & Template
+
+**Files:** `AGENTS.md` (tại thư mục gốc), `src/shared/templates/AGENTS_TEMPLATE.md`
+
+Tạo file document AGENTS.md cho chính Harness repository và AGENTS_TEMPLATE.md dùng cho việc generate ở lệnh `harness init`. Cả hai phải tuân thủ chuẩn mới nhất từ `20_AGENT_SPECIFICATION.md`.
+
+---
+
 ### T0.1 — Core Primitives
 
 **File:** `src/shared/types/primitives.ts`
@@ -206,6 +214,14 @@ interface DiagnosticReport { timestamp: ISO8601; overall: 'healthy'|'warning'|'c
 interface ValidationResult { valid: boolean; errors: HarnessError[]; warnings: string[] }
 interface InstalledMetadata { version: SemVer; source: string; installedAt: ISO8601; checksum: string; specificationVersion: string }
 interface InstallConfig { source: string; version?: string; targetPath?: string; verifyChecksum?: boolean }
+interface InstallResult { success: boolean; installedVersion: SemVer; path: string; error?: HarnessError }
+interface UpdateConfig { targetVersion?: SemVer; force?: boolean }
+interface UpdateResult { success: boolean; fromVersion: SemVer; toVersion: SemVer; error?: HarnessError }
+interface SyncConfig { targetBranch?: string; dryRun?: boolean }
+interface SyncResult { success: boolean; syncedAssets: number; error?: HarnessError }
+interface PublishRequest { assetIds: AssetId[]; commitMessage: string }
+interface PublishResult { success: boolean; proposalId?: ProposalId; publishedUrl?: string; error?: HarnessError }
+interface PlatformStatus { status: 'active'|'offline'|'degraded'; version: SemVer; uptimeMs: number }
 interface ProposalRequest { title: string; description: string; type: ProposalType; rationale: string; evidence: Evidence[]; proposedContent: string; targetAsset?: AssetId }
 interface ProposalFilter { status?: ProposalStatus; type?: ProposalType; author?: string }
 interface PromotionResult { proposalId: ProposalId; promotedAssetPath: RelativePath; promotedAt: ISO8601 }
@@ -278,7 +294,7 @@ export interface PlatformService {
   status(): Promise<PlatformStatus>
   submitProposal(request: ProposalRequest): Promise<Proposal>
   listProposals(filter: ProposalFilter): Promise<Proposal[]>
-  approveProposal(id: ProposalId, reviewer: string): Promise<Proposal>
+  approveProposal(id: ProposalId, reviewer: string, comments?: string): Promise<Proposal>
 }
 ```
 

@@ -269,13 +269,13 @@ interface RepositoryConfig {
 
 ```typescript
 interface AgentConfig {
-  entryPoint: string        // File entry point của agent
+  entry_point: string        // File entry point của agent
   context?: ContextConfig   // Cấu hình context window
 }
 
 interface ContextConfig {
-  tokenBudget?: number                            // Tổng token budget
-  budgetStrategy?: 'priority_trim' | 'hard_limit' // Chiến lược khi vượt budget
+  token_budget?: number                            // Tổng token budget
+  budget_strategy?: 'priority_trim' | 'hard_limit' // Chiến lược khi vượt budget
 }
 ```
 
@@ -316,9 +316,9 @@ interface ArtifactConfig {
 
 ```typescript
 interface GovernanceConfig {
-  autoSubmitProposals?: boolean  // Tự động submit proposal sau khi tạo
-  requireEvidence?: boolean      // Bắt buộc có evidence khi submit
-  minEvidenceCount?: number      // Số lượng evidence tối thiểu
+  auto_submit_proposals?: boolean  // Tự động submit proposal sau khi tạo
+  require_evidence?: boolean      // Bắt buộc có evidence khi submit
+  min_evidence_count?: number      // Số lượng evidence tối thiểu
 }
 ```
 
@@ -734,6 +734,58 @@ interface ValidationResult {
   valid: boolean           // Hợp lệ hay không
   errors: HarnessError[]   // Danh sách lỗi (nếu có)
   warnings: string[]       // Danh sách cảnh báo (nếu có)
+}
+```
+
+### 13.4 Platform Operation Models
+
+```typescript
+interface InstallResult {
+  success: boolean
+  installedVersion: SemVer
+  path: string
+  error?: HarnessError
+}
+
+interface UpdateResult {
+  success: boolean
+  fromVersion: SemVer
+  toVersion: SemVer
+  error?: HarnessError
+}
+
+interface SyncResult {
+  success: boolean
+  syncedAssets: number
+  error?: HarnessError
+}
+
+interface PublishResult {
+  success: boolean
+  proposalId?: ProposalId
+  publishedUrl?: string
+  error?: HarnessError
+}
+
+interface PlatformStatus {
+  status: 'active' | 'offline' | 'degraded'
+  version: SemVer
+  uptimeMs: number
+}
+
+interface UpdateConfig {
+  targetVersion?: SemVer
+  force?: boolean
+}
+
+interface SyncConfig {
+  targetBranch?: string
+  dryRun?: boolean
+}
+
+interface PublishRequest {
+  assetIds: AssetId[]
+  commitMessage: string
 }
 ```
 

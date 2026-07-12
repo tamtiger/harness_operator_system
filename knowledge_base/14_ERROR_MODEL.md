@@ -137,6 +137,7 @@ enum ErrorDomain {
 | EXEC_007 | Max retries exceeded: {capId} after {attempts} attempts | No | Check capability availability |
 | EXEC_008 | Runtime context expired or invalid | No | Rebuild context and retry |
 | EXEC_009 | Step dependency not resolved: {stepId} depends on {dep} | No | Fix step dependencies |
+| EXEC_010 | Invalid state transition: {from} -> {to} | No | Check allowed transitions |
 
 ---
 
