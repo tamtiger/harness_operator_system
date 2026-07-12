@@ -6,6 +6,24 @@ import { ValidationResult, InstallConfig, InstallResult, UpdateConfig, UpdateRes
 import { TaskRequest, TaskState, ExecutionResult, CancelResult } from '../types/execution';
 import { Proposal, AuditRecord } from '../types/governance';
 
+export interface DirEntry {
+  name: string;
+  type: 'file' | 'dir';
+}
+
+export interface FileSystemOps {
+  read(root: RepositoryRoot, path: RelativePath): string;
+  write(root: RepositoryRoot, path: RelativePath, data: string): void;
+  existsFile(root: RepositoryRoot, path: RelativePath): boolean;
+  existsDir(root: RepositoryRoot, path: RelativePath): boolean;
+  deleteFile(root: RepositoryRoot, path: RelativePath): void;
+  moveFile(root: RepositoryRoot, src: RelativePath, dest: RelativePath): void;
+  copyFile(root: RepositoryRoot, src: RelativePath, dest: RelativePath): void;
+  listDir(root: RepositoryRoot, path: RelativePath): DirEntry[];
+  mkDir(root: RepositoryRoot, path: RelativePath, recursive?: boolean): void;
+  rmDir(root: RepositoryRoot, path: RelativePath, recursive?: boolean): void;
+}
+
 export interface RepositoryService {
   discover(workingDir: string): RepositoryRoot;
   loadManifest(root: RepositoryRoot): Manifest;

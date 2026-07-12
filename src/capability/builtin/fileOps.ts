@@ -1,6 +1,6 @@
 import { BaseCapability } from '../registry/types';
 import { RuntimeContext } from '../../shared/types/repository';
-import { FileSystemPersistence } from '../../repository/persistence/FileSystemPersistence';
+import type { FileSystemOps } from '../../shared/contracts/services';
 import { CapabilityDefinition } from '../../shared/types/assets';
 import { AssetType, AssetScope, Permission } from '../../shared/types/enums';
 
@@ -35,7 +35,7 @@ export const fileReadDef: CapabilityDefinition = {
 };
 
 export class FileReadCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -78,7 +78,7 @@ export const fileWriteDef: CapabilityDefinition = {
 };
 
 export class FileWriteCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -121,7 +121,7 @@ export const fileAppendDef: CapabilityDefinition = {
 };
 
 export class FileAppendCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -167,7 +167,7 @@ export const fileDeleteDef: CapabilityDefinition = {
 };
 
 export class FileDeleteCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -209,7 +209,7 @@ export const fileExistsDef: CapabilityDefinition = {
 };
 
 export class FileExistsCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -254,7 +254,7 @@ export const fileListDef: CapabilityDefinition = {
 };
 
 export class FileListCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -298,7 +298,7 @@ export const fileMoveDef: CapabilityDefinition = {
 };
 
 export class FileMoveCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -341,7 +341,7 @@ export const fileCopyDef: CapabilityDefinition = {
 };
 
 export class FileCopyCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -385,7 +385,7 @@ export const dirCreateDef: CapabilityDefinition = {
 };
 
 export class DirCreateCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -428,7 +428,7 @@ export const dirDeleteDef: CapabilityDefinition = {
 };
 
 export class DirDeleteCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -480,7 +480,7 @@ export const dirListDef: CapabilityDefinition = {
 };
 
 export class DirListCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 
@@ -522,7 +522,7 @@ export const dirExistsDef: CapabilityDefinition = {
 };
 
 export class DirExistsCapability extends BaseCapability {
-  constructor(private persistence: FileSystemPersistence) {
+  constructor(private persistence: FileSystemOps) {
     super();
   }
 

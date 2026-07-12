@@ -4,19 +4,19 @@ import { CapabilityDefinition } from '../../shared/types/assets';
 import { AssetType, AssetScope, Permission } from '../../shared/types/enums';
 import * as child_process from 'child_process';
 
-// Exec helper to run command in target working directory safely
-function runGitCmd(cmd: string, cwd: string): string {
+// Exec helper to run git commands in target working directory safely without shell interpolation.
+function runGitCmd(args: string[], cwd: string): string {
   try {
-    return child_process.execSync(`git ${cmd}`, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch {
-    return '';
-  }
-}
+    const result = child_process.spawnSync('git', args, {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
 
-// Safe alternative using spawnSync (no shell injection risk)
-function runGitCmdSafe(args: string[], cwd: string): string {
-  try {
-    const result = child_process.spawnSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    if (result.status !== 0) {
+      return '';
+    }
+
     return (result.stdout || '').trim();
   } catch {
     return '';
@@ -52,7 +52,7 @@ export const gitStatusDef: CapabilityDefinition = {
 export class GitStatusCapability extends BaseCapability {
   async execute(context: RuntimeContext): Promise<any> {
     const root = this.getRepoRoot(context);
-    const statusOut = runGitCmd('status --porcelain', root.path);
+    const statusOut = runGitCmd(['status', '--porcelain'], root.path);
     const staged: string[] = [];
     const unstaged: string[] = [];
     const untracked: string[] = [];
@@ -106,10 +106,12 @@ export const gitDiffDef: CapabilityDefinition = {
 export class GitDiffCapability extends BaseCapability {
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    let cmd = 'diff';
-    if (input.staged) cmd += ' --staged';
-    if (input.file) cmd += ` -- ${input.file}`;
-    const diff = runGitCmd(cmd, root.path);
+    const args = ['diff'];
+    if (input.staged) args.push('--staged');
+    if (input.file) {
+      args.push('--', input.file);
+    }
+    const diff = runGitCmd(args, root.path);
     return { diff };
   }
 }
@@ -149,12 +151,12 @@ export class GitCommitCapability extends BaseCapability {
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
     if (input.files && input.files.length > 0) {
-      input.files.forEach((f: string) => runGitCmd(`add ${f}`, root.path));
+      input.files.forEach((f: string) => runGitCmd(['add', '--', f], root.path));
     } else {
-      runGitCmd('add .', root.path);
+      runGitCmd(['add', '.'], root.path);
     }
-    runGitCmdSafe(['commit', '-m', input.message], root.path);
-    const hash = runGitCmd('rev-parse HEAD', root.path) || 'mock-commit-hash';
+    runGitCmd(['commit', '-m', input.message], root.path);
+    const hash = runGitCmd(['rev-parse', 'HEAD'], root.path) || 'mock-commit-hash';
     return { commitHash: hash };
   }
 }
@@ -204,7 +206,7 @@ export class GitLogCapability extends BaseCapability {
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
     const limit = input.limit || 10;
-    const logOut = runGitCmd(`log -n ${limit} --pretty=format:"%H|%s|%an|%ad"`, root.path);
+    const logOut = runGitCmd(['log', '-n', String(limit), '--pretty=format:%H|%s|%an|%ad'], root.path);
     const commits: any[] = [];
     if (logOut) {
       logOut.split('\n').forEach(line => {
@@ -258,11 +260,11 @@ export class GitBranchCapability extends BaseCapability {
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
     if (input.action === 'create' && input.name) {
-      runGitCmd(`branch ${input.name}`, root.path);
+      runGitCmd(['branch', input.name], root.path);
     } else if (input.action === 'delete' && input.name) {
-      runGitCmd(`branch -D ${input.name}`, root.path);
+      runGitCmd(['branch', '-D', input.name], root.path);
     }
-    const branchOut = runGitCmd('branch', root.path);
+    const branchOut = runGitCmd(['branch'], root.path);
     const branches: string[] = [];
     let current = '';
     if (branchOut) {
@@ -311,7 +313,7 @@ export const gitCheckoutDef: CapabilityDefinition = {
 export class GitCheckoutCapability extends BaseCapability {
   async execute(context: RuntimeContext, input: any): Promise<any> {
     const root = this.getRepoRoot(context);
-    runGitCmd(`checkout ${input.ref}`, root.path);
+    runGitCmd(['checkout', input.ref], root.path);
     return { success: true };
   }
 }

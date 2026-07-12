@@ -9,17 +9,17 @@ export class ManifestValidator {
     // 1. Zod parse validation
     const result = ManifestSchema.safeParse(raw);
     if (!result.success) {
-      const issue = result.error.issues[0];
+      const issue = result.error.issues[0] as { code: string; path: (string | number)[]; message: string; received?: string; keys?: string[] };
       const field = issue.path.join('.');
       
       if (field === 'version') {
-        throw mftError('MFT_004', { details: `Unsupported version: ${(issue as any).received || 'unknown'}` });
+        throw mftError('MFT_004', { details: `Unsupported version: ${issue.received || 'unknown'}` });
       }
       if (field === 'specification') {
-        throw mftError('MFT_005', { details: `Specification mismatch: ${(issue as any).received || 'unknown'}` });
+        throw mftError('MFT_005', { details: `Specification mismatch: ${issue.received || 'unknown'}` });
       }
       if (issue.code === 'unrecognized_keys') {
-        throw mftError('MFT_012', { field: (issue as any).keys.join(', ') });
+        throw mftError('MFT_012', { field: issue.keys?.join(', ') || '' });
       }
       
       throw mftError('MFT_003', { details: `Missing or invalid field: ${field} - ${issue.message}` });

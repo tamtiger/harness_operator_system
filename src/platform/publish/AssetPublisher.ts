@@ -3,7 +3,8 @@ import * as path from 'path';
 import * as os from 'os';
 import { PublishRequest, PublishResult } from '../../shared/types/platform';
 import { GovernanceService, CapabilityRegistry } from '../../shared/contracts/services';
-import { ProposalStatus } from '../../shared/types/enums';
+import { ProposalStatus, Permission } from '../../shared/types/enums';
+import { RuntimeContext } from '../../shared/types/repository';
 import { pltError } from '../../shared/errors/factories';
 
 export class AssetPublisher {
@@ -33,9 +34,18 @@ export class AssetPublisher {
         const tmpFile = path.join(tmpDir, `${proposal.targetAsset || 'asset'}.yaml`);
         fs.writeFileSync(tmpFile, proposal.proposedContent, 'utf8');
 
-        const invokeRes = await this.registry.invoke('harness.git.commit', {
-          permissions: ['execute_command']
-        } as any, {
+        const invokeContext: RuntimeContext = {
+          metadata: { root: { path: '', hasGit: false, discoveredAt: '' }, manifest: { version: 0, specification: '', repository: { root: '' }, agent: { entry_point: '' }, artifacts: [] } },
+          buildTimestamp: '',
+          assets: { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [] },
+          taskContext: {},
+          budget: { totalTokens: 0, allocated: { rules: 0, knowledge: 0, prompts: 0, workflows: 0, metadata: 0 }, remaining: 0 },
+          rankedRules: [],
+          relevantKnowledge: [],
+          availableCapabilities: [],
+          permissions: [Permission.EXECUTE_COMMAND]
+        };
+        const invokeRes = await this.registry.invoke('harness.git.commit', invokeContext, {
           message: request.commitMessage || `Publish asset: ${proposal.targetAsset}`,
           files: [tmpFile]
         });

@@ -113,6 +113,6 @@ export class ResolutionEngine {
       ...resolved,
       conflicts,
       resolvedAt: new Date().toISOString()
-    }) as any;
+    }) as EffectiveAssetCollection;
   }
 }

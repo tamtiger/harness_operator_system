@@ -233,28 +233,31 @@ BƯỚC 7: Return Manifest
 ### 5.2 Manifest Schema (harness.yaml)
 
 ```yaml
-# Các fields BẮT BUỘC
-harness_version: string          # e.g. "1.0.0" — phiên bản format manifest
-name: string                     # tên project, slug format (a-z, 0-9, -)
-version: string                  # phiên bản project, SemVer
-description: string              # mô tả ngắn
-
-# Các fields TÙY CHỌN
-authors:
-  - name: string
-    email: string                # optional trong author
-shared_harness_version: string   # version constraint cho Shared Harness
-extends: string                  # ID của parent harness (nếu có)
-tags: [string]                   # tags để tìm kiếm
-
-# Metadata về enabled asset directories
-assets:
-  rules: boolean                 # default: true
-  prompts: boolean               # default: false
-  templates: boolean             # default: false
-  workflows: boolean             # default: false
-  knowledge: boolean             # default: false
-  hooks: boolean                 # default: false
+version: 1                    # Integer — schema version của manifest format
+specification: "harness"      # Loại specification (luôn là "harness")
+repository:
+  name: "my-project"          # Tên project
+  root: "."                   # Relative path từ repo root
+  description: "Project description"
+agent:
+  entry_point: "AGENTS.md"    # File entry point cho AI agent
+  context:                    # (tùy chọn)
+    token_budget: 8000
+sources:                      # (tùy chọn) Nguồn dữ liệu bổ sung
+  - id: "shared-rules"
+    type: "git"
+    uri: "https://github.com/org/shared-rules.git"
+capabilities:                 # (tùy chọn) Capabilities đăng ký
+  - id: "custom.formatter"
+    source: "local"
+    path: "capabilities/formatter"
+artifacts:                    # Artifacts do build system tạo ra
+  - type: "coverage-report"
+    path: "coverage/"
+governance:                   # (tùy chọn) Governance configuration
+  auto_submit_proposals: true
+vendor:                       # (tùy chọn) Vendor-specific extensions
+  custom_field: "value"
 ```
 
 ### 5.3 ManifestValidator — Validation Rules
@@ -577,11 +580,12 @@ BƯỚC 7: Return RepositoryContext
 ### 10.1 Public Interface
 
 ```typescript
-persist(data: PersistenceData, path: RelativePath): void
+persist(root: RepositoryRoot, path: RelativePath, data: string): void
 ```
 
-- `data`: Object chứa content cần ghi (string hoặc Buffer)
+- `root`: RepositoryRoot của project
 - `path`: Relative path bên trong `.harness/` (ví dụ: `proposals/my-proposal.md`)
+- `data`: String content cần ghi
 - Không được phép path traversal ra ngoài `.harness/` — validate trước khi ghi
 
 ### 10.2 Atomic Write Protocol
@@ -667,7 +671,6 @@ interface ValidationWarning {
 
 - **Strict mode** (default khi khởi động): Tất cả errors đều blocking — throw exception ngay lập tức.
 - **Lenient mode** (dùng khi `harness validate` command): Collect tất cả errors rồi report cuối cùng.
-- Mode được truyền vào qua `ValidationOptions { mode: "strict" | "lenient" }`.
 
 ### 11.4 Circular Reference Detection
 
@@ -689,119 +692,99 @@ BƯỚC 4: Report path của cycle: A → B → C → A
 
 ```typescript
 interface RepositoryService {
-
-  /**
-   * Tìm Repository Root bằng cách traverse up từ workingDir.
-   * @throws REPO_001 nếu không tìm thấy .harness/harness.yaml
-   */
   discover(workingDir: string): RepositoryRoot;
-
-  /**
-   * Load và validate Manifest từ .harness/harness.yaml.
-   * @throws REPO_002 nếu file không tồn tại
-   * @throws REPO_003 nếu YAML syntax error
-   * @throws REPO_004 nếu schema violation
-   */
   loadManifest(root: RepositoryRoot): Manifest;
-
-  /**
-   * Load toàn bộ assets từ Shared Harness.
-   * @throws REPO_008 nếu Shared Harness chưa được install
-   * @throws REPO_009 nếu Shared Harness bị corrupt
-   */
   loadSharedAssets(sharedPath: string): AssetCollection;
-
-  /**
-   * Load toàn bộ assets từ Local Harness (.harness/ subdirs).
-   * @throws REPO_005 nếu asset parse error
-   * @throws REPO_006 nếu duplicate asset ID
-   * @throws REPO_007 nếu asset metadata invalid
-   */
   loadLocalAssets(root: RepositoryRoot, manifest: Manifest): AssetCollection;
-
-  /**
-   * Resolve Shared + Local assets thành EffectiveAssetCollection.
-   * Không throw — conflicts được log và trả về trong result.
-   */
-  resolveAssets(
-    shared: AssetCollection,
-    local: AssetCollection
-  ): EffectiveAssetCollection;
-
-  /**
-   * Build immutable RepositoryContext từ effective assets và metadata.
-   * Context là in-memory only, không persist.
-   */
-  buildContext(
-    assets: EffectiveAssetCollection,
-    metadata: RepositoryMetadata
-  ): RepositoryContext;
-
-  /**
-   * Ghi dữ liệu xuống .harness/ (atomic write).
-   * @throws REPO_010 nếu permission denied hoặc IO error
-   * @throws SecurityError nếu path traversal attempt
-   */
-  persist(data: PersistenceData, path: RelativePath): void;
-
-  /**
-   * Validate toàn bộ repository structure.
-   * @param options.mode "strict" (default) hoặc "lenient"
-   */
-  validate(root: RepositoryRoot, options?: ValidationOptions): ValidationResult;
+  resolveAssets(shared: AssetCollection, local: AssetCollection): EffectiveAssetCollection;
+  buildContext(assets: EffectiveAssetCollection, metadata: RepositoryMetadata): RepositoryContext;
+  persist(root: RepositoryRoot, path: RelativePath, data: string): void;
+  readFile(root: RepositoryRoot, path: RelativePath): string;
+  fileExists(root: RepositoryRoot, path: RelativePath): boolean;
+  dirExists(root: RepositoryRoot, path: RelativePath): boolean;
+  ensureDir(root: RepositoryRoot, path: RelativePath): void;
+  readDir(root: RepositoryRoot, path: RelativePath): string[];
+  validate(root: RepositoryRoot): ValidationResult;
 }
 ```
 
 ### 12.2 Type Definitions
 
 ```typescript
-// Repository Root — kết quả của discovery
 interface RepositoryRoot {
-  path: string;             // Absolute path
-  hasGit: boolean;          // .git directory có tồn tại không
-  discoveredAt: string;     // ISO 8601 timestamp
+  path: string;
+  hasGit: boolean;
+  discoveredAt: string;
 }
 
-// Manifest — parsed harness.yaml
+interface RepositoryConfig {
+  name?: string;
+  root: string;
+  description?: string;
+}
+
+interface AgentConfig {
+  entry_point: string;
+  context?: ContextConfig;
+}
+
+interface ContextConfig {
+  token_budget?: number;
+  budget_strategy?: 'priority_trim' | 'hard_limit';
+}
+
+interface SourceConfig {
+  id: string;
+  type: 'git' | 'local_path' | 'registry';
+  uri: string;
+  version?: string;
+  verified?: boolean;
+}
+
+interface CapabilityConfig {
+  id: CapabilityId;
+  source: 'shared' | 'local' | 'external';
+  path?: RelativePath;
+  package?: string;
+  version?: string;
+}
+
+interface ArtifactConfig {
+  type: string;
+  path: string;
+}
+
+interface GovernanceConfig {
+  auto_submit_proposals?: boolean;
+  require_evidence?: boolean;
+  min_evidence_count?: number;
+}
+
 interface Manifest {
-  harnessVersion: string;
-  name: string;
-  version: string;
-  description: string;
-  authors?: Author[];
-  sharedHarnessVersion?: string;
-  extends?: string;
-  tags?: string[];
-  assets?: AssetDirectoryConfig;
+  version: number;
+  specification: string;
+  repository: RepositoryConfig;
+  agent: AgentConfig;
+  sources?: SourceConfig[];
+  capabilities?: CapabilityConfig[];
+  artifacts: ArtifactConfig[];
+  governance?: GovernanceConfig;
+  vendor?: Record<string, unknown>;
 }
 
-// Collection của assets từ một source (shared hoặc local)
 interface AssetCollection {
-  scope: "shared" | "local";
-  assets: Asset[];
-  loadedAt: string;         // ISO 8601 timestamp
+  rules: Rule[];
+  prompts: Prompt[];
+  templates: Template[];
+  workflows: Workflow[];
+  knowledge: Knowledge[];
+  hooks: Hook[];
+  capabilities: CapabilityDefinition[];
 }
 
-// Collection sau khi resolution — assets sẵn sàng để dùng
-interface EffectiveAssetCollection {
-  assets: Asset[];
-  conflicts: ConflictLog[];
-  resolvedAt: string;       // ISO 8601 timestamp
-}
+type EffectiveAssetCollection = Readonly<AssetCollection>;
 
-// Data để persist xuống disk
-interface PersistenceData {
-  content: string | Buffer;
-  encoding?: "utf-8" | "binary";  // default: "utf-8"
-}
-
-// Relative path trong .harness/
-type RelativePath = string;  // e.g. "proposals/my-proposal.md"
-
-// Validation options
-interface ValidationOptions {
-  mode: "strict" | "lenient";
-}
+type RelativePath = string;
 ```
 
 ---
@@ -1025,7 +1008,7 @@ validation/
 **Interface nội bộ:**
 ```typescript
 class RepositoryValidator {
-  validate(root: RepositoryRoot, options: ValidationOptions): ValidationResult
+  validate(root: RepositoryRoot): ValidationResult
   private checkManifestExists(root: RepositoryRoot): ValidationError | null
   private checkRequiredFiles(root: RepositoryRoot): ValidationError[]
   private checkDuplicateIds(assets: Asset[]): ValidationError[]
@@ -1252,11 +1235,11 @@ Tài liệu này **KHÔNG** định nghĩa các nội dung sau. Tìm chúng tron
 | Capability registry và capability invocation | `07_CAPABILITY_SPECIFICATION.md` |
 | Governance workflow (review, approve, promote) | `08_GOVERNANCE_SPECIFICATION.md` |
 | Platform lifecycle (start, stop, reload) | `09_PLATFORM_SPECIFICATION.md` |
-| CLI commands và their implementation | `10_CLI_SPECIFICATION.md` |
-| MCP protocol adapter | `10_PLATFORM_SPECIFICATION.md` |
+| CLI commands và their implementation | `13_CLI_SPECIFICATION.md` |
+| MCP protocol adapter | `09_PLATFORM_SPECIFICATION.md` |
 | Synchronization của Shared Harness từ remote registry | `09_PLATFORM_SPECIFICATION.md` |
 | Harness manifest format đầy đủ với tất cả options | `01_HARNESS_MODEL.md` |
-| Exception hierarchy đầy đủ toàn hệ thống | `11_DATA_MODELS.md` |
+| Exception hierarchy đầy đủ toàn hệ thống | `14_ERROR_MODEL.md` |
 | Cách AI tools tiêu thụ `RepositoryContext` | `00_ARCHITECTURE.md` |
 | Business logic của governance proposals | `08_GOVERNANCE_SPECIFICATION.md` |
 | Installation và setup của Shared Harness | `09_PLATFORM_SPECIFICATION.md` |

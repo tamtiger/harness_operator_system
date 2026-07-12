@@ -1,5 +1,5 @@
 import { PlatformService, RepositoryService } from '../shared/contracts/services';
-import { PlatformOrchestrator } from './orchestration/PlatformOrchestrator';
+import { PlatformOrchestrator, getDefaultSharedPath } from './orchestration/PlatformOrchestrator';
 import { TaskRequest, ExecutionResult, CancelResult } from '../shared/types/execution';
 import { InstallConfig, InstallResult, UpdateConfig, UpdateResult, SyncConfig, SyncResult, PublishRequest, PublishResult, DiagnosticReport, PlatformStatus, AssetCountEntry, ValidationResult, ProposalRequest, ProposalFilter } from '../shared/types/platform';
 import { Proposal } from '../shared/types/governance';
@@ -7,8 +7,19 @@ import { ProposalId, CapabilityId } from '../shared/types/primitives';
 import { CapabilityDefinition, AssetCollection } from '../shared/types/assets';
 import { CapabilityResult } from '../shared/types/capability';
 import { RuntimeContext } from '../shared/types/repository';
-import * as fs from 'fs';
+import { RepositoryServiceImpl } from '../repository/service';
+import { ContextServiceImpl } from '../context/service';
+import { ExecutionServiceImpl } from '../execution/service';
+import { CapabilityServiceImpl } from '../capability/service';
+import { GovernanceServiceImpl } from '../governance/service';
+import { FileSystemPersistence } from '../repository/persistence/FileSystemPersistence';
+import { SharedHarnessInstaller } from './install/SharedHarnessInstaller';
+import { SharedHarnessUpdater } from './update/SharedHarnessUpdater';
+import { SharedHarnessSynchronizer } from './sync/SharedHarnessSynchronizer';
+import { AssetPublisher } from './publish/AssetPublisher';
+import { DiagnosticsEngine } from './doctor/DiagnosticsEngine';
 import * as path from 'path';
+import * as fs from 'fs';
 
 function getPackageVersion(): string {
   const candidates = [
@@ -32,6 +43,36 @@ export class PlatformServiceImpl implements PlatformService {
     private orchestrator: PlatformOrchestrator,
     private repoService: RepositoryService
   ) {}
+
+  static create(rootPath?: string, sharedPath?: string): PlatformServiceImpl {
+    const finalRoot = rootPath || path.resolve('.');
+    const finalShared = sharedPath || getDefaultSharedPath();
+    const repo = new RepositoryServiceImpl();
+    let repoRoot;
+    try {
+      repoRoot = repo.discover(finalRoot);
+    } catch {
+      repoRoot = { path: finalRoot, hasGit: false, discoveredAt: '' };
+    }
+    const ctx = new ContextServiceImpl();
+    const registry = new CapabilityServiceImpl(new FileSystemPersistence());
+    const exec = new ExecutionServiceImpl(registry);
+    const gov = new GovernanceServiceImpl(repo, repoRoot);
+
+    const installer = new SharedHarnessInstaller(registry, finalShared, finalRoot);
+    const updater = new SharedHarnessUpdater(registry, finalShared, finalRoot);
+    const synchronizer = new SharedHarnessSynchronizer(ctx, finalShared);
+    const publisher = new AssetPublisher(gov, registry);
+    const doctor = new DiagnosticsEngine(finalRoot, finalShared, registry);
+
+    const orchestrator = new PlatformOrchestrator(
+      { repo, ctx, exec, gov, registry },
+      { installer, updater, synchronizer, publisher, doctor },
+      { rootPath: finalRoot, sharedPath: finalShared }
+    );
+
+    return new PlatformServiceImpl(orchestrator, repo);
+  }
 
   async run(request: TaskRequest): Promise<ExecutionResult> {
     return this.orchestrator.run(request);
@@ -81,10 +122,14 @@ export class PlatformServiceImpl implements PlatformService {
     const effective = this.orchestrator.repo.resolveAssets(sharedAssets, localAssets);
     const validation = this.orchestrator.repo.validate(root);
 
-    const makeEntry = (type: string): AssetCountEntry => ({
-      shared: (sharedAssets as any)[type]?.length || 0,
-      local: (localAssets as any)[type]?.length || 0,
-      effective: (effective as any)[type]?.length || 0,
+    function count<K extends keyof AssetCollection>(type: K): number {
+      return (sharedAssets[type]?.length || 0) + (localAssets[type]?.length || 0) + (effective[type]?.length || 0);
+    }
+
+    const makeEntry = (type: keyof AssetCollection): AssetCountEntry => ({
+      shared: sharedAssets[type]?.length || 0,
+      local: localAssets[type]?.length || 0,
+      effective: effective[type]?.length || 0,
     });
 
     return {

@@ -11,8 +11,8 @@ export function serializeProposal(p: Proposal): string {
     updatedAt: p.updatedAt,
     targetAsset: p.targetAsset || '',
     reviewers: p.reviewers.join(','),
-    lockedBy: (p as any).lockedBy || '',
-    lockedAt: (p as any).lockedAt || '',
+    lockedBy: p.lockedBy || '',
+    lockedAt: p.lockedAt || '',
     approvedAt: p.approvedAt || '',
     promotedAt: p.promotedAt || '',
     tags: p.tags.join(',')
@@ -124,10 +124,10 @@ export function deserializeProposal(content: string): Proposal {
     prop.promotedAt = frontmatter.promotedAt;
   }
   if (frontmatter.lockedBy) {
-    (prop as any).lockedBy = frontmatter.lockedBy;
+    prop.lockedBy = frontmatter.lockedBy;
   }
   if (frontmatter.lockedAt) {
-    (prop as any).lockedAt = frontmatter.lockedAt;
+    prop.lockedAt = frontmatter.lockedAt;
   }
 
   return prop;

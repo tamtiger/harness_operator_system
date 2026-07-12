@@ -176,12 +176,12 @@ TaskState {
   taskId: string
   status: TaskStatus  # enum above
   createdAt: ISO8601
-  startedAt: ISO8601 | null
-  completedAt: ISO8601 | null
+  startedAt?: ISO8601
+  completedAt?: ISO8601
   currentStep: int
   totalSteps: int
   retryCount: int
-  lastError: ExecutionError | null
+  lastError?: HarnessError
 }
 ```
 
@@ -192,12 +192,12 @@ TaskState {
 | `taskId` | string | Định danh duy nhất của task |
 | `status` | TaskStatus | Trạng thái hiện tại trong state machine |
 | `createdAt` | ISO8601 | Thời điểm task được tạo |
-| `startedAt` | ISO8601 \| null | Thời điểm bắt đầu thực thi, null nếu chưa bắt đầu |
-| `completedAt` | ISO8601 \| null | Thời điểm hoàn thành, null nếu chưa xong |
+| `startedAt` | ISO8601 (optional) | Thời điểm bắt đầu thực thi, undefined nếu chưa bắt đầu |
+| `completedAt` | ISO8601 (optional) | Thời điểm hoàn thành, undefined nếu chưa xong |
 | `currentStep` | int | Chỉ số bước đang thực thi (0-indexed) |
 | `totalSteps` | int | Tổng số bước trong ExecutionPlan |
 | `retryCount` | int | Số lần retry đã thực hiện |
-| `lastError` | ExecutionError \| null | Lỗi cuối cùng, null nếu không có lỗi |
+| `lastError` | HarnessError (optional) | Lỗi cuối cùng, undefined nếu không có lỗi |
 
 ---
 
@@ -438,7 +438,7 @@ Execution hỗ trợ graceful cancellation của Task đang chạy.
 ```
 CancelResult {
   taskId: string
-  status: 'CANCELLED' | 'NOT_FOUND' | 'ALREADY_COMPLETED'
+  status: 'CANCELLED'
   cancelledAt: ISO8601
 }
 ```
@@ -452,10 +452,11 @@ CancelResult {
 ### Interface Definition
 
 ```
-ExecutionService:
-  execute(context: RuntimeContext, request: TaskRequest) -> ExecutionResult
-  cancel(taskId: string) -> CancelResult
-  getStatus(taskId: string) -> TaskState
+ExecutionService {
+  execute(context: RuntimeContext, request: TaskRequest): Promise<ExecutionResult>;
+  cancel(taskId: string): Promise<CancelResult>;
+  getStatus(taskId: string): TaskState;
+}
 ```
 
 ### Mô tả các method
@@ -465,9 +466,9 @@ ExecutionService:
 | Aspect | Chi tiết |
 |--------|---------|
 | **Input** | `RuntimeContext`: toàn bộ context bao gồm Workflow, Policy, credentials; `TaskRequest`: mô tả task cần thực thi |
-| **Output** | `ExecutionResult`: kết quả tổng hợp bao gồm status, outputs, và metadata |
+| **Output** | `ExecutionResult`: kết quả tổng hợp bao gồm status, results, và metadata |
 | **Side effects** | Thực thi các Capability, cập nhật TaskState nội bộ |
-| **Throws** | `ExecutionException` với error code tương ứng nếu thất bại |
+| **Throws** | `HarnessError` với error code tương ứng nếu thất bại |
 | **Thread safety** | Mỗi call là independent, thread-safe |
 
 #### `cancel(taskId) -> CancelResult`
@@ -486,7 +487,7 @@ ExecutionService:
 | **Input** | `taskId`: ID của task cần query |
 | **Output** | `TaskState`: snapshot trạng thái hiện tại của task |
 | **Availability** | Chỉ available trong vòng đời của một execution call |
-| **Returns** | `null` hoặc `NOT_FOUND` nếu taskId không tồn tại |
+| **Returns** | `TaskState` hoặc undefined nếu taskId không tồn tại |
 
 ### ExecutionResult Structure
 
@@ -494,11 +495,11 @@ ExecutionService:
 ExecutionResult {
   taskId: string
   status: TaskStatus
-  outputs: Map<stepId, CapabilityResult>
+  results: CapabilityResult[]
+  startedAt: ISO8601
   completedAt: ISO8601
-  duration: Duration
-  retryCount: int
-  error: ExecutionError | null
+  durationMs: number
+  error?: HarnessError
 }
 ```
 
@@ -660,15 +661,15 @@ Tất cả lỗi trong Execution layer sử dụng error codes có prefix `EXEC_
 - **Hành động:** Transition `RUNNING -> FAILED`. Không retry.
 - **Resolution:** Caller phải refresh/renew RuntimeContext trước khi execute.
 
-### ExecutionError Structure
+### HarnessError Structure
 
 ```
-ExecutionError {
+HarnessError {
   code: string          # EXEC_001 ... EXEC_008
-  category: string      # Planning | Runtime | Verification | Retry
+  domain: ErrorDomain   # ErrorDomain enum
   message: string       # Human-readable description
-  stepId: string | null # Bước nào gây ra lỗi, null nếu là system-level error
-  cause: Error | null   # Original error nếu có
+  retryable: boolean    # Whether the error can be retried
+  details?: unknown     # Additional error details
   timestamp: ISO8601
 }
 ```
@@ -757,12 +758,12 @@ Execution layer tương tác với các thành phần khác trong hệ thống t
 
 | Document | Mối liên hệ |
 |----------|-------------|
-| `01_SYSTEM_OVERVIEW.md` | Tổng quan kiến trúc hệ thống, vị trí của Execution layer |
-| `02_SHARED_SPECIFICATION.md` | Common types: `Duration`, `ISO8601`, `ErrorCode` dùng trong Execution |
-| `03_CONTEXT_SPECIFICATION.md` | `RuntimeContext` — input chính của Execution. Chứa Workflow, Policy, credentials |
-| `04_CAPABILITY_SPECIFICATION.md` | `CapabilityRegistry`, `CapabilityInstance`, `CapabilityResult` — core dependency |
-| `05_REPOSITORY_SPECIFICATION.md` | Repository layer được dùng để load Workflow definitions |
-| `07_GOVERNANCE_SPECIFICATION.md` | Governance định nghĩa Policy — Execution nhận policy qua RuntimeContext, không gọi trực tiếp |
+| `00_ARCHITECTURE.md` | Tổng quan kiến trúc hệ thống, vị trí của Execution layer |
+| `11_DATA_MODELS.md` | Common types: `Duration`, `ISO8601`, `ErrorCode` dùng trong Execution |
+| `05_CONTEXT_SPECIFICATION.md` | `RuntimeContext` — input chính của Execution. Chứa Workflow, Policy, credentials |
+| `07_CAPABILITY_SPECIFICATION.md` | `CapabilityRegistry`, `CapabilityInstance`, `CapabilityResult` — core dependency |
+| `04_REPOSITORY_SPECIFICATION.md` | Repository layer được dùng để load Workflow definitions |
+| `08_GOVERNANCE_SPECIFICATION.md` | Governance định nghĩa Policy — Execution nhận policy qua RuntimeContext, không gọi trực tiếp |
 
 ### Interaction Map
 

@@ -253,16 +253,43 @@ Layer 5: adapters        (depends on: platform only)
 
 Mỗi domain phải expose một public service interface. Các interface này là **contract** giữa domains — implementation có thể thay đổi nhưng contract phải ổn định.
 
+Tất cả interface được khai báo tập trung tại `src/shared/contracts/services.ts`. Đây là single source of truth.
+
+## FileSystemOps
+
+```
+interface FileSystemOps {
+  read(root: RepositoryRoot, path: RelativePath): string
+  write(root: RepositoryRoot, path: RelativePath, data: string): void
+  existsFile(root: RepositoryRoot, path: RelativePath): boolean
+  existsDir(root: RepositoryRoot, path: RelativePath): boolean
+  deleteFile(root: RepositoryRoot, path: RelativePath): void
+  moveFile(root: RepositoryRoot, src: RelativePath, dest: RelativePath): void
+  copyFile(root: RepositoryRoot, src: RelativePath, dest: RelativePath): void
+  listDir(root: RepositoryRoot, path: RelativePath): DirEntry[]
+  mkDir(root: RepositoryRoot, path: RelativePath, recursive?: boolean): void
+  rmDir(root: RepositoryRoot, path: RelativePath, recursive?: boolean): void
+}
+```
+
+Interface cho filesystem operations, được inject vào Capability layer để tránh dependency trực tiếp vào Repository domain. `DirEntry = { name: string; type: 'file' | 'dir' }`.
+
 ## RepositoryService
 
 ```
 interface RepositoryService {
   discover(workingDir: string): RepositoryRoot
   loadManifest(root: RepositoryRoot): Manifest
-  loadAssets(manifest: Manifest): AssetCollection
-  resolveAssets(assets: AssetCollection): EffectiveAssets
-  buildContext(assets: EffectiveAssets, metadata: RepositoryMetadata): RepositoryContext
-  persist(path: string, data: PersistData): void
+  loadSharedAssets(sharedPath: string): AssetCollection
+  loadLocalAssets(root: RepositoryRoot, manifest: Manifest): AssetCollection
+  resolveAssets(shared: AssetCollection, local: AssetCollection): EffectiveAssetCollection
+  buildContext(assets: EffectiveAssetCollection, metadata: RepositoryMetadata): RepositoryContext
+  persist(root: RepositoryRoot, path: RelativePath, data: string): void
+  readFile(root: RepositoryRoot, path: RelativePath): string
+  fileExists(root: RepositoryRoot, path: RelativePath): boolean
+  dirExists(root: RepositoryRoot, path: RelativePath): boolean
+  ensureDir(root: RepositoryRoot, path: RelativePath): void
+  readDir(root: RepositoryRoot, path: RelativePath): string[]
   validate(root: RepositoryRoot): ValidationResult
 }
 ```
@@ -271,68 +298,104 @@ interface RepositoryService {
 
 ```
 interface ContextService {
-  build(repoContext: RepositoryContext, request: ContextRequest): RuntimeContext
-  filter(context: RuntimeContext, filter: ContextFilter): RuntimeContext
-  rank(context: RuntimeContext, criteria: RankingCriteria): RuntimeContext
-  applyBudget(context: RuntimeContext, budget: TokenBudget): RuntimeContext
+  buildRuntimeContext(repoContext: RepositoryContext, request: TaskRequest): RuntimeContext
   invalidateCache(key: CacheKey): void
 }
 ```
+
+`ContextService` đã được gọn lại: filter, rank, applyBudget là internal pipeline trong `ContextBuilder`, không expose riêng lẻ. Đầu vào là `RepositoryContext` từ Repository domain + `TaskRequest` → output `RuntimeContext`.
 
 ## ExecutionService
 
 ```
 interface ExecutionService {
-  execute(context: RuntimeContext, task: TaskRequest): ExecutionResult
-  schedule(steps: Step[]): SchedulePlan
-  verify(result: ExecutionResult): VerificationResult
-  retry(task: TaskRequest, policy: RetryPolicy): ExecutionResult
+  execute(context: RuntimeContext, request: TaskRequest): Promise<ExecutionResult>
+  cancel(taskId: string): Promise<CancelResult>
+  getStatus(taskId: string): TaskState
 }
 ```
+
+Các method `schedule` và `verify` là internal của `ExecutionRuntime`. `retry` được xử lý trong `RetryManager` nội bộ.
+
+## CapabilityImpl
+
+```
+interface CapabilityImpl {
+  execute(context: RuntimeContext, input: unknown): Promise<unknown>
+}
+```
+
+`CapabilityImpl` là contract cho mọi capability implementation. Không có interface riêng cho từng capability type — tất cả đều implement chung interface này.
 
 ## CapabilityRegistry
 
 ```
 interface CapabilityRegistry {
-  register(capability: CapabilityDefinition): void
-  lookup(name: string): Capability | null
-  invoke(name: string, context: RuntimeContext, params: CapabilityParams): CapabilityResult
+  register(def: CapabilityDefinition, impl: CapabilityImpl): void
+  unregister(id: CapabilityId): void
+  resolve(id: CapabilityId): CapabilityImpl
+  getDefinition(id: CapabilityId): CapabilityDefinition
+  invoke(id: CapabilityId, context: RuntimeContext, input: unknown): Promise<CapabilityResult>
   list(): CapabilityDefinition[]
-  validate(capability: CapabilityDefinition): ValidationResult
+  isRegistered(id: CapabilityId): boolean
 }
 ```
+
+Khác biệt so với thiết kế cũ: `register` nhận cả definition + implementation; thêm `unregister`, `resolve`, `getDefinition`, `isRegistered`; `invoke` nhận `CapabilityId` thay vì `string name`.
 
 ## GovernanceService
 
 ```
 interface GovernanceService {
-  createProposal(request: ProposalRequest): Proposal
-  submitForReview(proposalId: string): ReviewTicket
-  approve(proposalId: string, approver: Approver): ApprovalResult
-  reject(proposalId: string, reason: string): void
-  promote(proposalId: string): PromotionResult
-  getAuditLog(filter: AuditFilter): AuditLog[]
+  submitProposal(request: ProposalRequest): Proposal
+  submitExistingProposal(id: ProposalId): Proposal
+  listProposals(filter: ProposalFilter): Proposal[]
+  getProposal(id: ProposalId): Proposal
+  review(id: ProposalId, reviewer: string): Proposal
+  approve(id: ProposalId, reviewer: string, comments: string): Proposal
+  reject(id: ProposalId, reviewer: string, comments: string): Proposal
+  requestChanges(id: ProposalId, reviewer: string, comments: string): Proposal
+  promote(id: ProposalId): PromotionResult
+  getAuditLog(proposalId: ProposalId): AuditRecord[]
 }
 ```
+
+`ProposalId` là branded type (`string & { __brand: 'ProposalId' }`). `submitExistingProposal` dùng cho MCP flow (proposal đã tạo trước đó). `review`/`requestChanges` là các state transition bổ sung.
 
 ## PlatformService
 
 ```
 interface PlatformService {
-  run(request: RunRequest): RunResult
-  install(source: HarnessSource): InstallResult
-  update(options: UpdateOptions): UpdateResult
-  sync(options: SyncOptions): SyncResult
-  publish(options: PublishOptions): PublishResult
-  doctor(): HealthReport
+  run(request: TaskRequest): Promise<ExecutionResult>
+  install(config: InstallConfig): Promise<InstallResult>
+  update(config: UpdateConfig): Promise<UpdateResult>
+  sync(config: SyncConfig): Promise<SyncResult>
+  publish(request: PublishRequest): Promise<PublishResult>
+  doctor(): Promise<DiagnosticReport>
+  validate(root?: string): Promise<ValidationResult>
+  status(): Promise<PlatformStatus>
+  listCapabilities(): Promise<CapabilityDefinition[]>
+  previewContext(request: TaskRequest): Promise<RuntimeContext>
+  invokeCapability(id: CapabilityId, context: RuntimeContext, input: unknown): Promise<CapabilityResult>
+  cancelTask(taskId: string): Promise<CancelResult>
+  submitProposal(request: ProposalRequest): Promise<Proposal>
+  submitExistingProposal(id: ProposalId): Promise<Proposal>
+  listProposals(filter: ProposalFilter): Promise<Proposal[]>
+  getProposal(id: ProposalId): Promise<Proposal>
+  reviewProposal(id: ProposalId, reviewer: string): Promise<Proposal>
+  approveProposal(id: ProposalId, reviewer: string, comments?: string): Promise<Proposal>
+  rejectProposal(id: ProposalId, reviewer: string, comments: string): Promise<Proposal>
 }
 ```
 
+`PlatformService` là facade duy nhất cho Adapter layer. Nó wrap tất cả domain services và expose operations cho CLI/MCP.
+
 **Quy tắc về Interface Contracts:**
 
-- Mọi interface phải được khai báo trong package root của domain (không được ẩn trong sub-package).
+- Mọi interface phải được khai báo trong `src/shared/contracts/services.ts` (duy nhất, không duplicate).
 - Parameter types phải là types từ `shared` hoặc từ domain của chính nó — không được dùng types của domain khác làm parameter của interface.
-- Trường hợp ngoại lệ: `ContextService.build()` nhận `RepositoryContext` từ repository domain — đây được chấp nhận vì dependency `context → repository` là hợp lệ theo Compile-time Rules.
+- Trường hợp ngoại lệ: `ContextService.buildRuntimeContext()` nhận `RepositoryContext` từ repository domain — đây được chấp nhận vì dependency `context → repository` là hợp lệ theo Compile-time Rules.
+- `FileSystemOps` là ngoại lệ đặc biệt: được định nghĩa trong `shared/contracts/` để capability layer có thể dependency vào interface mà không vi phạm layer rules. Implementation (FileSystemPersistence) nằm ở repository domain.
 
 ---
 

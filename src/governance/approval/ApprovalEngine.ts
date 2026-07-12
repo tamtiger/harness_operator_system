@@ -18,7 +18,7 @@ export class ApprovalEngine {
       throw govError('GOV_002');
     }
 
-    const lockedBy = (proposal as any).lockedBy;
+    const lockedBy = proposal.lockedBy;
     if (lockedBy !== reviewer) {
       throw govError('GOV_007');
     }
@@ -26,8 +26,8 @@ export class ApprovalEngine {
     const prevStatus = proposal.status;
     proposal.status = ProposalStatus.APPROVED;
     proposal.approvedAt = new Date().toISOString();
-    (proposal as any).lockedBy = '';
-    (proposal as any).lockedAt = '';
+    proposal.lockedBy = '';
+    proposal.lockedAt = '';
     proposal.updatedAt = new Date().toISOString();
 
     if (comments) {
@@ -62,7 +62,7 @@ export class ApprovalEngine {
       throw govError('GOV_002');
     }
 
-    const lockedBy = (proposal as any).lockedBy;
+    const lockedBy = proposal.lockedBy;
     if (lockedBy !== reviewer) {
       throw govError('GOV_007');
     }
@@ -70,8 +70,8 @@ export class ApprovalEngine {
     const prevStatus = proposal.status;
     proposal.status = ProposalStatus.REJECTED;
     proposal.reviewedAt = new Date().toISOString();
-    (proposal as any).lockedBy = '';
-    (proposal as any).lockedAt = '';
+    proposal.lockedBy = '';
+    proposal.lockedAt = '';
     proposal.updatedAt = new Date().toISOString();
 
     if (comments) {

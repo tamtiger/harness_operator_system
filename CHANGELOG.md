@@ -2,6 +2,23 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.14] - 2026-07-12
+
+### Fixed
+- **Capability Shell Safety:** Built-in Git capabilities now execute via argument arrays instead of interpolated shell strings, preserving paths with spaces and avoiding shell-injection risk.
+- **Architecture Violations (ARCHITECTURE_REVIEW.md):**
+  - **C-07 — Capability importing Repository:** Extracted `FileSystemOps` interface into `shared/contracts/services.ts`; `FileSystemPersistence` implements it; capability layer depends on interface only.
+  - **H-01 — Adapter importing all domains:** Added `PlatformServiceImpl.create()` static factory method; `factory.ts` delegates wiring to platform domain.
+  - **Violation #6 — Architecture doc interfaces outdated:** Updated `03_SYSTEM_ARCHITECTURE.md` Section 9 (Interface Contracts) to match actual `services.ts` interfaces. Added `FileSystemOps`, `CapabilityImpl` sections. Updated all 6 domain interfaces with current method signatures.
+
+### Added
+- **M10 Conformance Suite CLI Runner:** Fully integrated `harness conformance run` into CLI specification and command adapter, successfully passing all 180 conformance checks.
+
+### Updated
+- **Knowledge Base Synchronization:**
+  - `11_DATA_MODELS.md`: Synchronized type definitions (`ProposalId`, `SemVer`, `PlatformStatus`, `RuntimeContext`) to match source code.
+  - `13_CLI_SPECIFICATION.md`: Added missing `harness conformance run` command specification.
+- **Documentation:** Updated `AGENTS.md`, `AGENTS_TEMPLATE.md`, and `README.md` to reflect version `0.0.14` and M11 Production Readiness status.
 ## [0.0.13] - 2026-07-12
 
 ### Added

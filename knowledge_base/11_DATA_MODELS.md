@@ -360,6 +360,8 @@ interface RuntimeContext extends RepositoryContext {
   relevantKnowledge: Knowledge[]        // Knowledge liên quan đến task
   activeWorkflow?: Workflow             // Workflow đang thực thi (nếu có)
   availableCapabilities: CapabilityId[] // Danh sách capability khả dụng
+  permissions?: Permission[]            // Các quyền hạn được cấp phép
+  agentsMd?: string                     // Nội dung AGENTS.md
 }
 ```
 
@@ -621,7 +623,7 @@ interface AuditRecord {
   timestamp: ISO8601               // Thời điểm ghi
   action: string                   // Hành động được thực hiện
   actor: string                    // Người/system thực hiện
-  proposalId: string               // Proposal liên quan
+  proposalId: ProposalId           // Proposal liên quan
   previousStatus?: ProposalStatus  // Trạng thái trước
   newStatus?: ProposalStatus       // Trạng thái sau
   details: string                  // Chi tiết bổ sung
@@ -706,7 +708,7 @@ interface InstalledMetadata {
   source: string                // Nguồn cài đặt (URL, registry, ...)
   installedAt: ISO8601          // Thời điểm cài đặt
   checksum: string              // Checksum để xác minh tính toàn vẹn
-  specificationVersion: string  // Phiên bản specification tương thích
+  specificationVersion: SemVer  // Phiên bản specification tương thích
 }
 ```
 
@@ -767,10 +769,27 @@ interface PublishResult {
   error?: HarnessError
 }
 
+interface AssetCountEntry {
+  shared: number
+  local: number
+  effective: number
+}
+
 interface PlatformStatus {
   status: 'active' | 'offline' | 'degraded'
   version: SemVer
   uptimeMs: number
+  repository?: { path: string; valid: boolean }
+  sharedHarness?: { installed: boolean; version: string }
+  assets?: {
+    rules: AssetCountEntry
+    prompts: AssetCountEntry
+    templates: AssetCountEntry
+    workflows: AssetCountEntry
+    knowledge: AssetCountEntry
+    hooks: AssetCountEntry
+    capabilities: AssetCountEntry
+  }
 }
 
 interface UpdateConfig {

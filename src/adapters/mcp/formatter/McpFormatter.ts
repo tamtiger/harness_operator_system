@@ -5,10 +5,10 @@ export interface McpTextContent {
   text: string;
 }
 
-export interface McpCallToolResult {
+export type McpCallToolResult = {
   content: McpTextContent[];
   isError: boolean;
-}
+};
 
 export class McpFormatter {
   toToolResult(data: unknown, isError = false): McpCallToolResult {
@@ -31,14 +31,14 @@ export class McpFormatter {
       }, true);
     }
     
-    const err = error as any;
+    const err = error as { code?: string; message?: string; stack?: unknown };
     return this.toToolResult({
       error: {
         code: err.code || 'UNKNOWN',
         domain: 'SYSTEM',
         message: err.message || 'An unexpected error occurred',
         retryable: false,
-        details: err.stack || err
+        details: err.stack || error
       }
     }, true);
   }

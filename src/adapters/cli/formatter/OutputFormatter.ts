@@ -4,13 +4,65 @@ export interface FormatOptions {
   quiet: boolean;
 }
 
+interface DoctorShape {
+  overall: string;
+  checks: Array<{ name: string; status: string; message: string; remediation?: string }>;
+}
+
+interface StatusShape {
+  repository: string;
+  sharedHarness: { installed: boolean; version: string };
+  assets: Record<string, { shared: number; local: number; effective: number }>;
+  context: string;
+  version?: string;
+}
+
+interface ValidateShape {
+  valid: boolean;
+  errors: Array<{ code: string; message: string; details?: unknown }>;
+  warnings: string[];
+}
+
+interface RunShape {
+  taskId: string;
+  status: string;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  results: Array<{ success: boolean; capabilityId: string; durationMs: number; error?: { message: string } }>;
+  error?: { message: string };
+}
+
+interface ActionResultShape {
+  success: boolean;
+  installedVersion?: string;
+  installedPath?: string;
+  fromVersion?: string;
+  toVersion?: string;
+  syncedAssets?: number;
+  proposalId?: string;
+  error?: { message: string };
+}
+
+interface ProposalListItemShape {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+}
+
+interface ProposalActionShape {
+  id: string;
+  status: string;
+}
+
 export class OutputFormatter {
   private stripAnsi(str: string): string {
     // eslint-disable-next-line no-control-regex
     return str.replace(/\x1b\[[0-9;]*m/g, '');
   }
 
-  format<T>(data: T, type: string, options: FormatOptions): string {
+  format(data: unknown, type: string, options: FormatOptions): string {
     if (options.json) {
       return JSON.stringify(data, null, 2);
     }
@@ -37,7 +89,7 @@ export class OutputFormatter {
         break;
 
       case 'doctor': {
-        const report = data as any;
+        const report = data as DoctorShape;
         text = `Platform Diagnostics Report\n`;
         text += `Overall Health: ${report.overall === 'healthy' ? colorGreen : colorRed}${report.overall.toUpperCase()}${colorReset}\n\n`;
         text += `Checks:\n`;
@@ -52,7 +104,7 @@ export class OutputFormatter {
       }
 
       case 'status': {
-        const status = data as any;
+        const status = data as StatusShape;
         text = `Repository: ${status.repository}\n`;
         text += `Shared Harness: ${status.sharedHarness.installed ? colorGreen + 'Installed' : colorRed + 'Not Installed'}${colorReset} (v${status.sharedHarness.version})\n`;
         text += `Assets Loaded:\n`;
@@ -66,7 +118,7 @@ export class OutputFormatter {
       }
 
       case 'validate': {
-        const val = data as any;
+        const val = data as ValidateShape;
         if (val.valid) {
           text = `${colorGreen}✓ Repository structure is valid.${colorReset}\n`;
           if (val.warnings && val.warnings.length > 0) {
@@ -77,7 +129,7 @@ export class OutputFormatter {
           }
         } else {
           text = `${colorRed}✗ Repository validation failed:${colorReset}\n`;
-          val.errors.forEach((e: any) => {
+          val.errors.forEach((e: { code: string; message: string; details?: unknown }) => {
             text += `  [ERROR] ${e.code}: ${e.message}\n`;
             if (e.details) {
               text += `    Details: ${JSON.stringify(e.details)}\n`;
@@ -93,14 +145,14 @@ export class OutputFormatter {
       }
 
       case 'run': {
-        const run = data as any;
+        const run = data as RunShape;
         text = `Task: ${run.taskId}\n`;
         text += `Status: ${run.status === 'COMPLETED' ? colorGreen : colorRed}${run.status}${colorReset}\n`;
         text += `Started At: ${run.startedAt}\n`;
         text += `Completed At: ${run.completedAt}\n`;
         text += `Duration: ${run.durationMs}ms\n\n`;
         text += `Step Results:\n`;
-        run.results.forEach((step: any, index: number) => {
+        run.results.forEach((step: { success: boolean; capabilityId: string; durationMs: number; error?: { message: string } }, index: number) => {
           const statusChar = step.success ? `${colorGreen}✓` : `${colorRed}✗`;
           text += `  [${index + 1}] ${statusChar} ${step.capabilityId}${colorReset} (${step.durationMs}ms)\n`;
           if (!step.success && step.error) {
@@ -113,59 +165,38 @@ export class OutputFormatter {
         break;
       }
 
-      case 'install': {
-        const res = data as any;
+      case 'install':
+      case 'update':
+      case 'sync':
+      case 'publish': {
+        const res = data as ActionResultShape;
         if (res.success) {
-          text = `${colorGreen}✓ Shared Harness installed successfully!${colorReset}\n`;
-          text += `Version: ${res.installedVersion}\n`;
-          text += `Path: ${res.installedPath}`;
-        } else {
-          text = `${colorRed}✗ Installation failed: ${res.error?.message || 'Unknown error'}${colorReset}`;
-        }
-        break;
-      }
-
-      case 'update': {
-        const res = data as any;
-        if (res.success) {
-          if (res.fromVersion === res.toVersion) {
+          if (type === 'install') {
+            text = `${colorGreen}✓ Shared Harness installed successfully!${colorReset}\n`;
+            text += `Version: ${res.installedVersion}\n`;
+            text += `Path: ${res.installedPath}`;
+          } else if (type === 'update' && res.fromVersion && res.fromVersion === res.toVersion) {
             text = `${colorYellow}! Shared Harness is already up to date.${colorReset} (v${res.toVersion})`;
-          } else {
+          } else if (type === 'update') {
             text = `${colorGreen}✓ Shared Harness updated successfully!${colorReset}\n`;
             text += `Upgraded: v${res.fromVersion} -> v${res.toVersion}`;
+          } else if (type === 'sync') {
+            text = `${colorGreen}✓ Shared Harness synchronized!${colorReset}\n`;
+            text += `Updated ${res.syncedAssets || 0} assets.`;
+          } else if (type === 'publish') {
+            text = `${colorGreen}✓ Asset published successfully!${colorReset}\n`;
+            if (res.proposalId) {
+              text += `Proposal ID: ${res.proposalId}`;
+            }
           }
         } else {
-          text = `${colorRed}✗ Update failed: ${res.error?.message || 'Unknown error'}${colorReset}`;
-        }
-        break;
-      }
-
-      case 'sync': {
-        const res = data as any;
-        if (res.success) {
-          text = `${colorGreen}✓ Shared Harness synchronized!${colorReset}\n`;
-          text += `Updated ${res.syncedAssets || 0} assets.`;
-        } else {
-          text = `${colorRed}✗ Sync failed: ${res.error?.message || 'Unknown error'}${colorReset}`;
-        }
-        break;
-      }
-
-      case 'publish': {
-        const res = data as any;
-        if (res.success) {
-          text = `${colorGreen}✓ Asset published successfully!${colorReset}\n`;
-          if (res.proposalId) {
-            text += `Proposal ID: ${res.proposalId}`;
-          }
-        } else {
-          text = `${colorRed}✗ Publish failed: ${res.error?.message || 'Unknown error'}${colorReset}`;
+          text = `${colorRed}✗ ${type === 'install' ? 'Installation' : type === 'update' ? 'Update' : type === 'sync' ? 'Sync' : 'Publish'} failed: ${res.error?.message || 'Unknown error'}${colorReset}`;
         }
         break;
       }
 
       case 'proposal_list': {
-        const list = data as any[];
+        const list = data as ProposalListItemShape[];
         text = `Change Proposals Registry:\n\n`;
         if (list.length === 0) {
           text += `No active proposals found.`;
@@ -182,7 +213,7 @@ export class OutputFormatter {
 
       case 'proposal_submit':
       case 'proposal_approve': {
-        const res = data as any;
+        const res = data as ProposalActionShape;
         text = `${colorGreen}✓ Proposal successfully processed!${colorReset}\n`;
         text += `ID: ${res.id}\n`;
         text += `Status: ${res.status}`;

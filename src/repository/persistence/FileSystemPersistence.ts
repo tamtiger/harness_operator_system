@@ -4,11 +4,9 @@ import { RelativePath } from '../../shared/types/primitives';
 import { RepositoryRoot } from '../../shared/types/repository';
 import { repoError } from '../../shared/errors/factories';
 import { isWithinBoundary } from '../../shared/utils/path';
+import type { DirEntry, FileSystemOps } from '../../shared/contracts/services';
 
-export interface DirEntry {
-  name: string;
-  type: 'file' | 'dir';
-}
+export type { DirEntry };
 
 export interface FileStat {
   size: number;
@@ -18,7 +16,7 @@ export interface FileStat {
   modifiedAt: Date;
 }
 
-export class FileSystemPersistence {
+export class FileSystemPersistence implements FileSystemOps {
   private resolve(root: RepositoryRoot, relativePath: RelativePath): string {
     if (relativePath.includes('..') || path.isAbsolute(relativePath)) {
       throw repoError('REPO_014', { details: `Path traversal detected: ${relativePath}` });

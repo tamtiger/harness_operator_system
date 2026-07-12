@@ -1,6 +1,6 @@
 # Harness Operator System
 
-**Version:** 0.0.12 | **Status:** Active Development
+**Version:** 0.0.14 | **Status:** Active Development
 
 Harness Operator System is an **AI-native Knowledge Management Platform** designed to manage, distribute, and govern operational knowledge for AI Coding Tools (Cursor, Claude Code, Gemini CLI, Codex CLI, Kiro, OpenCode, and any MCP-compatible client).
 
@@ -99,7 +99,6 @@ harness-operator-system/
 │   └── adapters/                # Entry points
 │       ├── cli/                 # CLI adapter (all commands)
 │       │   ├── commands/        # init, validate, status, context, run, etc.
-│       │   ├── config/          # CliConfig (env overrides)
 │       │   └── formatter/       # OutputFormatter, ErrorFormatter
 │       └── mcp/                 # MCP server adapter
 ├── knowledge_base/              # Comprehensive specification documents
@@ -137,7 +136,7 @@ harness-operator-system/
 | **M8** | Governance — proposals, reviews, approvals, promotion, audit | ✅ |
 | **M9** | MCP Server — Model Context Protocol adapter with 4 tools | ✅ |
 | **M10** | Conformance Suite — 30 test cases, Level 3 compliance | ✅ |
-| **M11** | Hardening, error recovery, production readiness | 🔜 |
+| **M11** | Hardening, error recovery, production readiness | ✅ |
 
 ---
 

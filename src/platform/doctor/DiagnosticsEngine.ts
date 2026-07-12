@@ -38,7 +38,7 @@ export class DiagnosticsEngine {
         checksumPass = false;
       } else {
         try {
-          const checksumData = yaml.load(fs.readFileSync(checksumFile, 'utf8')) as any;
+          const checksumData = yaml.load(fs.readFileSync(checksumFile, 'utf8')) as { checksums?: Record<string, string> };
           const checksums: Record<string, string> = checksumData?.checksums || {};
           for (const [relFile, expectedHash] of Object.entries(checksums)) {
             // relFile is relative to sharedPath parent (e.g. "shared/rules/foo.md")

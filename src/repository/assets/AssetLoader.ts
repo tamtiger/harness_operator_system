@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as yaml from 'js-yaml';
-import { AssetCollection, Asset } from '../../shared/types/assets';
+import { AssetCollection, Asset, Rule, Prompt, Template, Workflow, Knowledge, Hook, CapabilityDefinition } from '../../shared/types/assets';
 import { Manifest, RepositoryRoot } from '../../shared/types/repository';
 import { repoError } from '../../shared/errors/factories';
 import { isWithinBoundary, getDefaultHarnessPath } from '../../shared/utils/path';
@@ -193,13 +193,13 @@ export class AssetLoader {
 
   private addAssetToCollection(collection: AssetCollection, asset: Asset) {
     const type = asset.metadata.type;
-    if (type === 'rule') collection.rules.push(asset as any);
-    else if (type === 'prompt') collection.prompts.push(asset as any);
-    else if (type === 'template') collection.templates.push(asset as any);
-    else if (type === 'workflow') collection.workflows.push(asset as any);
-    else if (type === 'knowledge') collection.knowledge.push(asset as any);
-    else if (type === 'hook') collection.hooks.push(asset as any);
-    else if (type === 'capability') collection.capabilities.push(asset as any);
+    if (type === 'rule') collection.rules.push(asset as Rule);
+    else if (type === 'prompt') collection.prompts.push(asset as Prompt);
+    else if (type === 'template') collection.templates.push(asset as Template);
+    else if (type === 'workflow') collection.workflows.push(asset as Workflow);
+    else if (type === 'knowledge') collection.knowledge.push(asset as Knowledge);
+    else if (type === 'hook') collection.hooks.push(asset as Hook);
+    else if (type === 'capability') collection.capabilities.push(asset as CapabilityDefinition);
   }
 
   private scanDir(dirPath: string, rootBoundary: string, callback: (filePath: string, content: string) => void) {

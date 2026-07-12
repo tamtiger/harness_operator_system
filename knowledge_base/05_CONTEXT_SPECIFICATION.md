@@ -51,21 +51,15 @@ Context domain chịu trách nhiệm **transform RepositoryContext thành Runtim
 
 ### RepositoryContext (Đầu vào)
 
-Cấu trúc đầy đủ của `RepositoryContext` được nhận từ Repository domain:
+Cấu trúc của `RepositoryContext` được nhận từ Repository domain:
 
 ```
 RepositoryContext {
   metadata: RepositoryMetadata
   assets: EffectiveAssetCollection
-  rules: Rule[]
-  prompts: Prompt[]
-  templates: Template[]
-  workflows: Workflow[]
-  knowledge: Knowledge[]
-  hooks: Hook[]
-  capabilities: CapabilityDefinition[]
-  repositoryMap: RepositoryMap
-  adrs: ADR[]
+  repositoryMap?: string
+  adrs?: ADR[]
+  buildTimestamp: ISO8601
 }
 ```
 
@@ -73,53 +67,49 @@ RepositoryContext {
 
 | Trường | Kiểu | Mô tả |
 |--------|------|-------|
-| `metadata` | `RepositoryMetadata` | Thông tin repository (name, version, owner...) |
+| `metadata` | `RepositoryMetadata` | Thông tin repository (root, name, manifest, gitBranch, gitCommit) |
 | `assets` | `EffectiveAssetCollection` | Tập hợp tất cả assets đã được resolve |
-| `rules` | `Rule[]` | Danh sách các rules áp dụng cho repository |
-| `prompts` | `Prompt[]` | Danh sách prompt templates |
-| `templates` | `Template[]` | Danh sách code/doc templates |
-| `workflows` | `Workflow[]` | Danh sách workflows tự động |
-| `knowledge` | `Knowledge[]` | Danh sách knowledge entries |
-| `hooks` | `Hook[]` | Danh sách hooks (pre/post execution) |
-| `capabilities` | `CapabilityDefinition[]` | Danh sách capabilities được định nghĩa |
-| `repositoryMap` | `RepositoryMap` | Bản đồ cấu trúc repository |
-| `adrs` | `ADR[]` | Architectural Decision Records |
+| `repositoryMap` | `string \| undefined` | Bản đồ cấu trúc repository dạng string (optional) |
+| `adrs` | `ADR[] \| undefined` | Architectural Decision Records (optional) |
+| `buildTimestamp` | `ISO8601` | Timestamp build (immutable marker) |
 
 ### RuntimeContext (Đầu ra)
 
-Cấu trúc `RuntimeContext` sau khi đã qua filter/rank/budget:
+`RuntimeContext` extends `RepositoryContext` — kế thừa tất cả trường từ `RepositoryContext` và bổ sung:
 
 ```
-RuntimeContext {
-  taskContext: TaskContext      # filtered relevant to current task
+RuntimeContext extends RepositoryContext {
+  taskContext: TaskContext
   budget: BudgetAllocation
-  rules: RankedRule[]
+  rankedRules: Rule[]
   relevantKnowledge: Knowledge[]
-  activeWorkflow: Workflow | null
+  activeWorkflow?: Workflow
   availableCapabilities: CapabilityId[]
-  repositoryMetadata: RepositoryMetadata
-  buildTimestamp: ISO8601       # immutable marker
+  permissions?: Permission[]
+  agentsMd?: string
 }
 ```
 
-**Mô tả các trường:**
+**Mô tả các trường (chỉ liệt kê trường bổ sung):**
 
 | Trường | Kiểu | Mô tả |
 |--------|------|-------|
-| `taskContext` | `TaskContext` | Context đã được lọc, liên quan đến task hiện tại |
+| `taskContext` | `TaskContext` | Context liên quan đến task hiện tại (taskType, workingDirectory, tags) |
 | `budget` | `BudgetAllocation` | Phân bổ token budget thực tế |
-| `rules` | `RankedRule[]` | Rules đã được xếp hạng theo priority |
+| `rankedRules` | `Rule[]` | Rules đã được xếp hạng theo priority |
 | `relevantKnowledge` | `Knowledge[]` | Knowledge entries liên quan đến task |
-| `activeWorkflow` | `Workflow \| null` | Workflow đang active (hoặc null nếu không có) |
+| `activeWorkflow` | `Workflow \| undefined` | Workflow đang active (optional) |
 | `availableCapabilities` | `CapabilityId[]` | Danh sách capability IDs khả dụng |
-| `repositoryMetadata` | `RepositoryMetadata` | Metadata của repository |
-| `buildTimestamp` | `ISO8601` | Timestamp build (immutable marker) |
+| `permissions` | `Permission[] \| undefined` | Danh sách permissions (optional) |
+| `agentsMd` | `string \| undefined` | Nội dung AGENTS.md (optional) |
 
 ---
 
+> **⚠️ Lưu ý về Sections 4–9:** Các bước Filter, Ranking, Budget Allocation, Cache là chi tiết cài đặt nội bộ (implementation detail) của `ContextBuilder`. Public API duy nhất là `ContextService.buildRuntimeContext()`. Người dùng context domain không cần quan tâm đến pipeline này — chỉ cần gọi `buildRuntimeContext(repoContext, request)` để nhận `RuntimeContext`.
+
 ## 4. Build Flow
 
-Quy trình transform từ RepositoryContext sang RuntimeContext:
+Quy trình transform từ RepositoryContext sang RuntimeContext (internal implementation của `ContextBuilder`):
 
 ```
 RepositoryContext (from Repository)
@@ -334,41 +324,22 @@ cache:
 
 ## 10. Public Service Contract
 
-`ContextService` là interface công khai duy nhất của context domain:
+`ContextService` là interface công khai duy nhất của context domain (định nghĩa tại `src/shared/contracts/services.ts`):
 
-```
-ContextService:
-  build(repoContext: RepositoryContext) -> RepositoryContext
-    # normalize RepositoryContext (validate + sanitize)
-
-  filter(repoContext: RepositoryContext, request: TaskRequest) -> FilteredContext
-    # lọc assets theo task request
-
-  rank(filtered: FilteredContext) -> RankedContext
-    # xếp hạng assets trong filtered context
-
-  allocateBudget(ranked: RankedContext, config: BudgetConfig) -> RuntimeContext
-    # phân bổ budget và tạo RuntimeContext immutable
-
-  invalidate(cacheKey: string) -> void
-    # invalidate cache entry theo key
-
-  buildRuntimeContext(repoContext: RepositoryContext, request: TaskRequest) -> RuntimeContext
-    # convenience method: thực hiện toàn bộ build flow trong một lệnh gọi
+```typescript
+interface ContextService {
+  buildRuntimeContext(repoContext: RepositoryContext, request: TaskRequest): RuntimeContext;
+  invalidateCache(key: CacheKey): void;
+}
 ```
 
-### Luồng gọi thông thường
+### Luồng gọi duy nhất
 
 ```
-# Cách 1: Step-by-step (kiểm soát tốt hơn)
-normalized = contextService.build(repoContext)
-filtered   = contextService.filter(normalized, taskRequest)
-ranked     = contextService.rank(filtered)
-runtime    = contextService.allocateBudget(ranked, budgetConfig)
-
-# Cách 2: Convenience method (đơn giản hơn)
 runtime = contextService.buildRuntimeContext(repoContext, taskRequest)
 ```
+
+`buildRuntimeContext` là public API duy nhất — nó bao gồm toàn bộ pipeline filter/rank/budget ẩn bên trong `ContextBuilder`. `invalidateCache(key)` cho phép xoá cache entry theo key khi cần. Không có step-by-step public API; mọi chi tiết cài đặt đều là internal. Trường `CacheKey` được định nghĩa trong shared types (`src/shared/types/primitives.ts`).
 
 ---
 
@@ -583,13 +554,13 @@ Các nguyên tắc thiết kế bắt buộc của context domain:
 
 | Document | Mô tả liên kết |
 |----------|---------------|
-| `01_SYSTEM_OVERVIEW.md` | Kiến trúc tổng thể — vị trí context domain trong hệ thống |
-| `02_REPOSITORY_SPECIFICATION.md` | Repository domain — nguồn cung cấp RepositoryContext |
-| `03_EXECUTION_SPECIFICATION.md` | Execution domain — consumer của RuntimeContext |
-| `04_CAPABILITY_SPECIFICATION.md` | Capability domain — định nghĩa CapabilityDefinition trong RepositoryContext |
-| `06_GOVERNANCE_SPECIFICATION.md` | Governance domain — policy enforcement (không phải context responsibility) |
-| `07_SHARED_SPECIFICATION.md` | Shared domain — shared types và interfaces được context domain sử dụng |
-| `08_PLATFORM_SPECIFICATION.md` | Platform domain — không có dependency từ context |
+| `00_ARCHITECTURE.md` | Kiến trúc tổng thể — vị trí context domain trong hệ thống |
+| `04_REPOSITORY_SPECIFICATION.md` | Repository domain — nguồn cung cấp RepositoryContext |
+| `06_EXECUTION_SPECIFICATION.md` | Execution domain — consumer của RuntimeContext |
+| `07_CAPABILITY_SPECIFICATION.md` | Capability domain — định nghĩa CapabilityDefinition trong RepositoryContext |
+| `08_GOVERNANCE_SPECIFICATION.md` | Governance domain — policy enforcement (không phải context responsibility) |
+| `11_DATA_MODELS.md` | Shared types và interfaces được context domain sử dụng |
+| `09_PLATFORM_SPECIFICATION.md` | Platform domain — không có dependency từ context |
 | `ADR-005` | Decision: In-memory only cache cho context domain |
 | `ADR-008` | Decision: Immutable RuntimeContext design |
 

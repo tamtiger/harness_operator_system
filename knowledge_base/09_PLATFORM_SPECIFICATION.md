@@ -63,29 +63,28 @@ Platform là **Control Plane** của toàn bộ hệ thống Harness Operator.
 
 Đây là toàn bộ public interface của `PlatformService`:
 
-```
-PlatformService:
-
-  # Task execution
-  run(request: TaskRequest) -> ExecutionResult
-
-  # Shared Harness lifecycle
-  install(config: InstallConfig) -> InstallResult
-  update(config: UpdateConfig) -> UpdateResult
-  sync(config: SyncConfig) -> SyncResult
-  publish(request: PublishRequest) -> PublishResult
-
-  # Health & diagnostics
-  doctor() -> DiagnosticReport
-  validate(root: string) -> ValidationResult
-
-  # Governance orchestration
-  submitProposal(request: ProposalRequest) -> Proposal
-  listProposals(filter: ProposalFilter) -> Proposal[]
-  approveProposal(id: string, reviewer: string) -> Proposal
-
-  # Repository info
-  status() -> PlatformStatus
+```typescript
+interface PlatformService {
+  run(request: TaskRequest): Promise<ExecutionResult>;
+  install(config: InstallConfig): Promise<InstallResult>;
+  update(config: UpdateConfig): Promise<UpdateResult>;
+  sync(config: SyncConfig): Promise<SyncResult>;
+  publish(request: PublishRequest): Promise<PublishResult>;
+  doctor(): Promise<DiagnosticReport>;
+  validate(root?: string): Promise<ValidationResult>;
+  status(): Promise<PlatformStatus>;
+  listCapabilities(): Promise<CapabilityDefinition[]>;
+  previewContext(request: TaskRequest): Promise<RuntimeContext>;
+  invokeCapability(id: CapabilityId, context: RuntimeContext, input: unknown): Promise<CapabilityResult>;
+  cancelTask(taskId: string): Promise<CancelResult>;
+  submitProposal(request: ProposalRequest): Promise<Proposal>;
+  submitExistingProposal(id: ProposalId): Promise<Proposal>;
+  listProposals(filter: ProposalFilter): Promise<Proposal[]>;
+  getProposal(id: ProposalId): Promise<Proposal>;
+  reviewProposal(id: ProposalId, reviewer: string): Promise<Proposal>;
+  approveProposal(id: ProposalId, reviewer: string, comments?: string): Promise<Proposal>;
+  rejectProposal(id: ProposalId, reviewer: string, comments: string): Promise<Proposal>;
+}
 ```
 
 ### Mô tả các methods
@@ -99,10 +98,18 @@ PlatformService:
 | `publish()` | Đẩy promoted assets lên Harness Repository |
 | `doctor()` | Kiểm tra toàn diện trạng thái hệ thống |
 | `validate()` | Validate cấu trúc harness.yaml của một repository |
-| `submitProposal()` | Tạo proposal mới cho asset thay đổi |
-| `listProposals()` | Liệt kê proposals theo filter |
-| `approveProposal()` | Approve một proposal (governance) |
 | `status()` | Trả về trạng thái hiện tại của Platform |
+| `listCapabilities()` | Liệt kê tất cả capabilities đã đăng ký |
+| `previewContext()` | Preview RuntimeContext cho một request mà không thực thi |
+| `invokeCapability()` | Gọi trực tiếp một capability |
+| `cancelTask()` | Hủy một task đang chạy |
+| `submitProposal()` | Tạo proposal mới cho asset thay đổi |
+| `submitExistingProposal()` | Submit proposal đã tồn tại |
+| `listProposals()` | Liệt kê proposals theo filter |
+| `getProposal()` | Lấy chi tiết một proposal |
+| `reviewProposal()` | Bắt đầu review một proposal |
+| `approveProposal()` | Approve một proposal (governance) |
+| `rejectProposal()` | Reject một proposal |
 
 ---
 
@@ -171,10 +178,9 @@ install:
 ```
 InstallResult {
   success: boolean
-  version: string
-  installedAt: ISO8601
+  installedVersion: SemVer
   path: string
-  diagnostics: DiagnosticReport
+  error?: HarnessError
 }
 ```
 
@@ -562,15 +568,14 @@ Các quy tắc thiết kế bắt buộc khi làm việc với Platform:
 
 | Tài liệu | Liên quan đến |
 |----------|---------------|
-| `01_SYSTEM_OVERVIEW.md` | Kiến trúc tổng thể và vị trí của Platform |
-| `02_REPOSITORY_SERVICE.md` | Steps 2–7 trong `run()` flow |
-| `03_CONTEXT_SERVICE.md` | Step 8 trong `run()` flow |
-| `04_EXECUTION_SERVICE.md` | Step 9 trong `run()` flow |
-| `05_GOVERNANCE_SERVICE.md` | `submitProposal()`, `listProposals()`, `approveProposal()` |
-| `06_SHARED_HARNESS.md` | Shared Harness package structure và `~/.harness/` layout |
-| `07_CLI_ADAPTER.md` | CLI integration pattern và adapter contract |
-| `08_MCP_ADAPTER.md` | MCP integration pattern và adapter contract |
-| `10_ERROR_CATALOG.md` | Danh sách đầy đủ error codes của toàn hệ thống |
+| `00_ARCHITECTURE.md` | Kiến trúc tổng thể và vị trí của Platform |
+| `04_REPOSITORY_SPECIFICATION.md` | Steps 2–7 trong `run()` flow |
+| `05_CONTEXT_SPECIFICATION.md` | Step 8 trong `run()` flow |
+| `06_EXECUTION_SPECIFICATION.md` | Step 9 trong `run()` flow |
+| `08_GOVERNANCE_SPECIFICATION.md` | `submitProposal()`, `listProposals()`, `approveProposal()` |
+| `10_MANIFEST_SPECIFICATION.md` | Shared Harness package structure và `~/.harness/` layout |
+| `13_CLI_SPECIFICATION.md` | CLI integration pattern và adapter contract |
+| `14_ERROR_MODEL.md` | Danh sách đầy đủ error codes của toàn hệ thống |
 
 ---
 
@@ -580,15 +585,15 @@ Các vấn đề sau **không thuộc phạm vi** của Platform Specification:
 
 | Out of Scope | Thuộc về |
 |--------------|----------|
-| Cách CLI parse arguments | `07_CLI_ADAPTER.md` |
-| Cách MCP format tool responses | `08_MCP_ADAPTER.md` |
-| Logic merge assets (shared vs local override rules) | `02_REPOSITORY_SERVICE.md` |
-| Cách capability được thực thi | `04_EXECUTION_SERVICE.md` |
-| Schema chi tiết của `harness.yaml` | `06_SHARED_HARNESS.md` |
-| Governance workflow (states, transitions) | `05_GOVERNANCE_SERVICE.md` |
+| Cách CLI parse arguments | `13_CLI_SPECIFICATION.md` |
+| Cách MCP format tool responses | MCP adapter specification (riêng) |
+| Logic merge assets (shared vs local override rules) | `04_REPOSITORY_SPECIFICATION.md` |
+| Cách capability được thực thi | `06_EXECUTION_SPECIFICATION.md` |
+| Schema chi tiết của `harness.yaml` | `10_MANIFEST_SPECIFICATION.md` |
+| Governance workflow (states, transitions) | `08_GOVERNANCE_SPECIFICATION.md` |
 | Authentication và authorization | Security specification (riêng) |
 | Logging và observability implementation | Observability specification (riêng) |
-| Performance tuning và caching strategy | `03_CONTEXT_SERVICE.md` |
+| Performance tuning và caching strategy | `05_CONTEXT_SPECIFICATION.md` |
 
 ---
 

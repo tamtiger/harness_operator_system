@@ -18,12 +18,12 @@ export class ReviewManager {
       throw govError('GOV_002');
     }
 
-    const lockedBy = (proposal as any).lockedBy;
-    const lockedAt = (proposal as any).lockedAt;
+    const lockedBy = proposal.lockedBy;
+    const lockedAt = proposal.lockedAt;
 
     if (lockedBy && lockedBy !== reviewer) {
       // Check timeout
-      const lockedTime = new Date(lockedAt).getTime();
+      const lockedTime = new Date(lockedAt!).getTime();
       const elapsedMinutes = (Date.now() - lockedTime) / (1000 * 60);
       if (elapsedMinutes <= 30) {
         throw govError('GOV_003');
@@ -32,8 +32,8 @@ export class ReviewManager {
 
     const prevStatus = proposal.status;
     proposal.status = ProposalStatus.REVIEWING;
-    (proposal as any).lockedBy = reviewer;
-    (proposal as any).lockedAt = new Date().toISOString();
+    proposal.lockedBy = reviewer;
+    proposal.lockedAt = new Date().toISOString();
     proposal.updatedAt = new Date().toISOString();
 
     if (!proposal.reviewers.includes(reviewer)) {
@@ -63,15 +63,15 @@ export class ReviewManager {
       throw govError('GOV_002');
     }
 
-    const lockedBy = (proposal as any).lockedBy;
+    const lockedBy = proposal.lockedBy;
     if (lockedBy !== reviewer) {
       throw govError('GOV_007');
     }
 
     const prevStatus = proposal.status;
     proposal.status = ProposalStatus.DRAFT;
-    (proposal as any).lockedBy = '';
-    (proposal as any).lockedAt = '';
+    proposal.lockedBy = '';
+    proposal.lockedAt = '';
     proposal.updatedAt = new Date().toISOString();
 
     proposal.comments.push({

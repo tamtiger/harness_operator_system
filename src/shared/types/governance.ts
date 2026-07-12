@@ -35,6 +35,8 @@ export interface Proposal {
   promotedAt?: ISO8601;
   comments: Comment[];
   tags: string[];
+  lockedBy?: string;
+  lockedAt?: ISO8601;
 }
 
 export interface AuditRecord {

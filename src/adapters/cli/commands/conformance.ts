@@ -4,10 +4,17 @@ import * as os from 'os';
 import * as crypto from 'crypto';
 import * as yaml from 'js-yaml';
 import { createPlatformService } from '../factory';
-import { ProposalType } from '../../../shared/types/enums';
+import { ProposalType, Permission } from '../../../shared/types/enums';
+import { RuntimeContext } from '../../../shared/types/repository';
 import { startMcpServer } from '../../mcp/server';
 import { ManifestValidator } from '../../../repository/manifest/ManifestValidator';
 import { RepositoryDiscovery } from '../../../repository/discovery/RepositoryDiscovery';
+import { RepositoryServiceImpl } from '../../../repository/service';
+import { ContextServiceImpl } from '../../../context/service';
+import { CapabilityServiceImpl } from '../../../capability/service';
+import { ExecutionServiceImpl } from '../../../execution/service';
+import { GovernanceServiceImpl } from '../../../governance/service';
+import { FileSystemPersistence } from '../../../repository/persistence/FileSystemPersistence';
 
 export async function runConformance(options: any = {}) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-conformance-'));
@@ -64,13 +71,13 @@ export async function runConformance(options: any = {}) {
 
   const platform = createPlatformService(tempDir, tempShared);
 
-  // Access internal services through a documented test helper
-  // rather than importing domain services directly.
-  const svc: any = (platform as any).orchestrator;
-  const repoService = svc.repo;
-  const ctxService = svc.ctx;
-  const registryService = svc.registry;
-  const govService = svc.gov;
+  // Create separate service instances for test diagnostics
+  const repoService = new RepositoryServiceImpl();
+  const ctxService = new ContextServiceImpl();
+  const registryService = new CapabilityServiceImpl(new FileSystemPersistence());
+  const execService = new ExecutionServiceImpl(registryService);
+  const discoveredRoot = repoService.discover(tempDir);
+  const govService = new GovernanceServiceImpl(repoService, discoveredRoot);
 
   // ─── Group 1: Repository & Manifest (TC-01 to TC-05) ────────────────────────
   await testCase('TC-01', 'Parse valid minimal manifest', () => {
@@ -229,7 +236,7 @@ export async function runConformance(options: any = {}) {
 
   await testCase('TC-16', 'Execution failure handled gracefully', async () => {
     const runtimeCtx = ctxService.buildRuntimeContext(repoContext, { description: 'error-test' });
-    const result = await svc.exec.execute(runtimeCtx, { description: 'error-test' });
+    const result = await execService.execute(runtimeCtx, { description: 'error-test' });
     if (!result || !result.status) throw new Error('Expected valid ExecutionResult with status');
   });
 
@@ -266,8 +273,8 @@ export async function runConformance(options: any = {}) {
   });
 
   await testCase('TC-22', 'Invoke without required permission returns CAP_004', async () => {
-    const restrictedCtx = { ...capCtx, permissions: [] };
-    const res = await registryService.invoke('harness.file.read', restrictedCtx as any, { path: 'package.json' });
+    const restrictedCtx: RuntimeContext = { ...capCtx, permissions: [] as Permission[] };
+    const res = await registryService.invoke('harness.file.read', restrictedCtx, { path: 'package.json' });
     if (res.success || !res.error || res.error.code !== 'CAP_004') {
       throw new Error(`Expected CAP_004, got success=${res.success} error=${JSON.stringify(res.error)}`);
     }
@@ -305,7 +312,8 @@ export async function runConformance(options: any = {}) {
 
   await testCase('TC-25', 'AI agent attempts approve via MCP — tool not found', async () => {
     const mcpServer = await startMcpServer(platform);
-    const callHandler = (mcpServer as any)._requestHandlers.get('tools/call');
+    // @ts-expect-error - accessing private MCP handler for test
+    const callHandler = mcpServer._requestHandlers.get('tools/call')!;
     const res = await callHandler({
       method: 'tools/call',
       params: { name: 'harness_proposal_approve', arguments: { id: 'ANY' } }

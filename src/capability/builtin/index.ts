@@ -1,5 +1,4 @@
-import { CapabilityRegistry } from '../../shared/contracts/services';
-import type { FileSystemPersistence } from '../../repository/persistence/FileSystemPersistence';
+import { CapabilityRegistry, type FileSystemOps } from '../../shared/contracts/services';
 
 // Import definitions and capabilities
 import {
@@ -48,7 +47,7 @@ import {
 } from './repoOps';
 
 export interface BuiltinDeps {
-  persistence: FileSystemPersistence;
+  persistence: FileSystemOps;
   repositoryService?: any;
   governanceService?: any;
 }

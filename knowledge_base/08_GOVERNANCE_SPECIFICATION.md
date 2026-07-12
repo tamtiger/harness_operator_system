@@ -497,31 +497,34 @@ Interface công khai của Governance domain. Các domain khác chỉ được t
 ```typescript
 interface GovernanceService {
   // Tạo và submit proposal mới
-  submitProposal(request: ProposalRequest): Promise<Proposal>
+  submitProposal(request: ProposalRequest): Proposal
+
+  // Submit proposal đã tồn tại
+  submitExistingProposal(id: ProposalId): Proposal
 
   // Lấy danh sách proposals theo filter
-  listProposals(filter: ProposalFilter): Promise<Proposal[]>
+  listProposals(filter: ProposalFilter): Proposal[]
 
   // Lấy chi tiết một proposal
-  getProposal(id: string): Promise<Proposal>
+  getProposal(id: ProposalId): Proposal
 
   // Reviewer bắt đầu review (lock proposal)
-  review(id: string, reviewer: string): Promise<Proposal>
+  review(id: ProposalId, reviewer: string): Proposal
 
   // Reviewer approve proposal
-  approve(id: string, reviewer: string, comments: string): Promise<Proposal>
+  approve(id: ProposalId, reviewer: string, comments: string): Proposal
 
   // Reviewer reject proposal
-  reject(id: string, reviewer: string, comments: string): Promise<Proposal>
+  reject(id: ProposalId, reviewer: string, comments: string): Proposal
 
   // Reviewer yêu cầu thay đổi (đưa về DRAFT)
-  requestChanges(id: string, reviewer: string, comments: string): Promise<Proposal>
+  requestChanges(id: ProposalId, reviewer: string, comments: string): Proposal
 
   // Promote proposal đã APPROVED lên Shared Harness
-  promote(id: string): Promise<PromotionResult>
+  promote(id: ProposalId): PromotionResult
 
   // Lấy audit log của một proposal
-  getAuditLog(proposalId: string): Promise<AuditRecord[]>
+  getAuditLog(proposalId: ProposalId): AuditRecord[]
 }
 ```
 
@@ -532,14 +535,10 @@ interface ProposalRequest {
   title: string
   description: string
   type: ProposalType
-  targetAsset?: AssetId          // Required nếu type != 'new_asset'
-  proposedContent: string
   rationale: string
-  evidence: EvidenceInput[]      // Tối thiểu 1 item khi submit trực tiếp
-  author: string
-  tags?: string[]
-  submitImmediately?: boolean    // true = tạo và submit ngay (DRAFT → SUBMITTED)
-                                 // false = tạo DRAFT (default)
+  evidence: Evidence[]
+  proposedContent: string
+  targetAsset?: AssetId
 }
 ```
 

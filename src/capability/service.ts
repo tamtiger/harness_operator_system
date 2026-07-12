@@ -1,16 +1,16 @@
-import { CapabilityRegistry } from '../shared/contracts/services';
+import { CapabilityRegistry, type FileSystemOps } from '../shared/contracts/services';
 import { CapabilityDefinition } from '../shared/types/assets';
 import { CapabilityResult } from '../shared/types/capability';
 import { RuntimeContext } from '../shared/types/repository';
 import { CapabilityId } from '../shared/types/primitives';
 import { CapabilityRegistryImpl } from './registry/CapabilityRegistry';
 import { registerBuiltins } from './builtin';
-import type { FileSystemPersistence } from '../repository/persistence/FileSystemPersistence';
 
 export class CapabilityServiceImpl implements CapabilityRegistry {
-  private registry: CapabilityRegistry = new CapabilityRegistryImpl();
+  private registry: CapabilityRegistry;
 
-  constructor(persistence?: FileSystemPersistence) {
+  constructor(persistence?: FileSystemOps, registry?: CapabilityRegistry) {
+    this.registry = registry || new CapabilityRegistryImpl();
     if (persistence) {
       registerBuiltins(this.registry, { persistence });
     }

@@ -29,7 +29,11 @@ scripts/  # Scripts & Utils
 
 ---
 
-# 3. Build Commands
+# 3. Repository Status
+
+- **Version:** {{PROJECT_VERSION}}
+- **Status:** {{PROJECT_STATUS}}
+- **Validation:** Build, test, and lint should pass before completion.
 
 Sử dụng các lệnh sau để làm việc:
 
@@ -65,6 +69,7 @@ Review
 - Tuân thủ cấu trúc thư mục.
 - Xử lý lỗi đầy đủ, sử dụng chuẩn lỗi của dự án.
 - Code phải có tài liệu nội tuyến rõ ràng.
+- Khi gọi lệnh hệ thống hoặc công cụ bên ngoài, ưu tiên truyền tham số riêng lẻ thay vì nối chuỗi lệnh để tránh lỗi escaping và injection.
 - Update các Harness Assets (trong `assets/`) nếu logic thay đổi yêu cầu Agent mới.
 - **Changelog**: Cập nhật thông tin thay đổi vào đầu file `CHANGELOG.md` sau khi implement, tuyệt đối không chỉnh sửa các bản ghi cũ.
 - **Commit Rules**: Mỗi khi thay đổi code, bắt buộc tóm tắt những gì đã thay đổi và đề xuất commit message. Không tự ý thực hiện commit.

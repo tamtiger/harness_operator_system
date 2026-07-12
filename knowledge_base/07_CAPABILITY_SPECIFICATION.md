@@ -70,17 +70,15 @@ interface CapabilityDefinition {
 
 ```typescript
 interface CapabilityImpl {
-  execute(context: RuntimeContext, input: any): Promise<CapabilityResult>;
+  execute(context: RuntimeContext, input: unknown): Promise<unknown>;
 }
 
 interface CapabilityResult {
+  capabilityId: CapabilityId;
   success: boolean;
-  output?: any;               // conform outputSchema nếu success
-  error?: {
-    code: CapabilityErrorCode;
-    message: string;
-    details?: any;
-  };
+  output?: unknown;
+  error?: HarnessError;
+  durationMs: number;
 }
 ```
 
@@ -826,17 +824,22 @@ interface CapabilityRegistry {
   unregister(id: CapabilityId): void;
 
   /**
-   * Tìm kiếm và trả về CapabilityInstance sẵn sàng để invoke.
+   * Tìm kiếm và trả về CapabilityImpl sẵn sàng để invoke.
    * Báo lỗi CAP_001 nếu không tìm thấy.
    */
-  resolve(id: CapabilityId): CapabilityInstance;
+  resolve(id: CapabilityId): CapabilityImpl;
+
+  /**
+   * Trả về CapabilityDefinition đã đăng ký cho id.
+   */
+  getDefinition(id: CapabilityId): CapabilityDefinition;
 
   /**
    * Invoke một Capability theo id.
    * Thực hiện đầy đủ Invocation Protocol (xem §6).
    * Trả về CapabilityResult (success hoặc error).
    */
-  invoke(id: CapabilityId, context: RuntimeContext, input: any): Promise<CapabilityResult>;
+  invoke(id: CapabilityId, context: RuntimeContext, input: unknown): Promise<CapabilityResult>;
 
   /**
    * Trả về danh sách tất cả CapabilityDefinition đã đăng ký.
@@ -1236,9 +1239,9 @@ Khi thay đổi `inputSchema` hoặc `outputSchema` theo cách không backward-c
 
 | Tài liệu | Liên quan |
 |---|---|
-| `01_GLOSSARY.md` | Định nghĩa: Capability, CapabilityId, CapabilityRegistry, RuntimeContext, CapabilityResult |
-| `02_ARCHITECTURE_OVERVIEW.md` | Vị trí Capability trong kiến trúc tổng thể hệ thống |
-| `03_SHARED_SPECIFICATION.md` | Các shared types được Capability sử dụng: `SemVer`, `Permission`, `Duration`, `JSONSchema` |
+| `18_GLOSSARY.md` | Định nghĩa: Capability, CapabilityId, CapabilityRegistry, RuntimeContext, CapabilityResult |
+| `00_ARCHITECTURE.md` | Vị trí Capability trong kiến trúc tổng thể hệ thống |
+| `11_DATA_MODELS.md` | Các shared types được Capability sử dụng: `SemVer`, `Permission`, `Duration`, `JSONSchema` |
 | `04_REPOSITORY_SPECIFICATION.md` | Repository domain; `harness.repo.*` capabilities tương tác với Repository |
 | `05_CONTEXT_SPECIFICATION.md` | Context domain; `RuntimeContext` interface được inject vào Capability |
 | `06_EXECUTION_SPECIFICATION.md` | Execution Runtime: orchestrates Capability invocation, xử lý retry và error propagation |

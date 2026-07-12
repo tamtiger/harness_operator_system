@@ -287,6 +287,30 @@ harness publish [--dry-run] [--yes]
 
 ---
 
+### harness conformance run
+
+```
+harness conformance run [--level <1|2|3>] [--json]
+```
+
+**Mô tả:** Chạy bộ test conformance M10 để đánh giá mức độ tuân thủ của repository và system.
+
+**Options:**
+| Flag | Mô tả |
+|------|-------|
+| `--level <level>` | Mức độ tuân thủ cần kiểm tra (1, 2, hoặc 3). Mặc định là 3. |
+| `--json` | Output kết quả dưới dạng JSON (Compliance Report) thay vì text. |
+
+**Gọi:** `Platform.runConformance()` (thông qua CLI command adapter)
+
+**Exit codes:**
+| Code | Ý nghĩa |
+|------|---------|
+| `0` | Success (Tất cả test passes) |
+| `1` | Partial (Có test fail/skip) |
+| `2` | Error (Lỗi hệ thống khi chạy test) |
+
+---
 ### harness proposal list
 
 ```

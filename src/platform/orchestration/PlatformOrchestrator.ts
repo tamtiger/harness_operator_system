@@ -14,23 +14,54 @@ export function getDefaultSharedPath(): string {
   return getDefaultHarnessPath();
 }
 
+export interface PlatformServices {
+  repo: RepositoryService;
+  ctx: ContextService;
+  exec: ExecutionService;
+  gov: GovernanceService;
+  registry: CapabilityRegistry;
+}
+
+export interface PlatformTools {
+  installer: SharedHarnessInstaller;
+  updater: SharedHarnessUpdater;
+  synchronizer: SharedHarnessSynchronizer;
+  publisher: AssetPublisher;
+  doctor: DiagnosticsEngine;
+}
+
+export interface PlatformConfig {
+  rootPath: string;
+  sharedPath: string;
+}
+
 export class PlatformOrchestrator {
-  constructor(
-    public repo: RepositoryService,
-    public ctx: ContextService,
-    public exec: ExecutionService,
-    public gov: GovernanceService,
-    public registry: CapabilityRegistry,
-    public installer: SharedHarnessInstaller,
-    public updater: SharedHarnessUpdater,
-    public synchronizer: SharedHarnessSynchronizer,
-    public publisher: AssetPublisher,
-    public doctor: DiagnosticsEngine,
-    public rootPath: string,
-    public sharedPath: string
-  ) {
-    this.rootPath = rootPath || process.cwd();
-    this.sharedPath = sharedPath || getDefaultSharedPath();
+  readonly repo: RepositoryService;
+  readonly ctx: ContextService;
+  readonly exec: ExecutionService;
+  readonly gov: GovernanceService;
+  readonly registry: CapabilityRegistry;
+  readonly installer: SharedHarnessInstaller;
+  readonly updater: SharedHarnessUpdater;
+  readonly synchronizer: SharedHarnessSynchronizer;
+  readonly publisher: AssetPublisher;
+  readonly doctor: DiagnosticsEngine;
+  readonly rootPath: string;
+  readonly sharedPath: string;
+
+  constructor(services: PlatformServices, tools: PlatformTools, config: PlatformConfig) {
+    this.repo = services.repo;
+    this.ctx = services.ctx;
+    this.exec = services.exec;
+    this.gov = services.gov;
+    this.registry = services.registry;
+    this.installer = tools.installer;
+    this.updater = tools.updater;
+    this.synchronizer = tools.synchronizer;
+    this.publisher = tools.publisher;
+    this.doctor = tools.doctor;
+    this.rootPath = config.rootPath || process.cwd();
+    this.sharedPath = config.sharedPath || getDefaultSharedPath();
   }
 
   private async buildBaseContext(request: TaskRequest): Promise<{ runtimeCtx: RuntimeContext; effective: AssetCollection }> {

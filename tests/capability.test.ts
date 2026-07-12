@@ -6,6 +6,7 @@ import { AssetType, AssetScope, Permission } from '../src/shared/types/enums';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as child_process from 'child_process';
 
 describe('M4 Capability Registry & Invocation', () => {
   let service: CapabilityServiceImpl;
@@ -98,6 +99,38 @@ describe('M4 Capability Registry & Invocation', () => {
 
     expect(res.success).toBe(false);
     expect(res.error?.code).toBe('CAP_004');
+  });
+
+  it('should commit files with spaces in their path using safe git args', async () => {
+    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-git-safe-'));
+    try {
+      child_process.execFileSync('git', ['init'], { cwd: repoRoot, stdio: 'ignore' });
+      child_process.execFileSync('git', ['config', 'user.name', 'Harness Test'], { cwd: repoRoot, stdio: 'ignore' });
+      child_process.execFileSync('git', ['config', 'user.email', 'harness@example.com'], { cwd: repoRoot, stdio: 'ignore' });
+
+      const spacedFile = path.join(repoRoot, 'file name.txt');
+      fs.writeFileSync(spacedFile, 'hello from harness', 'utf8');
+
+      const gitContext: RuntimeContext = {
+        ...mockContext,
+        permissions: [Permission.READ_FILE, Permission.WRITE_FILE, Permission.GIT_WRITE],
+        metadata: {
+          ...mockContext.metadata,
+          root: { path: repoRoot, hasGit: true, discoveredAt: '' }
+        }
+      };
+
+      const res = await service.invoke('harness.git.commit', gitContext, {
+        message: 'commit with spaced path',
+        files: ['file name.txt']
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.output).toBeDefined();
+      expect((res.output as any).commitHash).not.toBe('mock-commit-hash');
+    } finally {
+      fs.rmSync(repoRoot, { recursive: true, force: true });
+    }
   });
 
   it('should throw CAP_005 on execution timeout', async () => {
