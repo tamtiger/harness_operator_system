@@ -5,6 +5,7 @@ import { AssetCollection } from '../../shared/types/assets';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import * as yaml from 'js-yaml';
 
 export class DiagnosticsEngine {
   private repoService = new RepositoryServiceImpl();
@@ -37,27 +38,21 @@ export class DiagnosticsEngine {
         checksumPass = false;
       } else {
         try {
-          const content = fs.readFileSync(checksumFile, 'utf8');
-          // Parse lines in yaml like: "file: sha256"
-          const lines = content.split('\n');
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith('#')) continue;
-            const parts = trimmed.split(':');
-            if (parts.length >= 2) {
-              const relFile = parts[0].trim();
-              const expectedSha = parts[1].trim();
-              const absFile = path.join(sharedDir, relFile);
-              if (!fs.existsSync(absFile)) {
-                checksumPass = false;
-                break;
-              }
-              const fileContent = fs.readFileSync(absFile);
-              const actualSha = crypto.createHash('sha256').update(fileContent).digest('hex');
-              if (actualSha !== expectedSha) {
-                checksumPass = false;
-                break;
-              }
+          const checksumData = yaml.load(fs.readFileSync(checksumFile, 'utf8')) as any;
+          const checksums: Record<string, string> = checksumData?.checksums || {};
+          for (const [relFile, expectedHash] of Object.entries(checksums)) {
+            // relFile is relative to sharedPath parent (e.g. "shared/rules/foo.md")
+            const absFile = path.join(this.sharedPath, relFile);
+            if (!fs.existsSync(absFile)) {
+              checksumPass = false;
+              break;
+            }
+            const fileContent = fs.readFileSync(absFile);
+            const actualSha = crypto.createHash('sha256').update(fileContent).digest('hex');
+            const expectedRaw = String(expectedHash).replace(/^sha256:/, '');
+            if (actualSha !== expectedRaw) {
+              checksumPass = false;
+              break;
             }
           }
         } catch (e) {

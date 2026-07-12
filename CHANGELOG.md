@@ -2,6 +2,18 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.11] - 2026-07-12
+
+### Added
+- **M10 Conformance Suite Implementation:**
+  - Implemented `runConformance` runner in `src/adapters/cli/commands/conformance.ts` executing 30 programmatic test cases covering all 7 domains (Repository, Assets, Context, Execution, Capability, Governance, CLI).
+  - Added CLI command `harness conformance run` generating `conformance-report.json` with compliance level (Level 1–3) and per-test result details.
+  - All 30 conformance checks pass — Compliance Level 3.
+  - Test coverage: `tests/conformance.test.ts` validates 30/30 pass and correct report structure.
+
+### Fixed
+- **DiagnosticsEngine (`src/platform/doctor/DiagnosticsEngine.ts`):** Replaced naive line-by-line checksum.yaml parsing with `yaml.load()`. Fixed `absFile` path to use `path.join(this.sharedPath, relFile)` — consistent with `AssetLoader.loadSharedAssets` relative path convention.
+
 ## [0.0.10] - 2026-07-12
 
 ### Added

@@ -14,6 +14,7 @@ import { runProposalList } from './commands/proposal/list';
 import { runProposalSubmit } from './commands/proposal/submit';
 import { runProposalApprove } from './commands/proposal/approve';
 import { runMcpServer } from './commands/mcp-server';
+import { runConformance } from './commands/conformance';
 
 // Ctrl+C Handler
 process.on('SIGINT', () => {
@@ -147,6 +148,8 @@ if (command === 'version') {
     console.error(`✗ Unknown proposal subcommand: ${subCommand}`);
     process.exit(2);
   }
+} else if (command === 'conformance' && cleanArgs[1] === 'run') {
+  runConformance(options);
 } else {
   console.log(helpText);
   process.exit(1);
