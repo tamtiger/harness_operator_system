@@ -13,6 +13,7 @@ import { runPublish } from './commands/publish';
 import { runProposalList } from './commands/proposal/list';
 import { runProposalSubmit } from './commands/proposal/submit';
 import { runProposalApprove } from './commands/proposal/approve';
+import { runMcpServer } from './commands/mcp-server';
 
 // Ctrl+C Handler
 process.on('SIGINT', () => {
@@ -118,6 +119,8 @@ if (command === 'version') {
     process.exit(2);
   }
   runPublish(assetPath, options);
+} else if (command === 'mcp-server') {
+  runMcpServer(options);
 } else if (command === 'proposal') {
   const subCommand = cleanArgs[1];
   if (subCommand === 'list') {

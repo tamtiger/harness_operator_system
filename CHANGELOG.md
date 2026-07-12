@@ -2,6 +2,17 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.10] - 2026-07-12
+
+### Added
+- **M9 MCP Adapter Implementation:**
+  - Integrated `@modelcontextprotocol/sdk` to support the Model Context Protocol (MCP) server adapter.
+  - Implemented `startMcpServer` under `src/adapters/mcp/server.ts` exposing 4 tools: `harness_run`, `harness_validate`, `harness_proposal_list`, and `harness_proposal_submit`.
+  - Intentionally excluded `harness_proposal_approve` from MCP exposure to maintain human-only action security gates.
+  - Implemented `McpFormatter` mapping standard outputs and structured HarnessErrors.
+  - Added CLI command `harness mcp-server` starting stdio server transport.
+  - Implemented comprehensive mock transport unit tests in `tests/mcp.test.ts` validating tool registers and error flows.
+
 ## [0.0.9] - 2026-07-12
 
 ### Added
