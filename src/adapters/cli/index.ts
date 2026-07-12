@@ -5,6 +5,8 @@ import { runStatus } from './commands/status';
 import { runContext } from './commands/context';
 import { runCapabilities } from './commands/capabilities';
 import { runTask } from './commands/run';
+import { runDoctor } from './commands/doctor';
+import { runInstall } from './commands/install';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -29,6 +31,13 @@ if (command === 'init') {
 } else if (command === 'run') {
   const taskDesc = args.slice(1).join(' ') || 'default description';
   runTask(taskDesc);
+} else if (command === 'doctor') {
+  runDoctor();
+} else if (command === 'install') {
+  // Check source argument
+  const source = args[1] || 'https://github.com/my-org/shared-harness.git';
+  const version = args[2];
+  runInstall(source, version);
 } else {
   console.log(`Harness Operator CLI
 Usage:
@@ -38,6 +47,8 @@ Usage:
   harness context --task "task description"
   harness capability list
   harness run "task description"
+  harness doctor
+  harness install [source] [version]
 `);
   process.exit(1);
 }

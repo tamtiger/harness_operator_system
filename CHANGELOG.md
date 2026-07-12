@@ -2,6 +2,19 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.7] - 2026-07-12
+
+### Added
+- **M6 Platform Orchestration & Doctor Implementation:**
+  - Diagnostics Engine (`DiagnosticsEngine`) conducting integrity checks on shared folder status, checksum validations, local manifest structure, `AGENTS.md` presence, unique asset IDs, and registry capabilities.
+  - Harness Installer (`SharedHarnessInstaller`) supporting versioned installations, path configurations, and integrity check gates.
+  - Harness Updater (`SharedHarnessUpdater`) featuring atomic backups of both `shared` and `metadata` folders, with a rollback recovery strategy upon failures.
+  - Pull and synchronizer manager (`SharedHarnessSynchronizer`) updating capabilities list.
+  - Proposals publisher (`AssetPublisher`) uploading local assets (rules/prompts/etc.) to registry maps.
+  - Platform entry orchestrator (`PlatformOrchestrator`) sequencing context creation, local/shared loading, registry mapping, and pipeline executions.
+  - Integrations on CLI `harness doctor` and `harness install` commands.
+  - Unit tests verifying platform checks, installation processes, update rollbacks, and sequential runs.
+
 ## [0.0.6] - 2026-07-12
 
 ### Added

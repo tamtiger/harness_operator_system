@@ -1,50 +1,18 @@
-import { RepositoryServiceImpl } from '../../../repository/service';
-import { ContextServiceImpl } from '../../../context/service';
-import { ExecutionServiceImpl } from '../../../execution/service';
-import { AssetCollection } from '../../../shared/types/assets';
+import { createPlatformService } from '../factory';
 import * as path from 'path';
 
 export async function runTask(description: string) {
-  const targetDir = path.resolve('.');
-  const repoService = new RepositoryServiceImpl();
-  const contextService = new ContextServiceImpl();
-  const execService = new ExecutionServiceImpl();
+  const rootPath = path.resolve('.');
+  const service = createPlatformService(rootPath);
 
   try {
     console.log('[PLANNING] Building execution plan...');
-    const root = repoService.discover(targetDir);
-    const manifest = repoService.loadManifest(root);
-
-    // Context metadata mock
-    const metadata = {
-      root,
-      name: manifest.repository.name || 'unnamed',
-      manifest,
-      discoveredAt: new Date().toISOString()
-    };
-
-    // Load local and shared assets
-    let shared: AssetCollection = { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [] };
-    try {
-      shared = repoService.loadSharedAssets('');
-    } catch (e) {
-      // ignore
-    }
-
-    const local = repoService.loadLocalAssets(root, manifest);
-    const effective = repoService.resolveAssets(shared, local);
-    const repoContext = repoService.buildContext(effective, metadata);
-
-    const taskRequest = {
-      description,
-      workingDirectory: '.'
-    };
-
-    const runtime = contextService.buildRuntimeContext(repoContext, taskRequest);
-
     console.log('[RUNNING] Executing steps...');
     const start = Date.now();
-    const result = await execService.execute(runtime, taskRequest);
+    const result = await service.run({
+      description,
+      workingDirectory: '.'
+    });
     const duration = Date.now() - start;
 
     if (result.status === 'COMPLETED') {

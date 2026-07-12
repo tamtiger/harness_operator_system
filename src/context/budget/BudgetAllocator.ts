@@ -1,6 +1,7 @@
 import { RepositoryContext, RuntimeContext } from '../../shared/types/repository';
 import { ctxError } from '../../shared/errors/factories';
 import { Asset } from '../../shared/types/assets';
+import { Permission } from '../../shared/types/enums';
 
 export interface BudgetConfig {
   total_tokens?: number;
@@ -90,7 +91,15 @@ export class BudgetAllocator {
       rankedRules: finalRules,
       relevantKnowledge: finalKnowledge,
       activeWorkflow: finalWorkflows[0] || null,
-      availableCapabilities: context.assets.capabilities.map(c => c.metadata.id)
+      availableCapabilities: context.assets.capabilities.map(c => c.metadata.id),
+      permissions: [
+        Permission.READ_FILE,
+        Permission.WRITE_FILE,
+        Permission.GIT_WRITE,
+        Permission.PROPOSAL_CREATE,
+        Permission.EXECUTE_COMMAND,
+        Permission.NETWORK_ACCESS
+      ]
     };
 
     return runtimeContext;

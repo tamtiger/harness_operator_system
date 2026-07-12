@@ -107,6 +107,10 @@ export class AssetLoader {
     const repoRootAbs = root.path;
 
     for (const artifact of manifest.artifacts) {
+      if (artifact.type === 'repository-map') {
+        continue;
+      }
+
       // Validate path traversal boundary
       if (artifact.path.includes('..') || path.isAbsolute(artifact.path)) {
         throw repoError('REPO_014', { details: `Path traversal detected: ${artifact.path}` });

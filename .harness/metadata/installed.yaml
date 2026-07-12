@@ -1,0 +1,5 @@
+version: "2.1.0"
+source: "https://github.com/my-org/shared-harness.git"
+installedAt: "2026-07-12T10:31:40.745Z"
+checksum: "sha256:5b618f97acd5623252a94bfa0d361267b3e398bdda4a31e0213e1af5d04cc654"
+specificationVersion: "4.0"

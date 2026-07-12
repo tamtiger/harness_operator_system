@@ -1,9 +1,9 @@
-import { PlatformServiceImpl } from '../../../platform/service';
+import { createPlatformService } from '../factory';
 import * as path from 'path';
 
 export async function runValidate(targetPathArg?: string, options: { strict?: boolean } = {}) {
   const targetDir = path.resolve(targetPathArg || '.');
-  const platform = new PlatformServiceImpl();
+  const platform = createPlatformService(targetDir);
 
   const result = await platform.validate(targetDir);
 

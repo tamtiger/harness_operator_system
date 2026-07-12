@@ -1,11 +1,11 @@
-import { PlatformServiceImpl } from '../../../platform/service';
 import { RepositoryServiceImpl } from '../../../repository/service';
+import { createPlatformService } from '../factory';
 import * as path from 'path';
 
 export async function runStatus(options: { json?: boolean } = {}) {
   const targetDir = path.resolve('.');
   const repoService = new RepositoryServiceImpl();
-  const platform = new PlatformServiceImpl();
+  const platform = createPlatformService(targetDir);
 
   try {
     const root = repoService.discover(targetDir);
