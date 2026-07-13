@@ -1,110 +1,341 @@
 # AGENTS.md — Harness Platform
 
-> **Harness Version:** 4.0
+> **Harness Version:** 0.0.15
+>
 > **Purpose:** Operational Contract for all AI Agents contributing to the Harness Platform.
+>
 > **Scope:** This document applies to the entire Harness repository.
 
 ---
 
-# 1. Mục tiêu (Objective)
+# 1. Mission
 
-Harness được xây dựng với mục tiêu hỗ trợ nhiều AI Agent khác nhau làm việc trong Repository này.
-Mục tiêu của tài liệu này là cung cấp **điểm khởi đầu thống nhất** cho bất kỳ AI nào (Claude, Codex, Gemini, OpenHands, v.v.).
-Không dùng các prompt riêng cho từng AI. Tất cả tuân thủ tài liệu này.
+You are contributing to the **Harness Platform**.
 
-Tài liệu này là **Harness Agent**, hướng dẫn AI cách thức phát triển chính Harness Platform.
+Harness is not a normal software project.
 
----
+It is an **AI-first development platform** whose purpose is to help AI Agents understand repositories, execute work consistently, validate changes, and evolve project knowledge over time.
 
-# 2. Repository Overview
+Your responsibility is not only to write code, but to preserve the consistency between:
 
-- **Dự án:** Harness Operator System (Platform)
-- **Mục tiêu:** Cung cấp framework để vận hành AI agents với các contracts và governance rõ ràng.
-- **Kiến trúc tổng thể:** Gồm 6 domains (Platform, Repository, Context, Execution, Capability, Governance)
-- **Entry Point:** Platform layer.
+- Knowledge
+- Architecture
+- Implementation
+- Validation
+- Governance
 
----
-
-# 3. Knowledge Base
-
-Trước khi làm việc, AI **PHẢI ĐỌC** các tài liệu trong `knowledge_base/`:
-- `00_ARCHITECTURE.md`
-- `01_HARNESS_MODEL.md`
-- `02_ASSET_MODEL.md`
-- `03_SYSTEM_ARCHITECTURE.md`
-- `04_REPOSITORY_SPECIFICATION.md` ... đến `10_MANIFEST_SPECIFICATION.md`
-- `11_DATA_MODELS.md`
-- `14_ERROR_MODEL.md`
-- `20_AGENT_SPECIFICATION.md`
-
-Tài liệu `IMPLEMENTATION_PLAN.md` (nếu có) cung cấp context cho milestone hiện tại.
+Always prioritize long-term maintainability over short-term implementation speed.
 
 ---
 
-# 4. Working Workflow
+# 2. Core Principles
 
-Mọi task đều tuân thủ workflow sau, không được phép bỏ qua bước nào:
+Harness follows these principles:
+
+1. **Knowledge First** — Understand repository knowledge before changing code.
+2. **Architecture Before Implementation** — Follow architecture instead of creating new patterns.
+3. **Single Source of Truth** — Knowledge Base defines expected behavior.
+4. **Governance Over Assumptions** — Structural changes require review.
+5. **Continuous Validation** — Every change must be validated before completion.
+
+If implementation conflicts with documentation, treat the Knowledge Base as the authoritative source unless instructed otherwise.
+
+---
+
+# 3. Repository Overview
+
+Project:
+
+Harness Operator System
+
+Purpose:
+
+A platform for operating AI Agents through structured knowledge, repository contracts, execution workflows and governance.
+
+Core Domains:
+
+- Platform
+- Repository
+- Context
+- Execution
+- Capability
+- Governance
+
+Entry Point:
+
+Platform Layer
+
+---
+
+# 4. Read Order (Knowledge First)
+
+Before implementing any task, read information in the following order:
+
+```
+Task
+    │
+    ▼
+Knowledge Base
+    │
+    ▼
+Architecture
+    │
+    ▼
+Related Specifications
+    │
+    ▼
+Implementation Plan
+    │
+    ▼
+Existing Source Code
+```
+
+Never start implementation before understanding the relevant knowledge.
+
+Knowledge has higher priority than implementation.
+
+Priority order:
+
+```
+Architecture
+    ↓
+Specifications
+    ↓
+Data Models
+    ↓
+Error Model
+    ↓
+Implementation Plan
+    ↓
+Source Code
+```
+
+---
+
+# 5. Development Workflow
+
+Every task must follow this workflow.
 
 ```
 Explore
-    ↓
+    │
+    ▼
 Understand
-    ↓
+    │
+    ▼
 Plan
-    ↓
-Review (nếu milestone yêu cầu)
-    ↓
+    │
+    ▼
 Implement
-    ↓
+    │
+    ▼
 Validate
-    ↓
+    │
+    ▼
+Update Knowledge
+    │
+    ▼
 Review
-    ↓
-Approve
+```
+
+Do not skip any step.
+
+Large architectural changes require Human Approval before implementation.
+
+---
+
+# 6. Working with Harness
+
+Harness is a knowledge-driven platform.
+
+Code is only one part of the repository.
+
+Whenever implementation changes, determine whether the following also require updates:
+
+| Changed | Also Update |
+|----------|-------------|
+| Architecture | Architecture Documents |
+| Capability | Capability Specification |
+| Workflow | Workflow Specification |
+| Repository Structure | Repository Specification |
+| Data Model | Data Model Specification |
+| Manifest | Manifest Specification |
+| Rules | Governance Documents |
+| Public Behavior | Documentation |
+| Errors | Error Model |
+
+Implementation and Knowledge must remain synchronized.
+
+---
+
+# 7. Repository Rules
+
+Always:
+
+- Follow `03_SYSTEM_ARCHITECTURE.md`.
+- Preserve package boundaries.
+- Reuse existing capabilities before creating new ones.
+- Keep dependencies unidirectional.
+- Follow the shared Error Model.
+- Keep documentation synchronized.
+- Use relative paths throughout the repository.
+
+Never:
+
+- Break architecture.
+- Introduce cyclic dependencies.
+- Duplicate capabilities.
+- Invent new contracts without specification.
+- Skip validation.
+- Hide validation failures.
+- Remove tests to make builds pass.
+
+---
+
+# 8. Harness CLI Workflow
+
+Use Harness CLI throughout development.
+
+Before implementation:
+
+```bash
+harness doctor
+```
+
+Before review:
+
+```bash
+harness validate
+```
+
+Check repository status:
+
+```bash
+harness status
+```
+
+When modifying repository knowledge or governance:
+
+```bash
+harness proposal submit --file <proposal.md>
 ```
 
 ---
 
-# 5. Repository Rules
+# 9. Build & Validation
 
-- **Không phá vỡ Architecture:** Tham khảo `03_SYSTEM_ARCHITECTURE.md` để biết Dependency Rules và Package Structure.
-- **Không thay đổi Contract tùy ý:** Các interface trong `src/shared/contracts/` là cốt lõi.
-- **Không bỏ qua Review:** Mọi thay đổi lớn cần người dùng approve.
-- **Không bỏ qua Validation:** Phải chạy build, test và lint trước khi báo cáo hoàn thành.
-- **Không tạo duplicate capability.**
-- Luôn sử dụng Error Model định sẵn.
-- **Luôn dùng relative path:** Tất cả các đường dẫn file, tài nguyên và cấu hình nội bộ dự án bắt buộc phải sử dụng relative path (đường dẫn tương đối).
+Before completing any task, ensure:
 
----
+```bash
+npm run build
+npm run test
+npm run lint
+```
 
-# 6. Contribution Rules
+or the equivalent project commands.
 
-Khi thực hiện task, đảm bảo cập nhật:
-- Knowledge Base (nếu có thay đổi thiết kế).
-- Manifest (nếu thêm/bớt cấu hình).
-- Documentation.
-- Tests (luôn phải có test đi kèm).
-- **Changelog**: Cập nhật thông tin thay đổi vào đầu file `CHANGELOG.md` sau khi implement, tuyệt đối không chỉnh sửa các bản ghi cũ.
-- **Commit Rules**: Mỗi khi thay đổi code, bắt buộc tóm tắt những gì đã thay đổi và đề xuất commit message. Không tự ý thực hiện commit.
+Validation requirements:
 
----
-
-# 7. Review Checklist
-
-Khi review task:
-- Requirement đã được đáp ứng?
-- Architecture layer boundaries được tôn trọng?
-- Interface Contracts đúng đắn?
-- Performance and Compatibility?
-- Docs / Tests đầy đủ?
+- Build passes
+- Tests pass
+- Lint passes
+- Documentation updated
+- Knowledge synchronized
+- No architectural violations
 
 ---
 
-# 8. Definition of Done
+# 10. Review Checklist
 
-Task chỉ hoàn tất khi:
-- Build Pass (`tsc --noEmit`)
-- Test Pass (`vitest run`)
-- Lint Pass (`eslint .`)
-- Documentation Updated
-- Human Review Completed
+Verify:
+
+- Requirements satisfied.
+- Architecture preserved.
+- Repository contracts respected.
+- Dependencies remain correct.
+- Performance acceptable.
+- Compatibility preserved.
+- Documentation updated.
+- Tests updated.
+- Knowledge Base synchronized.
+
+---
+
+# 11. Definition of Done
+
+A task is complete only when:
+
+- Implementation is complete.
+- Validation succeeds.
+- Tests pass.
+- Documentation is updated.
+- Knowledge Base is updated when applicable.
+- Human review is completed for required changes.
+
+---
+
+# 12. Decision Authority
+
+AI MAY:
+
+- Refactor internal implementation.
+- Improve readability.
+- Improve documentation.
+- Add or improve tests.
+- Optimize implementation without changing observable behavior.
+
+AI MUST REQUEST APPROVAL BEFORE:
+
+- Changing architecture.
+- Changing repository structure.
+- Changing public contracts.
+- Introducing new dependencies.
+- Breaking backward compatibility.
+- Modifying governance rules.
+- Removing existing capabilities.
+
+---
+
+# 13. Communication
+
+For non-trivial tasks, always provide:
+
+1. Requirement Analysis
+2. Impact Analysis
+3. Implementation Plan
+4. Validation Results
+5. Summary
+6. Remaining Risks
+7. Suggested Commit Message
+
+Do not perform commits unless explicitly instructed.
+
+Always update the latest entry in `CHANGELOG.md` without modifying historical records.
+
+---
+
+# 14. Guiding Principle
+
+Harness is a **Knowledge-Driven Development Platform**.
+
+Your goal is not simply to produce working code.
+
+Your goal is to keep the following layers consistent:
+
+```
+Knowledge
+      │
+      ▼
+Architecture
+      │
+      ▼
+Implementation
+      │
+      ▼
+Validation
+      │
+      ▼
+Governance
+```
+
+When uncertain, prefer reading more knowledge over writing more code.

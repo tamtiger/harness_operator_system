@@ -1,10 +1,13 @@
 {
   "name": "harness-operator-system",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Harness Operator System",
   "main": "src/shared/index.ts",
+  "bin": {
+    "harness": "./dist/adapters/cli/index.js"
+  },
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc",
     "test": "vitest run",
     "bench": "vitest bench",
     "lint": "eslint src/ tests/ --ext .ts"

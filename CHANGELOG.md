@@ -2,6 +2,22 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.15] - 2026-07-13
+
+### Added
+- **Cấu hình Global CLI**: Thêm thuộc tính `"bin"` trong `package.json` đăng ký lệnh `harness` liên kết tới `./dist/adapters/cli/index.js` hỗ trợ cài đặt toàn cục.
+- **Tài liệu Hướng dẫn Global CLI**: Cập nhật cách thức cài đặt, liên kết global bằng `npm run build` và `npm link`.
+- **Tài liệu REPOSITORY_MAP_TEMPLATE.md**: Thêm tệp mẫu cấu trúc bản đồ thư mục hỗ trợ điền thông tin tự động và quét động.
+
+### Changed
+- **Việt hóa README.md**: Chuyển đổi toàn bộ nội dung tệp `README.md` sang Tiếng Việt.
+- **Đổi lệnh CLI mẫu**: Thay thế toàn bộ các lệnh chạy CLI thủ công trước đây bằng lệnh toàn cục `harness`.
+- **Cập nhật Build Script**: Thay đổi script `"build"` trong `package.json` từ `"tsc --noEmit"` sang `"tsc"` để biên dịch thực tế mã nguồn ra thư mục `./dist`.
+- **Tối ưu AGENTS_TEMPLATE.md**: Bổ sung hướng dẫn chi tiết về các câu lệnh Harness CLI và quy tắc làm việc cho AI Agent.
+- **Nâng cấp Lệnh `init`**:
+  - Nạp động nội dung `AGENTS.md` từ tệp mẫu template.
+  - Tích hợp các hàm helper quét động cấu trúc thư mục (`buildTree`), tự động phát hiện entry points (`scanEntryPoints`) và các file cấu hình quan trọng (`scanKeyFiles`) để xuất bản bản đồ cấu trúc thư mục (`repository-map.md`) thực tế của dự án đích.
+
 ## [0.0.14] - 2026-07-12
 
 ### Fixed

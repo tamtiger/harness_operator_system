@@ -1,262 +1,279 @@
-# Harness Operator System
+# Hệ thống Vận hành Harness (Harness Operator System)
 
-**Version:** 0.0.14 | **Status:** Active Development
+**Phiên bản:** 0.0.15 | **Trạng thái:** Đang phát triển tích cực
 
-Harness Operator System is an **AI-native Knowledge Management Platform** designed to manage, distribute, and govern operational knowledge for AI Coding Tools (Cursor, Claude Code, Gemini CLI, Codex CLI, Kiro, OpenCode, and any MCP-compatible client).
+Harness Operator System là một **Nền tảng Quản lý Tri thức AI-native** được thiết kế để quản lý, phân phối và quản trị tri thức vận hành cho các Công cụ Lập trình AI (Cursor, Claude Code, Gemini CLI, Codex CLI, Kiro, OpenCode và bất kỳ ứng dụng khách nào tương thích với MCP).
 
-It provides a **standardized intermediary layer** between organizations (knowledge owners) and AI tools (knowledge consumers), ensuring every AI tool operates on consistent, approved, and auditable knowledge.
+Nền tảng cung cấp một **lớp trung gian chuẩn hóa** giữa tổ chức (chủ sở hữu tri thức) và các công cụ AI (bên tiêu thụ tri thức), đảm bảo mọi công cụ AI hoạt động dựa trên tri thức nhất quán, đã được phê duyệt và có thể kiểm tra (audit).
 
 ---
 
-## Architecture Overview
+## Tổng quan Kiến trúc
 
-The platform is structured into **6 domains** across **4 architecture planes**:
+Nền tảng được cấu trúc thành **6 domain** trên **4 mặt phẳng (plane) kiến trúc**:
 
-### Planes & Domains
+### Các Mặt phẳng & Domain
 
-| Plane | Domain | Responsibility |
+| Mặt phẳng | Domain | Trách nhiệm |
 |-------|--------|----------------|
-| **Control Plane** | Platform | Orchestration, lifecycle management, install/update/sync, health checks |
-| **Persistence Plane** | Repository | Filesystem access, manifest loading, asset loading, context building |
-| — | Context | Repository context building, filtering, ranking, token budget management |
-| **Runtime Plane** | Execution | Stateless task orchestration, step scheduling, result verification |
-| — | Capability | Executable functions, capability registry, 27 built-in capabilities |
-| **Knowledge Plane** | Governance | Proposal management, review/approval workflow, promotion to Shared |
+| **Control Plane** | Platform | Điều phối, quản lý vòng đời, cài đặt/cập nhật/đồng bộ, kiểm tra sức khỏe |
+| **Persistence Plane** | Repository | Truy cập hệ thống tệp, tải manifest, tải asset, xây dựng context |
+| — | Context | Xây dựng context của repository, lọc, xếp hạng, quản lý ngân sách token |
+| **Runtime Plane** | Execution | Điều phối tác vụ không trạng thái, lập lịch các bước, xác minh kết quả |
+| — | Capability | Các hàm có thể thực thi, đăng ký capability, 27 capability tích hợp sẵn |
+| **Knowledge Plane** | Governance | Quản lý đề xuất (proposal), quy trình đánh giá/phê duyệt, thăng cấp lên Shared |
 
-### Core Design Principles
+### Nguyên tắc Thiết kế Cốt lõi
 
-- **Repository First** — Every piece of knowledge must pass through the repository
-- **Immutable Context** — Repository Context is frozen once created for an execution session
-- **Stateless Runtime** — Execution runtime discards all state after each session
-- **Human Approval Gate** — Changes affecting Shared Harness require human approval
-- **Deterministic Merging** — Same Shared + Local input always produces the same Effective Harness
+- **Repository First** — Mọi mảnh tri thức đều phải đi qua repository.
+- **Immutable Context** — Repository Context được đóng băng sau khi được tạo cho một phiên thực thi.
+- **Stateless Runtime** — Runtime thực thi sẽ xóa bỏ toàn bộ trạng thái sau mỗi phiên.
+- **Human Approval Gate** — Các thay đổi ảnh hưởng đến Shared Harness bắt buộc phải có sự phê duyệt của con người.
+- **Deterministic Merging** — Cùng một đầu vào Shared + Local luôn tạo ra Effective Harness giống nhau.
 
-### Dependency Flow
+### Luồng Phụ thuộc
 
 ```
-Adapters (CLI / MCP)
-       │
-       ▼
-    Platform (Control Plane)
-    ───┬──────┬──────┬──────┐
-       ▼      ▼      ▼      ▼
-   Repository  Context  Execution  Governance
-       │                │
-       ▼                ▼
-   Capability     Capability
+Các Adapter (CLI / MCP)
+        │
+        ▼
+     Platform (Control Plane)
+     ───┬──────┬──────┬──────┐
+        ▼      ▼      ▼      ▼
+    Repository  Context  Execution  Governance
+        │                │
+        ▼                ▼
+    Capability     Capability
 ```
 
 ---
 
-## Project Structure
+## Cấu trúc Dự án
 
 ```
 harness-operator-system/
 ├── src/
-│   ├── shared/                  # Core types, contracts, errors, utilities
-│   │   ├── types/               # TypeScript type definitions for all domains
-│   │   ├── errors/              # HarnessError base class + 71 typed factories
-│   │   ├── contracts/           # Service interfaces (Repository, Context, Execution, etc.)
-│   │   ├── utils/               # Path, ID, date, semver utilities
-│   │   └── templates/           # AGENTS.md template
+│   ├── shared/                  # Các kiểu dữ liệu cốt lõi, contract, lỗi, tiện ích
+│   │   ├── types/               # Định nghĩa kiểu TypeScript cho tất cả các domain
+│   │   ├── errors/              # Lớp cơ sở HarnessError + 71 factory định kiểu lỗi
+│   │   ├── contracts/           # Interface dịch vụ (Repository, Context, Execution, v.v.)
+│   │   ├── utils/               # Tiện ích về đường dẫn, ID, ngày tháng, semver
+│   │   └── templates/           # Template cho AGENTS.md
 │   ├── repository/              # Persistence plane
-│   │   ├── discovery/           # Upward repository root discovery
-│   │   ├── manifest/            # Zod-based manifest schema, loader, validator
+│   │   ├── discovery/           # Tìm kiếm ngược lên thư mục gốc repository
+│   │   ├── manifest/            # Schema manifest dựa trên Zod, loader, validator
 │   │   ├── assets/              # FrontMatterParser, AssetLoader, AssetValidator
-│   │   ├── resolution/          # ResolutionEngine (Shared + Local merge)
-│   │   ├── context/             # RepositoryContext builder
-│   │   ├── persistence/         # FileSystemPersistence (atomic writes)
-│   │   └── validation/          # Repository structure validation
+│   │   ├── resolution/          # ResolutionEngine (Hợp nhất Shared + Local)
+│   │   ├── context/             # Bộ dựng RepositoryContext
+│   │   ├── persistence/         # FileSystemPersistence (ghi file nguyên tử - atomic write)
+│   │   └── validation/          # Xác thực cấu trúc repository
 │   ├── context/                 # Context domain
-│   │   ├── builder/             # Context assembly pipeline
-│   │   ├── filter/              # Scope/tag/deprecated filtering
-│   │   ├── ranking/             # Recency/priority/relevance scoring
-│   │   ├── budget/              # Token budget allocation & trimming
-│   │   └── cache/               # LRU context cache
+│   │   ├── builder/             # Đường ống lắp ráp Context
+│   │   ├── filter/              # Bộ lọc theo phạm vi (scope)/tag/deprecated
+│   │   ├── ranking/             # Tính điểm độ mới/độ ưu tiên/độ liên quan
+│   │   ├── budget/              # Phân bổ & cắt giảm ngân sách token
+│   │   └── cache/               # Bộ nhớ đệm context LRU
 │   ├── execution/               # Runtime plane
 │   │   ├── runtime/             # ExecutionRuntime + TaskStateManager
-│   │   ├── scheduler/           # Topological step scheduling
-│   │   ├── verifier/            # Result verification (fail_fast / collect_all)
-│   │   └── retry/               # Exponential backoff retry manager
+│   │   ├── scheduler/           # Lập lịch bước theo cấu trúc topo (topological)
+│   │   ├── verifier/            # Xác minh kết quả (fail_fast / collect_all)
+│   │   └── retry/               # Quản lý thử lại với số mũ lùi (exponential backoff)
 │   ├── capability/              # Capability domain
-│   │   ├── registry/            # 6-step invocation protocol registry
-│   │   ├── builtin/             # 27 built-in capabilities (file, git, search, AI, etc.)
-│   │   ├── loader/              # Custom YAML capability loader
-│   │   └── validation/          # Capability contract validation
+│   │   ├── registry/            # Đăng ký giao thức gọi 6 bước
+│   │   ├── builtin/             # 27 capability tích hợp (file, git, search, AI, v.v.)
+│   │   ├── loader/              # Bộ tải capability tùy chỉnh bằng YAML
+│   │   └── validation/          # Xác thực contract của capability
 │   ├── governance/              # Knowledge plane
-│   │   ├── proposal/            # Persistent markdown proposal manager
-│   │   ├── review/              # Review lock mechanism with 30-min expiry
-│   │   ├── approval/            # Strict human approval engine
-│   │   ├── promotion/           # Local-to-Shared promotion engine
-│   │   └── audit/               # Append-only JSONL audit logger
+│   │   ├── proposal/            # Quản lý đề xuất markdown bền vững
+│   │   ├── review/              # Cơ chế khóa đánh giá với thời gian hết hạn 30 phút
+│   │   ├── approval/            # Công cụ phê duyệt nghiêm ngặt bởi con người
+│   │   ├── promotion/           # Công cụ thăng cấp từ Local sang Shared
+│   │   └── audit/               # Ghi nhật ký kiểm toán JSONL append-only
 │   ├── platform/                # Control plane
-│   │   ├── orchestration/       # Platform orchestrator (wires all domains)
-│   │   ├── install/             # Shared Harness installer
-│   │   ├── update/              # Atomic updater with rollback
-│   │   ├── sync/                # Synchronization manager
-│   │   ├── publish/             # Asset publisher
-│   │   └── doctor/              # Diagnostics engine
-│   └── adapters/                # Entry points
-│       ├── cli/                 # CLI adapter (all commands)
-│       │   ├── commands/        # init, validate, status, context, run, etc.
+│   │   ├── orchestration/       # Điều phối Platform (kết nối tất cả các domain)
+│   │   ├── install/             # Bộ cài đặt Shared Harness
+│   │   ├── update/              # Bộ cập nhật nguyên tử có hỗ trợ rollback
+│   │   ├── sync/                # Trình quản lý đồng bộ hóa
+│   │   ├── publish/             # Bộ xuất bản asset
+│   │   └── doctor/              # Công cụ chẩn đoán
+│   └── adapters/                # Các điểm đầu vào (entry points)
+│       ├── cli/                 # CLI adapter (tất cả các lệnh)
+│       │   ├── commands/        # init, validate, status, context, run, v.v.
 │       │   └── formatter/       # OutputFormatter, ErrorFormatter
 │       └── mcp/                 # MCP server adapter
-├── knowledge_base/              # Comprehensive specification documents
-│   ├── 00_ARCHITECTURE.md       # Architecture foundation (SST)
-│   ├── 01_HARNESS_MODEL.md      # Harness Repository, Shared, Local, Effective
-│   ├── 02_ASSET_MODEL.md        # Asset taxonomy, metadata, resolution
-│   ├── 03_SYSTEM_ARCHITECTURE.md # Domain architecture & dependency rules
-│   ├── 04-10_*_SPECIFICATION.md  # Domain specifications
-│   ├── 11_DATA_MODELS.md        # All data types, DTOs, enums (SST)
-│   ├── 14_ERROR_MODEL.md        # Error hierarchy
-│   └── 20_AGENT_SPECIFICATION.md # Agent behavior specification
-├── implementation_plan/          # Milestone implementation plans (M0–M11)
-├── tests/                        # Vitest test suites for all domains
-├── .harness/                     # Internal Harness metadata & shared rules
-├── AGENTS.md                     # Operational contract for AI agents
-├── CHANGELOG.md                  # Version changelog
+├── knowledge_base/              # Tài liệu đặc tả toàn diện
+│   ├── 00_ARCHITECTURE.md       # Cơ sở kiến trúc (SST)
+│   ├── 01_HARNESS_MODEL.md      # Mô hình Harness Repository, Shared, Local, Effective
+│   ├── 02_ASSET_MODEL.md        # Phân loại asset, siêu dữ liệu, phân giải
+│   ├── 03_SYSTEM_ARCHITECTURE.md # Kiến trúc domain & các quy tắc phụ thuộc
+│   ├── 04-10_*_SPECIFICATION.md  # Các đặc tả chi tiết của từng domain
+│   ├── 11_DATA_MODELS.md        # Tất cả kiểu dữ liệu, DTO, enum (SST)
+│   ├── 14_ERROR_MODEL.md        # Hệ thống phân cấp lỗi
+│   └── 20_AGENT_SPECIFICATION.md # Đặc tả hành vi của Agent
+├── implementation_plan/          # Kế hoạch thực hiện theo từng Milestone (M0–M11)
+├── tests/                        # Bộ kiểm thử Vitest cho tất cả các domain
+├── .harness/                     # Metadata nội bộ Harness & các quy tắc chia sẻ
+├── AGENTS.md                     # Hợp đồng vận hành dành cho các AI agent
+├── CHANGELOG.md                  # Nhật ký thay đổi phiên bản
 ├── package.json
 └── tsconfig.json
 ```
 
 ---
 
-## Key Features by Milestone
+## Các tính năng chính theo Milestone
 
-| Milestone | Feature | Status |
+| Milestone | Tính năng | Trạng thái |
 |-----------|---------|--------|
-| **M0** | Foundation — core types, error model, utilities, contracts | ✅ |
-| **M1** | Repository Discovery — upward root discovery, manifest validation | ✅ |
-| **M2** | Asset Loading — front-matter parsing, validation, resolution, persistence | ✅ |
-| **M3** | Context Builder — filtering, ranking, token budget, LRU cache | ✅ |
-| **M4** | Capability Registry — 6-step invocation, 27 built-in capabilities | ✅ |
-| **M5** | Execution Runtime — task orchestration, scheduling, retry, verification | ✅ |
-| **M6** | Platform — orchestration, install, update, sync, publish, doctor | ✅ |
-| **M7** | CLI — all commands, output/error formatting, env config | ✅ |
-| **M8** | Governance — proposals, reviews, approvals, promotion, audit | ✅ |
-| **M9** | MCP Server — Model Context Protocol adapter with 4 tools | ✅ |
-| **M10** | Conformance Suite — 30 test cases, Level 3 compliance | ✅ |
-| **M11** | Hardening, error recovery, production readiness | ✅ |
+| **M0** | Nền tảng — các kiểu cốt lõi, mô hình lỗi, tiện ích, contract | ✅ |
+| **M1** | Khám phá Repository — tìm kiếm thư mục gốc, xác thực manifest | ✅ |
+| **M2** | Tải Asset — phân tích cú pháp front-matter, xác thực, phân giải, lưu trữ | ✅ |
+| **M3** | Bộ dựng Context — lọc, xếp hạng, ngân sách token, bộ nhớ đệm LRU | ✅ |
+| **M4** | Đăng ký Capability — giao thức gọi 6 bước, 27 capability tích hợp sẵn | ✅ |
+| **M5** | Runtime Thực thi — điều phối tác vụ, lập lịch, thử lại, xác minh | ✅ |
+| **M6** | Platform — điều phối, cài đặt, cập nhật, đồng bộ, xuất bản, chẩn đoán | ✅ |
+| **M7** | CLI — tất cả các lệnh, định dạng đầu ra/lỗi, cấu hình môi trường | ✅ |
+| **M8** | Quản trị (Governance) — đề xuất, đánh giá, phê duyệt, thăng cấp, kiểm toán | ✅ |
+| **M9** | MCP Server — Adapter Model Context Protocol với 4 công cụ | ✅ |
+| **M10** | Bộ tuân thủ (Conformance Suite) — 30 trường hợp thử nghiệm, tuân thủ Cấp độ 3 | ✅ |
+| **M11** | Tối ưu hóa, khôi phục lỗi, sẵn sàng cho môi trường sản xuất | ✅ |
 
 ---
 
-## CLI Commands
+## Các lệnh CLI
+
+Sau khi cài đặt CLI dưới dạng global, bạn có thể sử dụng trực tiếp lệnh `harness` từ bất kỳ thư mục nào:
 
 ```bash
-# Initialize a new repository
-npx tsx src/adapters/cli/index.ts init [directory] [--force]
+# Khởi tạo một repository mới
+harness init [directory] [--force]
 
-# Validate repository structure
-npx tsx src/adapters/cli/index.ts validate [directory]
+# Xác thực cấu trúc repository
+harness validate [directory]
 
-# Check asset status
-npx tsx src/adapters/cli/index.ts status [--json]
+# Kiểm tra trạng thái asset
+harness status [--json]
 
-# Inspect runtime context
-npx tsx src/adapters/cli/index.ts context --task "task description"
+# Kiểm tra context trong quá trình runtime
+harness context --task "mô tả tác vụ"
 
-# Execute a task
-npx tsx src/adapters/cli/index.ts run "task description"
+# Thực thi một tác vụ
+harness run "mô tả tác vụ"
 
-# List registered capabilities
-npx tsx src/adapters/cli/index.ts capability list
+# Liệt kê các capability đã đăng ký
+harness capability list
 
-# Install shared Harness
-npx tsx src/adapters/cli/index.ts install [--source <url>]
+# Cài đặt shared Harness
+harness install [--source <url>]
 
-# Update shared Harness
-npx tsx src/adapters/cli/index.ts update [--version <semver>]
+# Cập nhật shared Harness
+harness update [--version <semver>]
 
-# Run diagnostics
-npx tsx src/adapters/cli/index.ts doctor
+# Chạy chẩn đoán hệ thống
+harness doctor
 
-# Sync capabilities
-npx tsx src/adapters/cli/index.ts sync
+# Đồng bộ hóa các capability
+harness sync
 
-# Publish assets
-npx tsx src/adapters/cli/index.ts publish
+# Xuất bản các asset
+harness publish
 
-# Governance proposals
-npx tsx src/adapters/cli/index.ts proposal list
-npx tsx src/adapters/cli/index.ts proposal submit [--file <path>]
-npx tsx src/adapters/cli/index.ts proposal approve <proposal-id>
+# Đề xuất quản trị (Governance proposals)
+harness proposal list
+harness proposal submit [--file <path>]
+harness proposal approve <proposal-id>
 
-# Start MCP server (stdio transport)
-npx tsx src/adapters/cli/index.ts mcp-server
+# Khởi động MCP server (kết nối stdio)
+harness mcp-server
 
-# Run conformance suite
-npx tsx src/adapters/cli/index.ts conformance run
+# Chạy bộ thử nghiệm tuân thủ (conformance suite)
+harness conformance run
 ```
 
 ---
 
-## MCP (Model Context Protocol) Integration
+## Tích hợp MCP (Model Context Protocol)
 
-The MCP server exposes 4 tools to MCP clients:
-- `harness_run` — Execute a task
-- `harness_validate` — Validate repository structure
-- `harness_proposal_list` — List governance proposals
-- `harness_proposal_submit` — Submit a new proposal
+MCP server cung cấp 4 công cụ cho các MCP client:
+- `harness_run` — Thực thi một tác vụ
+- `harness_validate` — Xác thực cấu trúc repository
+- `harness_proposal_list` — Liệt kê các đề xuất quản trị
+- `harness_proposal_submit` — Gửi một đề xuất mới
 
-Approval actions are intentionally excluded from MCP to maintain human-only security gates.
+Các hành động phê duyệt (approval) được loại bỏ khỏi MCP một cách có chủ đích nhằm duy trì cổng bảo mật xác thực bởi con người.
 
 ---
 
-## Development
+## Phát triển và Thiết lập
 
-### Prerequisites
+### Yêu cầu tiên quyết
 - Node.js 20+
 - npm
 
-### Setup
+### Thiết lập môi trường phát triển (Development Setup)
+
+1. Cài đặt các gói phụ thuộc:
 ```bash
 npm install
 ```
 
-### Validate
+2. Biên dịch code TypeScript sang JavaScript:
 ```bash
-npm run build      # TypeScript type checking (tsc --noEmit)
-npm run test       # Run Vitest test suites
-npm run lint       # ESLint code quality check
+npm run build
 ```
 
-### Test Suites
-Test files in `tests/` cover all domains with unit and integration tests:
-- `utils.test.ts`, `errors.test.ts` — Foundation
-- `repository.test.ts`, `assets.test.ts` — Repository plane
-- `context.test.ts` — Context domain
-- `capability.test.ts` — Capability domain
-- `execution.test.ts` — Execution runtime
-- `platform.test.ts` — Platform orchestration
-- `governance.test.ts` — Governance workflow
-- `cli.test.ts` — CLI commands
-- `mcp.test.ts` — MCP adapter
-- `conformance.test.ts` — Compliance suite (30 tests, Level 3)
+3. Liên kết công cụ CLI thành global (để sử dụng lệnh `harness` toàn cục trong quá trình phát triển):
+```bash
+npm link
+```
+*(Nếu bạn muốn cài đặt trực tiếp gói package hiện tại làm global CLI, có thể sử dụng lệnh: `npm install -g .`)*
+
+### Xác thực và Kiểm thử
+
+```bash
+npm run build      # Biên dịch TypeScript (kiểm tra lỗi tsc)
+npm run test       # Chạy các bộ thử nghiệm bằng Vitest
+npm run lint       # Kiểm tra chất lượng mã nguồn bằng ESLint
+```
+
+### Các Bộ thử nghiệm (Test Suites)
+
+Các tệp thử nghiệm trong thư mục `tests/` bao gồm kiểm thử đơn vị (unit test) và kiểm thử tích hợp (integration test) cho mọi domain:
+- `utils.test.ts`, `errors.test.ts` — Nền tảng
+- `repository.test.ts`, `assets.test.ts` — Mặt phẳng Repository
+- `context.test.ts` — Domain Context
+- `capability.test.ts` — Domain Capability
+- `execution.test.ts` — Runtime thực thi
+- `platform.test.ts` — Điều phối Platform
+- `governance.test.ts` — Quy trình Quản trị
+- `cli.test.ts` — Các lệnh CLI
+- `mcp.test.ts` — Adapter MCP
+- `conformance.test.ts` — Bộ thử nghiệm tuân thủ (30 test case, Cấp độ 3)
 
 ---
 
-## Governance & Knowledge Lifecycle
+## Vòng đời Quản trị & Tri thức
 
 ```
-CREATE → REVIEW → APPROVE → VERSION → PUBLISH → REUSE → IMPROVE → PROMOTE
+TẠO → ĐÁNH GIÁ → PHÊ DUYỆT → ĐÁNH PHIÊN BẢN → XUẤT BẢN → TÁI SỬ DỤNG → CẢI TIẾN → THĂNG CẤP
 ```
 
-- **Proposals**: Persistent markdown files under `.harness/proposals/`
-- **Reviews**: Lock-based mechanism with 30-minute expiry
-- **Approvals**: Strict human-only gate (no automated approval)
-- **Audit**: Append-only JSONL log at `.harness/logs/audit.jsonl`
-- **Promotion**: Local-to-Shared via `PromotionEngine`
+- **Đề xuất (Proposals)**: Các tệp markdown bền vững được lưu tại `.harness/proposals/`
+- **Đánh giá (Reviews)**: Cơ chế khóa với thời gian hết hạn là 30 phút
+- **Phê duyệt (Approvals)**: Cổng kiểm soát nghiêm ngặt bởi con người (không phê duyệt tự động)
+- **Kiểm toán (Audit)**: Log ghi nhật ký append-only ở định dạng JSONL tại `.harness/logs/audit.jsonl`
+- **Thăng cấp (Promotion)**: Chuyển từ Local sang Shared thông qua `PromotionEngine`
 
 ---
 
-## Further Reading
+## Tài liệu đọc thêm
 
-- [Architecture Foundation](knowledge_base/00_ARCHITECTURE.md) — Vision, principles, core concepts
-- [System Architecture](knowledge_base/03_SYSTEM_ARCHITECTURE.md) — Domain architecture, dependency rules, contracts
-- [Harness Model](knowledge_base/01_HARNESS_MODEL.md) — Repository, Shared, Local, Effective Harness
-- [Asset Model](knowledge_base/02_ASSET_MODEL.md) — Asset taxonomy and metadata
-- [Data Models](knowledge_base/11_DATA_MODELS.md) — All types, DTOs, enums
-- [Error Model](knowledge_base/14_ERROR_MODEL.md) — Error hierarchy and codes
-- [Agent Specification](knowledge_base/20_AGENT_SPECIFICATION.md) — Agent behavior contracts
-- [AGENTS.md](./AGENTS.md) — Operational contract for AI agents
-- [Implementation Plans](implementation_plan/) — Milestone breakdowns
+- [Cơ sở Kiến trúc](knowledge_base/00_ARCHITECTURE.md) — Tầm nhìn, nguyên tắc, khái niệm cốt lõi
+- [Kiến trúc Hệ thống](knowledge_base/03_SYSTEM_ARCHITECTURE.md) — Kiến trúc domain, quy tắc phụ thuộc, contract
+- [Mô hình Harness](knowledge_base/01_HARNESS_MODEL.md) — Repository, Shared, Local, Effective Harness
+- [Mô hình Asset](knowledge_base/02_ASSET_MODEL.md) — Phân loại asset và siêu dữ liệu
+- [Mô hình Dữ liệu](knowledge_base/11_DATA_MODELS.md) — Tất cả kiểu dữ liệu, DTO, enum
+- [Mô hình Lỗi](knowledge_base/14_ERROR_MODEL.md) — Phân cấp lỗi và mã lỗi
+- [Đặc tả Agent](knowledge_base/20_AGENT_SPECIFICATION.md) — Hợp đồng hành vi của Agent
+- [AGENTS.md](./AGENTS.md) — Hợp đồng vận hành dành cho các AI agent
+- [Kế hoạch thực hiện](implementation_plan/) — Chi tiết theo từng Milestone
