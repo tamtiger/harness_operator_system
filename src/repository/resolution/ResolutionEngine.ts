@@ -106,7 +106,8 @@ export class ResolutionEngine {
       workflows: resolveOverride(shared.workflows, local.workflows),
       knowledge: resolveMerge(shared.knowledge, local.knowledge),
       hooks: resolveHookMerge(shared.hooks, local.hooks),
-      capabilities: resolveRegistry(shared.capabilities, local.capabilities)
+      capabilities: resolveRegistry(shared.capabilities, local.capabilities),
+      skills: resolveOverride(shared.skills, local.skills)
     };
 
     return Object.freeze({

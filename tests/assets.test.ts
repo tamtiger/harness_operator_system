@@ -251,4 +251,39 @@ status: "active"
 
     fs.rmSync(adrDir, { recursive: true, force: true });
   });
+
+  it('should load skill assets from .harness/skills/', () => {
+    const skillDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-skills-'));
+    fs.mkdirSync(path.join(skillDir, '.harness', 'skills'), { recursive: true });
+
+    const skillFM = `---
+id: "local.skill.test"
+type: "skill"
+version: "1.0.0"
+name: "Test Skill"
+scope: "local"
+triggers:
+  - "feature-dev"
+workflows:
+  - "custom-workflow"
+---
+# Skill Content
+`;
+    fs.writeFileSync(path.join(skillDir, '.harness', 'skills', 'test-skill.md'), skillFM, 'utf8');
+
+    const manifest = {
+      version: 2, specification: '4.0',
+      repository: { root: '.' },
+      agent: { entry_point: 'AGENTS.md' },
+      artifacts: []
+    } as any;
+
+    const coll = loader.loadLocalAssets({ path: skillDir, hasGit: false, discoveredAt: '' }, manifest);
+    expect(coll.skills.length).toBe(1);
+    expect(coll.skills[0].metadata.id).toBe('local.skill.test');
+    expect((coll.skills[0] as any).triggers).toEqual(['feature-dev']);
+    expect((coll.skills[0] as any).workflows).toEqual(['custom-workflow']);
+
+    fs.rmSync(skillDir, { recursive: true, force: true });
+  });
 });

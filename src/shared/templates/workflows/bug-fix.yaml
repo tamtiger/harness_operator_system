@@ -1,0 +1,31 @@
+id: bug-fix
+name: Bug Fix
+description: Fix a specific bug with root cause investigation
+entry_conditions:
+  - fix
+  - bug
+  - error
+required_skills:
+  - harness-context-first
+  - systematic-debug
+  - tdd-red-green-refactor
+  - verify-before-done
+  - finish-development
+phases:
+  - name: debug
+    skills:
+      - harness-context-first
+      - systematic-debug
+    optional: false
+    human_gate: false
+  - name: execute
+    skills:
+      - tdd-red-green-refactor
+    optional: false
+    human_gate: false
+  - name: validate
+    skills:
+      - verify-before-done
+    optional: false
+    human_gate: false
+governance_required: false

@@ -99,6 +99,7 @@ export interface PlatformStatus {
     knowledge: AssetCountEntry;
     hooks: AssetCountEntry;
     capabilities: AssetCountEntry;
+    skills?: AssetCountEntry;
   };
 }
 

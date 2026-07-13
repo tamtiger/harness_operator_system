@@ -48,7 +48,8 @@ enum AssetType {
   WORKFLOW   = 'workflow',
   KNOWLEDGE  = 'knowledge',
   HOOK       = 'hook',
-  CAPABILITY = 'capability'
+  CAPABILITY = 'capability',
+  SKILL      = 'skill'
 }
 ```
 
@@ -208,8 +209,16 @@ interface CapabilityDefinition extends Asset {
 }
 ```
 
----
+### 4.10 SkillAsset — Tài chỉ dẫn hành vi AI
 
+```typescript
+interface SkillAsset extends Asset {
+  triggers: string[]                  // Workflow types tự kích hoạt
+  workflows?: string[]                // Danh sách workflow cụ thể
+}
+```
+
+---
 
 ## 5. Collection Types
 
@@ -224,6 +233,7 @@ interface AssetCollection {
   knowledge:    Knowledge[]
   hooks:        Hook[]
   capabilities: CapabilityDefinition[]
+  skills:       SkillAsset[]
 }
 ```
 
@@ -362,6 +372,7 @@ interface RuntimeContext extends RepositoryContext {
   availableCapabilities: CapabilityId[] // Danh sách capability khả dụng
   permissions?: Permission[]            // Các quyền hạn được cấp phép
   agentsMd?: string                     // Nội dung AGENTS.md
+  injectedSkills?: SkillAsset[]         // Skills phù hợp được tiêm vào (nếu có)
 }
 ```
 
@@ -386,6 +397,7 @@ interface BudgetAllocation {
     prompts:   number   // Token dành cho prompts
     workflows: number   // Token dành cho workflows
     metadata:  number   // Token dành cho metadata
+    skills?:   number   // Token dành cho skills (nếu có)
   }
   remaining: number     // Token còn lại chưa phân bổ
 }
@@ -488,6 +500,36 @@ interface RetryPolicy {
   backoffBaseMs: number                            // Thời gian chờ cơ sở (ms)
   retryOn?: string[]                               // Chỉ retry khi gặp các error code này
   noRetryOn?: string[]                             // Không retry khi gặp các error code này
+}
+```
+
+### 8.8 WorkflowPhase — Giai đoạn của Workflow
+
+```typescript
+interface WorkflowPhase {
+  name: string                 // Tên giai đoạn (e.g. "brainstorm", "plan", "execute")
+  skills: string[]             // Các skills sử dụng trong giai đoạn này
+  optional: boolean            // Giai đoạn có bắt buộc không
+  human_gate: boolean          // Có yêu cầu kiểm tra/xác nhận từ người dùng
+  completed: boolean           // Trạng thái hoàn thành
+  completedAt?: ISO8601        // Thời điểm hoàn thành
+}
+```
+
+### 8.9 WorkflowSession — Phiên thực thi Workflow
+
+```typescript
+interface WorkflowSession {
+  id: string                   // ID phiên thực thi (e.g. run-{timestamp})
+  workflowId: string           // ID workflow liên kết
+  taskDescription: string      // Mô tả tác vụ
+  status: 'active' | 'completed' | 'failed'
+  currentPhase: string         // Giai đoạn hiện tại
+  phases: WorkflowPhase[]      // Danh sách các giai đoạn
+  createdAt: ISO8601
+  updatedAt: ISO8601
+  planPath?: string            // Đường dẫn tương đối tới file plan.md
+  brainstormContent?: string   // Nội dung brainstorming
 }
 ```
 
@@ -789,6 +831,7 @@ interface PlatformStatus {
     knowledge: AssetCountEntry
     hooks: AssetCountEntry
     capabilities: AssetCountEntry
+    skills?: AssetCountEntry
   }
 }
 

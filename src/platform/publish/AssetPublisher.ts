@@ -37,7 +37,7 @@ export class AssetPublisher {
         const invokeContext: RuntimeContext = {
           metadata: { root: { path: '', hasGit: false, discoveredAt: '' }, manifest: { version: 0, specification: '', repository: { root: '' }, agent: { entry_point: '' }, artifacts: [] } },
           buildTimestamp: '',
-          assets: { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [] },
+          assets: { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [], skills: [] },
           taskContext: {},
           budget: { totalTokens: 0, allocated: { rules: 0, knowledge: 0, prompts: 0, workflows: 0, metadata: 0 }, remaining: 0 },
           rankedRules: [],

@@ -89,3 +89,50 @@ export class AIEmbedCapability extends BaseCapability {
     };
   }
 }
+
+export const aiSubagentDef: CapabilityDefinition = {
+  metadata: {
+    id: 'harness.ai.subagent',
+    type: AssetType.CAPABILITY,
+    version: '1.0.0',
+    name: 'AI Subagent Dispatch',
+    scope: AssetScope.SHARED,
+    source: 'builtin',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  content: '',
+  capabilityId: 'harness.ai.subagent',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      role: { type: 'string' },
+      prompt: { type: 'string' },
+      workspaceMode: { type: 'string' }
+    },
+    required: ['role', 'prompt']
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      success: { type: 'boolean' },
+      conversationId: { type: 'string' },
+      result: { type: 'string' }
+    },
+    required: ['success', 'conversationId', 'result']
+  },
+  permissions: [Permission.EXECUTE_COMMAND]
+};
+
+export class AISubagentCapability extends BaseCapability {
+  async execute(context: RuntimeContext, input: any): Promise<any> {
+    console.log(`[aiOps] Dispatching subagent [Role: ${input.role}] with prompt: "${input.prompt}"`);
+    const conversationId = 'sub-' + Math.random().toString(36).substring(2, 9);
+    
+    return {
+      success: true,
+      conversationId,
+      result: `Stub response: Task completed successfully by subagent [${input.role}].`
+    };
+  }
+}

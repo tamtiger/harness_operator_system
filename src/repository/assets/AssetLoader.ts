@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as yaml from 'js-yaml';
-import { AssetCollection, Asset, Rule, Prompt, Template, Workflow, Knowledge, Hook, CapabilityDefinition } from '../../shared/types/assets';
+import { AssetCollection, Asset, Rule, Prompt, Template, Workflow, Knowledge, Hook, CapabilityDefinition, SkillAsset } from '../../shared/types/assets';
 import { Manifest, RepositoryRoot } from '../../shared/types/repository';
 import { repoError } from '../../shared/errors/factories';
 import { isWithinBoundary, getDefaultHarnessPath } from '../../shared/utils/path';
@@ -45,10 +45,11 @@ export class AssetLoader {
       workflows: [],
       knowledge: [],
       hooks: [],
-      capabilities: []
+      capabilities: [],
+      skills: []
     };
 
-    const subdirs = ['capabilities', 'rules', 'prompts', 'templates', 'workflows', 'knowledge', 'hooks'];
+    const subdirs = ['capabilities', 'rules', 'prompts', 'templates', 'workflows', 'knowledge', 'hooks', 'skills'];
 
     for (const subdir of subdirs) {
       const dirPath = path.join(resolvedPath, subdir);
@@ -78,7 +79,8 @@ export class AssetLoader {
 
         this.addAssetToCollection(collection, {
           metadata: validatedMeta,
-          content: body
+          content: body,
+          ...metadata
         });
       });
     }
@@ -94,7 +96,8 @@ export class AssetLoader {
       workflows: [],
       knowledge: [],
       hooks: [],
-      capabilities: []
+      capabilities: [],
+      skills: []
     };
     const assetIds = new Set<string>();
 
@@ -138,7 +141,7 @@ export class AssetLoader {
     }
 
     // Auto-discover standard asset directories not already covered by manifest
-    const autoDirs = ['rules', 'prompts', 'templates', 'workflows', 'knowledge', 'hooks', 'capabilities'];
+    const autoDirs = ['rules', 'prompts', 'templates', 'workflows', 'knowledge', 'hooks', 'capabilities', 'skills'];
     for (const subdir of autoDirs) {
       const autoPath = path.resolve(repoRootAbs, '.harness', subdir);
       if (coveredPaths.has(autoPath)) continue;
@@ -187,7 +190,8 @@ export class AssetLoader {
 
     this.addAssetToCollection(collection, {
       metadata: validatedMeta,
-      content: body
+      content: body,
+      ...metadata
     });
   }
 
@@ -200,6 +204,7 @@ export class AssetLoader {
     else if (type === 'knowledge') collection.knowledge.push(asset as Knowledge);
     else if (type === 'hook') collection.hooks.push(asset as Hook);
     else if (type === 'capability') collection.capabilities.push(asset as CapabilityDefinition);
+    else if (type === 'skill') collection.skills.push(asset as SkillAsset);
   }
 
   private scanDir(dirPath: string, rootBoundary: string, callback: (filePath: string, content: string) => void) {

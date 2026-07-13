@@ -1,0 +1,46 @@
+id: feature-dev
+name: Feature Development
+description: Implement new features from idea to merged code
+entry_conditions:
+  - implement
+  - add
+  - build
+  - create
+  - new feature
+required_skills:
+  - harness-context-first
+  - brainstorm-before-code
+  - plan-before-implement
+  - tdd-red-green-refactor
+  - subagent-per-task
+  - two-stage-review
+  - verify-before-done
+  - governance-checkpoint
+  - finish-development
+phases:
+  - name: brainstorm
+    skills:
+      - brainstorm-before-code
+    optional: false
+    human_gate: true
+  - name: plan
+    skills:
+      - plan-before-implement
+    optional: false
+    human_gate: true
+  - name: execute
+    skills:
+      - tdd-red-green-refactor
+      - subagent-per-task
+    optional: false
+    human_gate: false
+  - name: validate
+    skills:
+      - verify-before-done
+    optional: false
+    human_gate: false
+  - name: report
+    skills: []
+    optional: false
+    human_gate: false
+governance_required: false

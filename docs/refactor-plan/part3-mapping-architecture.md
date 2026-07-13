@@ -143,6 +143,15 @@ interface WorkflowRunOptions {
 }
 ```
 
+### Classify Fallback Chain
+
+`WorkflowEngine.classify()` must handle ambiguous descriptions with a fallback chain:
+1. Keyword match → confidence ≥ 0.7 → return matched type
+2. Keyword match → confidence 0.3–0.7 → prompt user: "Detected [type], confirm? (Y/n/other)"
+3. Keyword match → confidence < 0.3 → prompt user: "Select workflow type: [list]"
+4. Non-interactive mode (MCP) → confidence < 0.7 → return 'unclassified', let caller decide
+5. `--workflow` flag → bypass `classify()` entirely
+
 ### Workflow Error Taxonomy
 
 New error categories (add to `src/shared/errors/factories.ts` when implementing):
@@ -259,6 +268,12 @@ User Request (CLI: harness run "task" | MCP: harness_run)
 - Decompose thành tasks với TDD structure
 - Save plan to `.harness/run/<session-id>/plan.md`
 - Return task list
+
+**Non-interactive brainstorm behavior:**
+- MCP context: brainstorm phase automatically skipped → Planner uses task description + knowledge base context to generate plan directly (equivalent to `--no-brainstorm`)
+- Pipe/CI context: same as MCP — auto-skip
+- TTY context: interactive by default, `--no-brainstorm` to skip
+- Future: MCP `harness_run` MAY accept `brainstormAnswers` param to pre-fill answers
 
 **Execution Engine (refactor `src/execution/runtime/ExecutionRuntime.ts`)**
 - Đọc plan và create todos

@@ -64,7 +64,18 @@ export class ReviewManager {
     }
 
     const lockedBy = proposal.lockedBy;
-    if (lockedBy !== reviewer) {
+    const lockedAt = proposal.lockedAt;
+    let isAuthorized = !lockedBy || lockedBy === reviewer;
+
+    if (lockedBy && lockedBy !== reviewer) {
+      const lockedTime = new Date(lockedAt!).getTime();
+      const elapsedMinutes = (Date.now() - lockedTime) / (1000 * 60);
+      if (elapsedMinutes > 30) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
       throw govError('GOV_007');
     }
 

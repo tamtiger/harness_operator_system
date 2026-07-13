@@ -50,6 +50,11 @@ Cấu trúc thư mục trong từng project repository. Thư mục `.harness/` l
       {id}.md                   # Template files.
     workflows/                  # Optional dir. Chứa workflow definitions.
       {id}.yaml                 # Workflow files.
+    run/                        # Optional dir. Durable execution state (sessions).
+      {session-id}/             # Per-session directory.
+        plan.md                 # Generated execution plan.
+        progress.md             # Progress ledger for resume support.
+        spec.md                 # Approved design spec from brainstorm.
     knowledge/                  # Optional dir. Chứa knowledge base entries.
       {id}.md                   # Knowledge files.
     hooks/                      # Optional dir. Chứa lifecycle hook definitions.
@@ -299,6 +304,7 @@ Bảng tóm tắt đầy đủ về tính bắt buộc, người tạo và ngư�
 ### Những gì KHÔNG được commit
 
 ```
+❌ .harness/run/                # Execution state — gitignore
 ❌ .harness/logs/               # Runtime logs — gitignore
 ❌ .harness/packages/           # Package cache — gitignore
 ❌ ~/.harness/                  # Local installation — KHÔNG BAO GIỜ commit
@@ -310,6 +316,7 @@ Thêm vào file `.gitignore` ở root của project:
 
 ```gitignore
 # Harness runtime files
+.harness/run/
 .harness/logs/
 .harness/packages/
 ```

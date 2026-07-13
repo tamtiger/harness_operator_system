@@ -1,6 +1,6 @@
 {
   "name": "harness-operator-system",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "Harness Operator System",
   "main": "src/shared/index.ts",
   "bin": {

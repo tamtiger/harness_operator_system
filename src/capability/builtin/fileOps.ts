@@ -40,6 +40,7 @@ export class FileReadCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     const content = this.persistence.read(root, input.path);
     return { content };
@@ -83,6 +84,7 @@ export class FileWriteCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     this.persistence.write(root, input.path, input.content);
     return { success: true };
@@ -126,6 +128,7 @@ export class FileAppendCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     let existing = '';
     try {
@@ -172,6 +175,7 @@ export class FileDeleteCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     this.persistence.deleteFile(root, input.path);
     return { success: true };
@@ -214,6 +218,7 @@ export class FileExistsCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     return { exists: this.persistence.existsFile(root, input.path) };
   }
@@ -259,6 +264,7 @@ export class FileListCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.directory);
     const root = this.getRepoRoot(context);
     const entries = this.persistence.listDir(root, input.directory);
     const files = entries.filter(e => e.type === 'file').map(e => e.name);
@@ -303,6 +309,8 @@ export class FileMoveCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.source);
+    this.validatePath(context, input.destination);
     const root = this.getRepoRoot(context);
     this.persistence.moveFile(root, input.source, input.destination);
     return { success: true };
@@ -346,6 +354,8 @@ export class FileCopyCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.source);
+    this.validatePath(context, input.destination);
     const root = this.getRepoRoot(context);
     this.persistence.copyFile(root, input.source, input.destination);
     return { success: true };
@@ -390,6 +400,7 @@ export class DirCreateCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     this.persistence.mkDir(root, input.path, input.recursive ?? true);
     return { success: true };
@@ -433,6 +444,7 @@ export class DirDeleteCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     this.persistence.rmDir(root, input.path, input.recursive ?? true);
     return { success: true };
@@ -485,6 +497,7 @@ export class DirListCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     const entries = this.persistence.listDir(root, input.path);
     return { entries };
@@ -527,6 +540,7 @@ export class DirExistsCapability extends BaseCapability {
   }
 
   async execute(context: RuntimeContext, input: any): Promise<any> {
+    this.validatePath(context, input.path);
     const root = this.getRepoRoot(context);
     return { exists: this.persistence.existsDir(root, input.path) };
   }

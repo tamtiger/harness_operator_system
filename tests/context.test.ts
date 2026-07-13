@@ -94,7 +94,45 @@ describe('M3 Context Builder Pipeline', () => {
           }
         ],
         hooks: [],
-        capabilities: []
+        capabilities: [],
+        skills: [
+          {
+            metadata: {
+              id: 'skill-1',
+              type: AssetType.SKILL,
+              version: '1.0.0',
+              name: 'Feature Skill',
+              scope: AssetScope.LOCAL,
+              updatedAt: new Date().toISOString()
+            } as any,
+            triggers: ['feature-dev'],
+            content: 'Feature skill content'
+          },
+          {
+            metadata: {
+              id: 'skill-any',
+              type: AssetType.SKILL,
+              version: '1.0.0',
+              name: 'Generic Skill',
+              scope: AssetScope.LOCAL,
+              updatedAt: new Date().toISOString()
+            } as any,
+            triggers: ['any'],
+            content: 'Generic skill content'
+          },
+          {
+            metadata: {
+              id: 'skill-other',
+              type: AssetType.SKILL,
+              version: '1.0.0',
+              name: 'Other Skill',
+              scope: AssetScope.LOCAL,
+              updatedAt: new Date().toISOString()
+            } as any,
+            triggers: ['other-type'],
+            content: 'Other skill content'
+          }
+        ]
       },
       buildTimestamp: ''
     };
@@ -202,6 +240,44 @@ describe('M3 Context Builder Pipeline', () => {
       const runtime = builder.build(mockContext, mockRequest);
       expect(Object.isFrozen(runtime)).toBe(true);
       expect(Object.isFrozen(runtime.rankedRules)).toBe(true);
+    });
+  });
+
+  describe('Skills Injection & Budgeting', () => {
+    const filterer = new ContextFilter();
+    const allocator = new BudgetAllocator();
+
+    it('should match skills with matching triggers or any', () => {
+      const request: TaskRequest = {
+        id: 'req-2',
+        taskType: 'feature-dev',
+        description: 'implement a skill asset',
+        tags: [],
+        workingDirectory: '.'
+      };
+
+      const filtered = filterer.filter(mockContext, request);
+      expect(filtered.assets.skills.length).toBe(2);
+      expect(filtered.assets.skills.map(s => s.metadata.id)).toContain('skill-1');
+      expect(filtered.assets.skills.map(s => s.metadata.id)).toContain('skill-any');
+      expect(filtered.assets.skills.map(s => s.metadata.id)).not.toContain('skill-other');
+    });
+
+    it('should allocate skills token budgets correctly and inject into context', () => {
+      const request: TaskRequest = {
+        id: 'req-3',
+        taskType: 'feature-dev',
+        description: 'implement a skill asset',
+        tags: [],
+        workingDirectory: '.'
+      };
+
+      const filtered = filterer.filter(mockContext, request);
+      const runtime = allocator.allocate(filtered);
+
+      expect(runtime.injectedSkills).toBeDefined();
+      expect(runtime.injectedSkills!.length).toBe(2);
+      expect(runtime.budget.allocated.skills).toBeGreaterThan(0);
     });
   });
 });

@@ -107,7 +107,7 @@ export class DiagnosticsEngine {
     try {
       const rootMeta = { path: this.rootPath, hasGit: false, discoveredAt: '' };
       const manifest = this.repoService.loadManifest(rootMeta);
-      let sharedAssets: AssetCollection = { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [] };
+      let sharedAssets: AssetCollection = { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [], skills: [] };
       try {
         sharedAssets = this.repoService.loadSharedAssets(path.join(this.sharedPath, 'shared'));
       } catch (e) {

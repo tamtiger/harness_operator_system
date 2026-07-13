@@ -38,7 +38,8 @@ import {
 
 import {
   aiCompleteDef, AICompleteCapability,
-  aiEmbedDef, AIEmbedCapability
+  aiEmbedDef, AIEmbedCapability,
+  aiSubagentDef, AISubagentCapability
 } from './aiOps';
 
 import {
@@ -89,6 +90,7 @@ export function registerBuiltins(registry: CapabilityRegistry, deps: BuiltinDeps
   // AI Ops
   registry.register(aiCompleteDef, new AICompleteCapability());
   registry.register(aiEmbedDef, new AIEmbedCapability());
+  registry.register(aiSubagentDef, new AISubagentCapability());
 
   // Repo Ops
   registry.register(repoReadAssetDef, new RepoReadAssetCapability());

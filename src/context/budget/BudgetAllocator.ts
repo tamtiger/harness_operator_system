@@ -1,6 +1,6 @@
 import { RepositoryContext, RuntimeContext } from '../../shared/types/repository';
 import { ctxError } from '../../shared/errors/factories';
-import { Asset } from '../../shared/types/assets';
+import { Asset, SkillAsset } from '../../shared/types/assets';
 import { Permission } from '../../shared/types/enums';
 
 export interface BudgetConfig {
@@ -12,6 +12,7 @@ export interface BudgetConfig {
     prompts: number;
     workflows: number;
     metadata: number;
+    skills?: number;
   };
 }
 
@@ -19,12 +20,13 @@ export class BudgetAllocator {
   allocate(context: RepositoryContext, config: BudgetConfig = {}): RuntimeContext {
     const totalTokens = config.total_tokens || 10000;
     const strategy = config.strategy || 'priority_trim';
-    const dist = config.distribution || {
-      rules: 0.30,
-      knowledge: 0.40,
-      prompts: 0.15,
-      workflows: 0.10,
-      metadata: 0.05
+    const dist = {
+      rules: config.distribution?.rules ?? 0.25,
+      knowledge: config.distribution?.knowledge ?? 0.35,
+      prompts: config.distribution?.prompts ?? 0.15,
+      workflows: config.distribution?.workflows ?? 0.10,
+      skills: config.distribution?.skills ?? 0.10,
+      metadata: config.distribution?.metadata ?? 0.05
     };
 
     // Calculate limit per asset type
@@ -33,6 +35,7 @@ export class BudgetAllocator {
       knowledge: Math.floor(totalTokens * dist.knowledge),
       prompts: Math.floor(totalTokens * dist.prompts),
       workflows: Math.floor(totalTokens * dist.workflows),
+      skills: Math.floor(totalTokens * dist.skills),
       metadata: Math.floor(totalTokens * dist.metadata)
     };
 
@@ -43,6 +46,7 @@ export class BudgetAllocator {
       knowledge: 0,
       prompts: 0,
       workflows: 0,
+      skills: 0,
       metadata: 0
     };
 
@@ -70,11 +74,12 @@ export class BudgetAllocator {
     const finalRules = trimOrLimit(context.assets.rules, limits.rules, 'rules');
     const finalKnowledge = trimOrLimit(context.assets.knowledge, limits.knowledge, 'knowledge');
     const finalWorkflows = trimOrLimit(context.assets.workflows, limits.workflows, 'workflows');
+    const finalSkills = trimOrLimit(context.assets.skills || [], limits.skills, 'skills');
 
     // Consume metadata slot: estimate from metadata fields
     allocated.metadata = estimateTokens(JSON.stringify(context.metadata));
 
-    const totalUsed = allocated.rules + allocated.knowledge + allocated.prompts + allocated.workflows + allocated.metadata;
+    const totalUsed = allocated.rules + allocated.knowledge + allocated.prompts + allocated.workflows + allocated.skills + allocated.metadata;
 
     const runtimeContext: RuntimeContext = {
       ...context,
@@ -86,13 +91,15 @@ export class BudgetAllocator {
           knowledge: allocated.knowledge,
           prompts: allocated.prompts,
           workflows: allocated.workflows,
-          metadata: allocated.metadata
+          metadata: allocated.metadata,
+          skills: allocated.skills
         },
         remaining: totalTokens - totalUsed
       },
       rankedRules: finalRules,
       relevantKnowledge: finalKnowledge,
       activeWorkflow: finalWorkflows[0] || null,
+      injectedSkills: finalSkills,
       availableCapabilities: context.assets.capabilities.map(c => c.metadata.id),
       permissions: [
         Permission.READ_FILE,

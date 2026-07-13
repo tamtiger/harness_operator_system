@@ -5,7 +5,8 @@ export enum AssetType {
   WORKFLOW = 'workflow',
   KNOWLEDGE = 'knowledge',
   HOOK = 'hook',
-  CAPABILITY = 'capability'
+  CAPABILITY = 'capability',
+  SKILL = 'skill'
 }
 
 export enum AssetScope {

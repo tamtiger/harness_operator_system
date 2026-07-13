@@ -84,6 +84,11 @@ export interface CapabilityDefinition extends Asset {
   idempotent?: boolean;
 }
 
+export interface SkillAsset extends Asset {
+  triggers: string[];
+  workflows?: string[];
+}
+
 export interface AssetCollection {
   rules: Rule[];
   prompts: Prompt[];
@@ -92,6 +97,7 @@ export interface AssetCollection {
   knowledge: Knowledge[];
   hooks: Hook[];
   capabilities: CapabilityDefinition[];
+  skills: SkillAsset[];
 }
 
 export type EffectiveAssetCollection = Readonly<AssetCollection>;

@@ -67,3 +67,25 @@ export interface CancelResult {
   status: 'CANCELLED';
   cancelledAt: ISO8601;
 }
+
+export interface WorkflowPhase {
+  name: string;
+  skills: string[];
+  optional: boolean;
+  human_gate: boolean;
+  completed: boolean;
+  completedAt?: string;
+}
+
+export interface WorkflowSession {
+  id: string;
+  workflowId: string;
+  taskDescription: string;
+  status: 'active' | 'completed' | 'failed';
+  currentPhase: string;
+  phases: WorkflowPhase[];
+  createdAt: string;
+  updatedAt: string;
+  planPath?: string;
+  brainstormContent?: string;
+}

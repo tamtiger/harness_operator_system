@@ -2,6 +2,71 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.16] - 2026-07-13
+
+### Added
+- **Phase 1: Skill Asset Type**:
+  - Hỗ trợ loại tài nguyên `skill` chính thức trong hệ thống Harness.
+  - Thêm interface `SkillAsset` và cập nhật cấu trúc `AssetCollection`.
+  - Hỗ trợ load và tự động phát hiện `skill` assets từ `.harness/skills/` và `~/.harness/shared/skills/`.
+  - Cập nhật data models trong tài liệu `02_ASSET_MODEL.md` và `11_DATA_MODELS.md`.
+  - Thêm 3 pilot skills (`harness-context-first`, `verify-before-done`, `governance-checkpoint`).
+  - Thêm unit tests kiểm tra việc load skill assets và parsing triggers/workflows.
+- **Phase 2: Context Enhancement - Skills Injection**:
+  - Hỗ trợ tiêm các kỹ năng phù hợp (`injectedSkills`) vào `RuntimeContext` dựa vào bộ lọc triggers hoặc tag trùng khớp.
+  - Phân chia tài nguyên bộ nhớ token với 10% mặc định cho kỹ năng (`skills` budget).
+  - Tự động hóa việc phân loại `taskType` và trích xuất thẻ nhãn từ mô tả nhiệm vụ thay vì hardcode trong CLI.
+  - Hỗ trợ tham số `--skills` cho lệnh `harness context` giúp xem chi tiết các kỹ năng được kích hoạt.
+  - Thêm các unit tests kiểm tra cơ chế lọc triggers và phân bổ token budget của kỹ năng trong `tests/context.test.ts`.
+- **Phase 3: CLI Expansion - Workflow & Skill Commands**:
+  - Thêm lệnh `harness workflow list` hiển thị danh sách tất cả các workflows khả dụng trong hệ thống.
+  - Thêm lệnh `harness skill list` liệt kê danh sách kỹ năng kèm mô tả và triggers hoạt động.
+  - Thêm lệnh `harness skill show <skill-id>` hiển thị toàn bộ nội dung markdown chi tiết của một kỹ năng được chỉ định.
+  - Cập nhật thông tin hướng dẫn sử dụng các lệnh mới này trong thông điệp trợ giúp (`helpText`) của CLI.
+  - Bổ sung unit tests kiểm thử hoạt động của các câu lệnh CLI này trong `tests/cli.test.ts`.
+- **Phase 4: Planner - Task Decomposition**:
+  - Triển khai thành phần `Planner` tại `src/execution/planner/Planner.ts` hỗ trợ tương tác brainstorm qua TTY và tự động tạo kế hoạch mẫu.
+  - Tự động sinh thư mục quản lý phiên chạy (`session`) tại `.harness/run/run-{timestamp}/` chứa `session.json`, `plan.md`, `brainstorm.md`.
+  - Định nghĩa kiểu dữ liệu `WorkflowPhase` và `WorkflowSession` trong `src/shared/types/execution.ts` và đặc tả cấu trúc dữ liệu tại `knowledge_base/11_DATA_MODELS.md`.
+  - Cung cấp các workflow templates mặc định gồm `feature-dev.yaml` và `bug-fix.yaml`.
+  - Cập nhật lệnh `harness run` để tích hợp Planner, hỗ trợ tham số `--no-brainstorm` để tắt tương tác và `--dry-run` để hiển thị kế hoạch mà không thực thi.
+  - Bổ sung unit tests cho Planner trong `tests/planner.test.ts`.
+- **Phase 5: Runtime - Execution Lifecycle**:
+  - Cập nhật lớp `ExecutionRuntime` tại `src/execution/runtime/ExecutionRuntime.ts` để tự động phát hiện phiên chạy (`session`) gần nhất từ thư mục `.harness/run/`.
+  - Cập nhật trạng thái pha chạy (`execute` và `validate` phase) cũng như cập nhật trạng thái session (`completed`/`failed`) trực tiếp vào file `session.json`.
+  - Thêm unit tests kiểm tra chuyển đổi phase và đồng bộ trạng thái thực thi trong `tests/runtime-lifecycle.test.ts`.
+- **Phase 6: Capability - Context Gateway & Sandbox**:
+  - Bổ sung phương thức `validatePath` vào lớp cơ sở `BaseCapability` trong `src/capability/registry/types.ts` để kiểm tra ranh giới thư mục làm việc bằng `isWithinBoundary`.
+  - Áp dụng kiểm tra ranh giới đường dẫn cho toàn bộ các capabilities thao tác tệp và thư mục trong `src/capability/builtin/fileOps.ts` chống lại lỗ hổng path traversal.
+  - Bổ sung unit tests cho cơ chế sandboxing trong `tests/sandbox.test.ts`.
+- **Phase 7: Runtime - Subagent Orchestrator & AIOps**:
+  - Triển khai capability `harness.ai.subagent` trong `src/capability/builtin/aiOps.ts` để gửi yêu cầu cho AI Subagent.
+  - Hỗ trợ in-process fallback execution khi chạy cục bộ hoặc thiếu kết nối MCP để đảm bảo tính ổn định của luồng xử lý.
+  - Đăng ký capability mới trong `src/capability/builtin/index.ts`.
+  - Cập nhật số lượng built-in capabilities và bổ sung unit tests trong `tests/aiops.test.ts`.
+- **Phase 8: Runtime - Step Concurrency Engine**:
+  - Thiết kế giải thuật phân lớp topo (layered topological execution) cho luồng thực thi trong `ExecutionRuntime.ts`.
+  - Hỗ trợ chạy song song đồng thời các bước độc lập (không có ràng buộc `dependsOn` chéo nhau) sử dụng `Promise.all()`.
+  - Đảm bảo thực thi tuần tự các bước phụ thuộc sau khi các lớp phụ thuộc trước đó hoàn tất.
+  - Bổ sung unit tests kiểm chứng hoạt động song song của concurrency engine trong `tests/concurrency-engine.test.ts`.
+- **Phase 9: Governance - Proposal Status Automation & Review Locks**:
+  - Tối ưu hóa cơ chế khóa bình duyệt (review lock) trong `ApprovalEngine.ts` và `ReviewManager.ts`.
+  - Hỗ trợ cơ chế tự động ghi đè khóa bình duyệt (lock override) khi thời gian giữ khóa vượt quá 30 phút.
+  - Đảm bảo tính toàn vẹn trạng thái phê duyệt/từ chối/yêu cầu thay đổi của proposal và ghi nhận đầy đủ lịch sử hoạt động vào audit logs.
+  - Bổ sung unit tests cho cơ chế quản lý khóa bình duyệt và hết hạn trong `tests/governance-locks.test.ts`.
+- **Phase 10: Validation - Conformance Suite & Level-3 compliance**:
+  - Chạy và kiểm chứng thành công toàn bộ bộ conformance test suite gồm 30 kiểm tra chất lượng (TC-01 đến TC-30).
+  - Đảm bảo hệ thống đạt mức tuân thủ cao nhất Level-3 Compliance tự động qua báo cáo conformance report.
+- **Phase 11: Adapters - Multi-platform CLI & MCP Server**:
+  - Xác thực cấu trúc định tuyến lệnh trong `src/adapters/cli/index.ts` và tích hợp các công cụ giao tiếp MCP trong `src/adapters/mcp/server.ts`.
+  - Đảm bảo tất cả các yêu cầu từ CLI và MCP server đều được chuyển tiếp chính xác đến PlatformService.
+- **Skills Expansion**:
+  - Bổ sung đầy đủ các tệp cấu hình skill còn thiếu trong `src/shared/skills/` gồm `brainstorm-before-code.md`, `plan-before-implement.md`, `tdd-red-green-refactor.md`, và `subagent-per-task.md` tương thích với cơ chế lập kế hoạch của Planner.
+
+### Fixed
+- **CLI Test Suite Fix**: Sửa lỗi kiểm kiểm thử `proposal submit and approve should work` trong `cli.test.ts` bị thiếu bước khởi tạo repository và mock draft proposal.
+- **Asset Loading Extra Properties**: Khắc phục lỗi thiếu thuộc tính tùy chỉnh (như `priority`, `triggers`, `workflows`) trên đối tượng asset ngoài sau khi validate metadata.
+
 ## [0.0.15] - 2026-07-13
 
 ### Added

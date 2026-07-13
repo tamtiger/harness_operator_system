@@ -18,6 +18,9 @@ import { runProposalPromote } from './commands/proposal/promote';
 import { runProposalRequestChanges } from './commands/proposal/request-changes';
 import { runMcpServer } from './commands/mcp-server';
 import { runConformance } from './commands/conformance';
+import { runWorkflowList } from './commands/workflow/list';
+import { runSkillList } from './commands/skill/list';
+import { runSkillShow } from './commands/skill/show';
 import { getPackageVersion } from '../../platform/service';
 
 // Ctrl+C Handler
@@ -33,6 +36,8 @@ const options: any = {
   quiet: args.includes('--quiet') || args.includes('-q'),
   json: args.includes('--json'),
   noColor: args.includes('--no-color') || !!process.env.HARNESS_NO_COLOR,
+  noBrainstorm: args.includes('--no-brainstorm'),
+  dryRun: args.includes('--dry-run'),
   cwd: '',
   harnessHome: ''
 };
@@ -49,7 +54,7 @@ if (homeIndex !== -1 && args[homeIndex + 1]) {
 
 // Clean args of global options
 const cleanArgs = args.filter((arg, idx) => {
-  if (arg === '--verbose' || arg === '--quiet' || arg === '-q' || arg === '--json' || arg === '--no-color') {
+  if (arg === '--verbose' || arg === '--quiet' || arg === '-q' || arg === '--json' || arg === '--no-color' || arg === '--no-brainstorm' || arg === '--dry-run') {
     return false;
   }
   if (arg === '--cwd' || (idx > 0 && args[idx - 1] === '--cwd')) {
@@ -79,6 +84,9 @@ Usage:
   harness proposal list [--status status] [--type type]
   harness proposal submit <asset-id>
   harness proposal approve <proposal-id>
+  harness workflow list
+  harness skill list
+  harness skill show <skill-id>
 `;
 
 if (command === 'version') {
@@ -100,7 +108,8 @@ if (command === 'version') {
 } else if (command === 'context') {
   const taskIndex = args.indexOf('--task');
   const task = taskIndex !== -1 && args[taskIndex + 1] ? args[taskIndex + 1] : 'default';
-  runContext({ task, ...options });
+  const skills = args.includes('--skills');
+  runContext({ task, skills, ...options });
 } else if (command === 'capability' && cleanArgs[1] === 'list') {
   runCapabilities(options);
 } else if (command === 'run') {
@@ -184,6 +193,25 @@ if (command === 'version') {
   }
 } else if (command === 'conformance' && cleanArgs[1] === 'run') {
   runConformance(options);
+} else if (command === 'workflow') {
+  const subCommand = cleanArgs[1];
+  if (subCommand === 'list') {
+    runWorkflowList(options);
+  } else {
+    console.error(`✗ Unknown workflow subcommand: ${subCommand}`);
+    process.exit(2);
+  }
+} else if (command === 'skill') {
+  const subCommand = cleanArgs[1];
+  if (subCommand === 'list') {
+    runSkillList(options);
+  } else if (subCommand === 'show') {
+    const id = cleanArgs[2];
+    runSkillShow(id, options);
+  } else {
+    console.error(`✗ Unknown skill subcommand: ${subCommand}`);
+    process.exit(2);
+  }
 } else {
   console.log(helpText);
   process.exit(1);

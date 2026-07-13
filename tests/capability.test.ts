@@ -57,9 +57,9 @@ describe('M4 Capability Registry & Invocation', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('should list all 27 built-in capabilities', () => {
+  it('should list all 28 built-in capabilities', () => {
     const list = service.list();
-    expect(list.length).toBe(27);
+    expect(list.length).toBe(28);
   });
 
   it('should invoke harness.file.write and harness.file.read correctly', async () => {

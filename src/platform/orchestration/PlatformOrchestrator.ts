@@ -68,7 +68,7 @@ export class PlatformOrchestrator {
     const root = this.repo.discover(this.rootPath!);
     const manifest = this.repo.loadManifest(root);
     
-    let shared: AssetCollection = { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [] };
+    let shared: AssetCollection = { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [], skills: [] };
     try {
       shared = this.repo.loadSharedAssets(path.join(this.sharedPath!, 'shared'));
     } catch (e) {

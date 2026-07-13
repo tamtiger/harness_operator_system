@@ -310,6 +310,7 @@ Deliverables:
 **Validation criteria:**
 - `harness run "implement X"` correctly classified as feature-dev
 - `harness run "fix bug Y"` correctly classified as bug-fix
+- `classify()` handles ambiguous descriptions with user confirmation (interactive) or 'unclassified' return (non-interactive)
 - Skills loaded and present in execution context
 - Workflow template phases followed in order
 - Human gates pause for confirmation
@@ -334,6 +335,13 @@ Deliverables:
 - State survives process restart
 - Progress ledger survives context compaction (it's a file)  
 **Complexity:** Medium (3-4 days)
+
+**Cleanup policy cho `.harness/run/`:**
+- TTL: Sessions status='done' hoặc 'failed' older than 7 days → auto-deleted by `harness doctor`
+- Max sessions: Keep max 10 recent sessions. Khi exceed → delete oldest completed.
+- Git: Thêm `.harness/run/` vào `.gitignore` recommendation trong `harness init`
+- Manual: `harness run --clean` để xoá tất cả completed sessions
+- Size estimate: ~5-50KB per session (plan + progress + spec), tối đa ~500KB cho 10 sessions
 
 **Progress Ledger format** (`.harness/run/<session-id>/progress.md`):
 ```markdown
@@ -407,7 +415,7 @@ Resume rule: `WorkflowEngine.resume()` reads ledger → skips `[x]` tasks → co
 **Risks:** Low  
 **Validation criteria:**
 - All 5 new tools registered and functional
-- `harness_run` updated with `workflow` and `dry_run` params
+- `harness_run` updated with `workflow`, `dry_run`, and `no_brainstorm` params
 - MCP conformance test updated to cover new tools
 - Existing 4 tools unaffected  
 **Complexity:** Low-Medium (2-3 days)
@@ -429,6 +437,21 @@ Resume rule: `WorkflowEngine.resume()` reads ledger → skips `[x]` tasks → co
 - Conformance suite updated with 10+ new workflow scenarios
 - `harness conformance run` 40/40 (30 existing + 10 new)  
 **Complexity:** Medium (3-4 days)
+
+**New workflow conformance test cases:**
+
+| ID | Test | Expected |
+|----|------|----------|
+| TC-31 | classify("implement user auth") | returns 'feature-dev', confidence ≥ 0.7 |
+| TC-32 | classify("fix login crash") | returns 'bug-fix', confidence ≥ 0.7 |
+| TC-33 | classify("ambiguous task text") | returns 'unclassified' or prompts user |
+| TC-34 | WorkflowEngine loads feature-dev template | template has ≥3 phases |
+| TC-35 | Planner generates plan with TDD steps | plan.md contains test-first steps |
+| TC-36 | --no-brainstorm skips interactive | no user prompts in output |
+| TC-37 | --dry-run previews plan without executing | no side effects, plan printed |
+| TC-38 | Progress ledger written after task | progress.md contains [x] entry |
+| TC-39 | harness run --resume skips completed | only [ ] tasks executed |
+| TC-40 | Workflow session state transitions | PLANNING→EXECUTING→REVIEWING→DONE valid |
 
 **Exit criteria:** harness run "add capability" suggests proposal • harness conformance run → ≥40/40 (30 existing + ≥10 new workflow scenarios)
 

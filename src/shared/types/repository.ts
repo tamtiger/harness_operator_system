@@ -5,7 +5,7 @@ export interface RepositoryRoot {
   hasGit: boolean;
   discoveredAt: string;
 }
-import { EffectiveAssetCollection, Rule, Knowledge, Workflow } from './assets';
+import { EffectiveAssetCollection, Rule, Knowledge, Workflow, SkillAsset } from './assets';
 import { ADR } from './governance';
 import { Permission } from './enums';
 
@@ -94,6 +94,7 @@ export interface BudgetAllocation {
     prompts: number;
     workflows: number;
     metadata: number;
+    skills?: number;
   };
   remaining: number;
 }
@@ -107,4 +108,5 @@ export interface RuntimeContext extends RepositoryContext {
   availableCapabilities: CapabilityId[];
   permissions?: Permission[];
   agentsMd?: string;
+  injectedSkills?: SkillAsset[];
 }

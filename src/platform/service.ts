@@ -107,7 +107,7 @@ export class PlatformServiceImpl implements PlatformService {
     const root = this.orchestrator.repo.discover(this.orchestrator.rootPath);
     const manifest = this.orchestrator.repo.loadManifest(root);
 
-    let sharedAssets: AssetCollection = { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [] };
+    let sharedAssets: AssetCollection = { rules: [], prompts: [], templates: [], workflows: [], knowledge: [], hooks: [], capabilities: [], skills: [] };
     let sharedInstalled = false;
     let sharedVersion = 'unknown';
     try {
@@ -146,6 +146,7 @@ export class PlatformServiceImpl implements PlatformService {
         knowledge: makeEntry('knowledge'),
         hooks: makeEntry('hooks'),
         capabilities: makeEntry('capabilities'),
+        skills: makeEntry('skills'),
       }
     };
   }

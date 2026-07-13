@@ -1,6 +1,6 @@
 import { RepositoryContext } from '../../shared/types/repository';
 import { TaskRequest } from '../../shared/types/execution';
-import { Rule, Knowledge, Workflow, Prompt } from '../../shared/types/assets';
+import { Rule, Knowledge, Workflow, Prompt, SkillAsset } from '../../shared/types/assets';
 
 export interface FilterConfig {
   min_confidence?: 'high' | 'medium' | 'low';
@@ -83,6 +83,24 @@ export class ContextFilter {
     // Keep all prompts and capabilities for now (not filtered unless deprecated)
     const filteredPrompts = context.assets.prompts.filter((p: Prompt) => includeDeprecated || !p.metadata.deprecated);
 
+    // Filter skills based on trigger match
+    const filteredSkills = (context.assets.skills || []).filter((skill: SkillAsset) => {
+      if (!includeDeprecated && skill.metadata.deprecated) {
+        return false;
+      }
+      const triggers = skill.triggers || [];
+      if (triggers.includes('any')) {
+        return true;
+      }
+      if (request.taskType && triggers.includes(request.taskType)) {
+        return true;
+      }
+      if (request.tags && request.tags.some(tag => triggers.includes(tag))) {
+        return true;
+      }
+      return false;
+    });
+
     return {
       ...context,
       assets: {
@@ -90,7 +108,8 @@ export class ContextFilter {
         rules: filteredRules,
         knowledge: filteredKnowledge,
         workflows: filteredWorkflows,
-        prompts: filteredPrompts
+        prompts: filteredPrompts,
+        skills: filteredSkills
       }
     };
   }

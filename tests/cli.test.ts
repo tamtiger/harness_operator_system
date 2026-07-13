@@ -14,6 +14,9 @@ import { runProposalList } from '../src/adapters/cli/commands/proposal/list';
 import { runProposalSubmit } from '../src/adapters/cli/commands/proposal/submit';
 import { runProposalApprove } from '../src/adapters/cli/commands/proposal/approve';
 import { runTask } from '../src/adapters/cli/commands/run';
+import { runWorkflowList } from '../src/adapters/cli/commands/workflow/list';
+import { runSkillList } from '../src/adapters/cli/commands/skill/list';
+import { runSkillShow } from '../src/adapters/cli/commands/skill/show';
 import { OutputFormatter } from '../src/adapters/cli/formatter/OutputFormatter';
 import { ErrorFormatter } from '../src/adapters/cli/formatter/ErrorFormatter';
 import { HarnessError } from '../src/shared/errors/HarnessError';
@@ -155,6 +158,56 @@ artifacts:
     });
 
     it('proposal submit and approve should work', async () => {
+      await runInit(tempDir);
+      
+      // Create draft proposal with ID 'rule-1'
+      const proposalDir = path.join(tempDir, '.harness', 'proposals');
+      fs.mkdirSync(proposalDir, { recursive: true });
+      const proposalContent = `---
+id: "rule-1"
+title: "Publish asset rule-1"
+type: "new_asset"
+status: "DRAFT"
+author: "ai-agent"
+createdAt: "2026-07-13T12:00:00Z"
+updatedAt: "2026-07-13T12:00:00Z"
+targetAsset: "rule-1"
+reviewers: ""
+lockedBy: ""
+lockedAt: ""
+approvedAt: ""
+promotedAt: ""
+tags: ""
+---
+
+## Description
+Publish rule-1 description
+
+## Rationale
+Rationale for rule-1
+
+## Evidence
+[
+  {
+    "id": "ev-1",
+    "type": "human_observation",
+    "source": "cli",
+    "content": "good",
+    "timestamp": "2026-07-13T12:00:00Z"
+  }
+]
+
+## Comments
+[]
+
+## Proposed Content
+\`\`\`yaml
+type: rule
+id: rule-1
+\`\`\`
+`;
+      fs.writeFileSync(path.join(proposalDir, 'rule-1.md'), proposalContent, 'utf8');
+
       await runProposalSubmit('rule-1', { cwd: tempDir, quiet: false, noColor: true, evidence: 'log-1' });
       expect(exitSpy).toHaveBeenCalledWith(0);
       
@@ -166,6 +219,34 @@ artifacts:
       expect(exitSpy).toHaveBeenLastCalledWith(0);
 
       await runProposalList({ cwd: tempDir, quiet: true, noColor: true });
+      expect(exitSpy).toHaveBeenLastCalledWith(0);
+    });
+
+    it('workflow list should succeed', async () => {
+      await runInit(tempDir);
+      await runWorkflowList({ cwd: tempDir });
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+
+    it('skill list and show should succeed', async () => {
+      await runInit(tempDir);
+      // Create a mock skill file
+      const skillDir = path.join(tempDir, '.harness', 'skills');
+      fs.mkdirSync(skillDir, { recursive: true });
+      fs.writeFileSync(path.join(skillDir, 'test-skill.md'), `---
+id: test-skill
+type: skill
+name: Test Skill
+version: 1.0.0
+scope: local
+triggers: [implementation]
+---
+Test Skill Body`, 'utf8');
+
+      await runSkillList({ cwd: tempDir });
+      expect(exitSpy).toHaveBeenCalledWith(0);
+
+      await runSkillShow('test-skill', { cwd: tempDir });
       expect(exitSpy).toHaveBeenLastCalledWith(0);
     });
   });

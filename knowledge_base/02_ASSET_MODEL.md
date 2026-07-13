@@ -60,7 +60,8 @@ Asset
 │   ├── Template                (khuôn mẫu tài liệu/code)
 │   ├── Workflow                (luồng thực thi nhiều bước)
 │   ├── Knowledge               (tri thức miền/nghiệp vụ)
-│   └── Hook                    (móc nối sự kiện)
+│   ├── Hook                    (móc nối sự kiện)
+│   └── Skill                   (quy trình xử lý hành vi)
 └── Executable Assets           (thực thi được, có input/output contract)
     └── Capability              (khả năng cụ thể của hệ thống)
 ```
@@ -363,6 +364,42 @@ Tự động tạo backup của file trước khi ghi đè.
 - Tạo file `.bak` trong thư mục `.harness/backups/`
 - Giữ tối đa 5 phiên bản backup
 - Log đường dẫn backup vào audit trail
+```
+
+---
+
+### 4.7 Skill
+
+**Định nghĩa:** Skill là tài liệu chỉ dẫn hành vi và quy trình làm việc cho AI Agent dưới dạng markdown có kèm cấu hình frontmatter. Khác với Rule (mang tính ràng buộc), Skill mang tính quy trình (how-to) hướng dẫn các bước thực hiện.
+
+**Đặc điểm:**
+- `triggers` xác định loại workflow mà skill sẽ tự động áp dụng (ví dụ: `feature-dev`, `bug-fix`, `refactor`).
+- `workflows` (optional) xác định cụ thể danh sách workflow sử dụng skill này.
+- Được lưu tại `.harness/skills/` hoặc `~/.harness/shared/skills/`.
+
+**Examples:**
+
+| Tên | Mô tả |
+|---|---|
+| `harness-context-first` | Chỉ dẫn nạp context dự án trước khi code |
+| `verify-before-done` | Chỉ dẫn quy trình chạy test và đối chiếu spec trước khi kết thúc |
+| `governance-checkpoint` | Chỉ dẫn AI tự kiểm tra sự thay đổi contract để submit proposal |
+
+**File format:**
+```markdown
+---
+id: harness-context-first
+type: skill
+version: 1.0.0
+name: harness-context-first
+scope: shared
+triggers:
+  - any
+workflows:
+  - feature-dev
+---
+# Harness Context First Skill
+Always load context before performing any task. Use `harness context` to view available assets.
 ```
 
 ---
