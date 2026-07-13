@@ -1,341 +1,272 @@
 # AGENTS.md — Harness Platform
 
-> **Harness Version:** 0.0.15
->
-> **Purpose:** Operational Contract for all AI Agents contributing to the Harness Platform.
->
-> **Scope:** This document applies to the entire Harness repository.
+> **Phiên bản:** 0.0.15 (Spec 4.0)
+> **Mục đích:** Hợp đồng vận hành cho AI Agent đóng góp vào codebase **Harness** (không phải repo dùng Harness).
 
 ---
 
-# 1. Mission
+## 1. Mission
 
-You are contributing to the **Harness Platform**.
-
-Harness is not a normal software project.
-
-It is an **AI-first development platform** whose purpose is to help AI Agents understand repositories, execute work consistently, validate changes, and evolve project knowledge over time.
-
-Your responsibility is not only to write code, but to preserve the consistency between:
-
-- Knowledge
-- Architecture
-- Implementation
-- Validation
-- Governance
-
-Always prioritize long-term maintainability over short-term implementation speed.
+Bạn đang làm việc trong **Harness Operator System** — nền tảng quản lý tri thức AI-native. Trách nhiệm của bạn là giữ nhất quán giữa **Knowledge → Architecture → Implementation → Validation → Governance** ở mọi thời điểm.
 
 ---
 
-# 2. Core Principles
+## 2. Core Principles
 
-Harness follows these principles:
-
-1. **Knowledge First** — Understand repository knowledge before changing code.
-2. **Architecture Before Implementation** — Follow architecture instead of creating new patterns.
-3. **Single Source of Truth** — Knowledge Base defines expected behavior.
-4. **Governance Over Assumptions** — Structural changes require review.
-5. **Continuous Validation** — Every change must be validated before completion.
-
-If implementation conflicts with documentation, treat the Knowledge Base as the authoritative source unless instructed otherwise.
+1. **Knowledge First** — Đọc `knowledge_base/` trước khi sửa code.
+2. **Architecture Before Implementation** — Domain boundaries và dependency rules trong `03_SYSTEM_ARCHITECTURE.md` là bất biến.
+3. **Single Source of Truth** — `knowledge_base/11_DATA_MODELS.md` là SST cho mọi type, DTO, enum.
+4. **Governance Over Assumptions** — Thay đổi cấu trúc cần proposal + human approval trước khi implement.
+5. **Continuous Validation** — Build + test + lint phải pass. Không ngoại lệ.
 
 ---
 
-# 3. Repository Overview
+## 3. Repository Overview
 
-Project:
+### Domains & Planes
 
-Harness Operator System
+| Plane | Domain | Path |
+|---|---|---|
+| Control | Platform | `src/platform/` |
+| Persistence | Repository | `src/repository/` |
+| Persistence | Context | `src/context/` |
+| Runtime | Execution | `src/execution/` |
+| Runtime | Capability | `src/capability/` |
+| Knowledge | Governance | `src/governance/` |
 
-Purpose:
-
-A platform for operating AI Agents through structured knowledge, repository contracts, execution workflows and governance.
-
-Core Domains:
-
-- Platform
-- Repository
-- Context
-- Execution
-- Capability
-- Governance
-
-Entry Point:
-
-Platform Layer
-
----
-
-# 4. Read Order (Knowledge First)
-
-Before implementing any task, read information in the following order:
+### Dependency flow (không được đảo ngược)
 
 ```
-Task
-    │
-    ▼
-Knowledge Base
-    │
-    ▼
-Architecture
-    │
-    ▼
-Related Specifications
-    │
-    ▼
-Implementation Plan
-    │
-    ▼
-Existing Source Code
+Adapters (CLI/MCP) → Platform → Repository/Context/Execution/Governance → Capability → shared/
 ```
 
-Never start implementation before understanding the relevant knowledge.
+### Thư mục quan trọng
 
-Knowledge has higher priority than implementation.
+| Path | Mô tả |
+|---|---|
+| `src/shared/contracts/services.ts` | Tất cả service interfaces (SST cho contracts) |
+| `src/shared/errors/` | HarnessError base + 71 error factory functions |
+| `src/shared/templates/` | AGENTS_TEMPLATE.md, REPOSITORY_MAP_TEMPLATE.md |
+| `src/adapters/cli/index.ts` | CLI entry point — route tất cả commands |
+| `src/adapters/cli/factory.ts` | Tạo PlatformService instance |
+| `src/adapters/mcp/server.ts` | MCP server — 4 tools |
+| `knowledge_base/` | 21 spec files — nguồn sự thật duy nhất |
 
-Priority order:
+---
+
+## 4. Read Order
+
+Trước khi implement bất kỳ task nào, đọc theo thứ tự này:
 
 ```
-Architecture
-    ↓
-Specifications
-    ↓
-Data Models
-    ↓
-Error Model
-    ↓
-Implementation Plan
-    ↓
-Source Code
+1. knowledge_base/00_ARCHITECTURE.md        — tổng quan, planes, concepts
+2. knowledge_base/03_SYSTEM_ARCHITECTURE.md — domain contracts, dependency rules
+3. knowledge_base/<spec liên quan>           — spec chi tiết của domain bị ảnh hưởng
+4. knowledge_base/11_DATA_MODELS.md         — tất cả types/DTOs/enums
+5. implementation_plan/                     — context của milestone
+6. src/                                     — source code thực tế
 ```
 
 ---
 
-# 5. Development Workflow
-
-Every task must follow this workflow.
+## 5. Development Workflow
 
 ```
-Explore
-    │
-    ▼
-Understand
-    │
-    ▼
-Plan
-    │
-    ▼
-Implement
-    │
-    ▼
-Validate
-    │
-    ▼
-Update Knowledge
-    │
-    ▼
-Review
+Explore → Understand → Plan → Implement → Validate → Update Knowledge → Review
 ```
 
-Do not skip any step.
-
-Large architectural changes require Human Approval before implementation.
-
----
-
-# 6. Working with Harness
-
-Harness is a knowledge-driven platform.
-
-Code is only one part of the repository.
-
-Whenever implementation changes, determine whether the following also require updates:
-
-| Changed | Also Update |
-|----------|-------------|
-| Architecture | Architecture Documents |
-| Capability | Capability Specification |
-| Workflow | Workflow Specification |
-| Repository Structure | Repository Specification |
-| Data Model | Data Model Specification |
-| Manifest | Manifest Specification |
-| Rules | Governance Documents |
-| Public Behavior | Documentation |
-| Errors | Error Model |
-
-Implementation and Knowledge must remain synchronized.
+| Bước | Hành động |
+|---|---|
+| **Explore** | Đọc spec liên quan trong `knowledge_base/` |
+| **Understand** | Xác định contract bị thay đổi, type bị ảnh hưởng |
+| **Plan** | Viết plan ngắn cho task không tầm thường; submit proposal nếu là thay đổi cấu trúc |
+| **Implement** | Theo architecture rules, match code style hiện tại, chỉ sửa files trong scope |
+| **Validate** | `npm run build` + `npm run test` + `npm run lint` — tất cả phải pass |
+| **Update Knowledge** | Cập nhật `knowledge_base/` spec nếu behaviour thay đổi; update `CHANGELOG.md` |
+| **Review** | Verify checklist mục 10 |
 
 ---
 
-# 7. Repository Rules
-
-Always:
-
-- Follow `03_SYSTEM_ARCHITECTURE.md`.
-- Preserve package boundaries.
-- Reuse existing capabilities before creating new ones.
-- Keep dependencies unidirectional.
-- Follow the shared Error Model.
-- Keep documentation synchronized.
-- Use relative paths throughout the repository.
-
-Never:
-
-- Break architecture.
-- Introduce cyclic dependencies.
-- Duplicate capabilities.
-- Invent new contracts without specification.
-- Skip validation.
-- Hide validation failures.
-- Remove tests to make builds pass.
-
----
-
-# 8. Harness CLI Workflow
-
-Use Harness CLI throughout development.
-
-Before implementation:
+## 6. CLI Commands (trong quá trình phát triển)
 
 ```bash
+# Trước mỗi session
 harness doctor
+
+# Kiểm tra trạng thái
+harness status [--json]
+
+# Xem context cho task
+harness context --task "implement retry logic"
+
+# Thực thi task
+harness run "validate all built-in capabilities are registered"
+
+# Validate repository
+harness validate [--strict]
+
+# Liệt kê capabilities
+harness capability list
+
+# Chạy conformance suite (bắt buộc trước release)
+harness conformance run
+
+# Khởi tạo test repo
+harness init /tmp/test-repo
+
+# Governance
+harness proposal list
+harness proposal submit <id>
+harness proposal approve <id>    # HUMAN ONLY
 ```
 
-Before review:
+---
+
+## 7. MCP Tools
+
+Khởi động server: `harness mcp-server`
+
+### `harness_run`
+```json
+{ "description": "string (required)", "workflowId": "string (optional)" }
+```
+
+### `harness_validate`
+```json
+{ "root": "string (optional — mặc định: cwd)" }
+```
+
+### `harness_proposal_list`
+```json
+{ "status": "DRAFT|SUBMITTED|REVIEWING|APPROVED|REJECTED|PROMOTED (optional)" }
+```
+
+### `harness_proposal_submit`
+```json
+{ "id": "string (required — ID của draft proposal)" }
+```
+
+> `harness_proposal_approve` **không có trên MCP** — approve là human-only action.
+>
+> **Lưu ý:** Tool `harness_proposal_submit` nhận `id` của proposal đã có sẵn, không phải tạo mới từ content.
+
+---
+
+## 8. Repository Rules
+
+**Always:**
+- Giữ domain boundaries — không import trực tiếp giữa domains
+- Dependency flow một chiều — không đảo ngược
+- Dùng Error Model factory (`src/shared/errors/factories.ts`) cho mọi error
+- Sync `knowledge_base/` với implementation khi behaviour thay đổi
+- Update `CHANGELOG.md` — chỉ latest entry, không sửa history
+- Viết test cho mọi function có observable behaviour
+
+**Never:**
+- Break architecture hoặc tạo circular dependency
+- Tạo type/DTO mới mà không khai báo trong `11_DATA_MODELS.md` trước
+- Skip build/test/lint và claim task done
+- Xóa/disable test để pass build
+- Sửa `.harness/logs/audit.jsonl` trực tiếp
+- Remove capability hoặc CLI command mà không có proposal
+
+---
+
+## 9. Known Issues
+
+| ID | Triệu chứng | Fix direction |
+|---|---|---|
+| **KI-001** | `harness init` tạo AGENTS.md chỉ 3 dòng | Thêm postbuild script copy templates; fix path trong `init.ts` |
+| **KI-002** | `harness version` hiện `v1.0.0` thay vì `0.0.15` | Dùng `getPackageVersion()` helper đã có trong `platform/service.ts` |
+| **KI-003** | `harness init --force` không hoạt động | Parse `--force` trong `index.ts`, skip early exit trong `init.ts` |
+| **KI-004** | `harness install --source/--version` flags không hoạt động | Parse flags trong `index.ts` (dùng pattern của `--status` trong proposal list) |
+| **KI-005** | `harness proposal submit --file` không hoạt động | Implement `--file` parsing, đọc markdown, gọi `submitProposal()` |
+| **KI-006** | `harness context` hardcode tags `['auth','implementation']` | Remove static tags, để context builder filter by relevance |
+| **KI-007** | CLI thiếu `proposal reject/promote/request-changes` | Thêm 3 command mới; `GovernanceService` đã có các method này |
+
+---
+
+## 10. Governance Workflow
+
+```
+Submit → Review (lock 30min) → HUMAN Approve → Promote to Shared
+```
+
+**Cần proposal:** đổi public contract, đổi data model, thêm/xóa capability, đổi CLI/MCP interface, đổi manifest schema.
+
+**Không cần proposal:** fix bugs (KI-001 đến KI-007), refactor nội bộ, thêm test, sửa docs.
 
 ```bash
-harness validate
+harness proposal list                            # xem proposals hiện có
+harness publish .harness/proposals/my.md         # tạo draft từ file
+harness proposal list --status DRAFT             # lấy ID
+harness proposal submit <id>                     # submit
+harness proposal approve <id>                    # HUMAN ONLY
 ```
 
-Check repository status:
+---
+
+## 11. Build & Validation
 
 ```bash
-harness status
-```
-
-When modifying repository knowledge or governance:
-
-```bash
-harness proposal submit --file <proposal.md>
+npm run build    # zero tsc errors
+npm run test     # all vitest tests pass
+npm run lint     # zero ESLint errors
+harness conformance run  # tất cả 30 Level-3 cases phải pass trước release
 ```
 
 ---
 
-# 9. Build & Validation
+## 12. Review Checklist
 
-Before completing any task, ensure:
-
-```bash
-npm run build
-npm run test
-npm run lint
-```
-
-or the equivalent project commands.
-
-Validation requirements:
-
-- Build passes
-- Tests pass
-- Lint passes
-- Documentation updated
-- Knowledge synchronized
-- No architectural violations
+- [ ] Requirement đã thỏa mãn đầy đủ
+- [ ] Domain boundaries được bảo toàn
+- [ ] Dependency flow một chiều
+- [ ] Public contracts không thay đổi (hoặc proposal đã approve)
+- [ ] Types mới có trong `11_DATA_MODELS.md`
+- [ ] Errors mới dùng factory pattern
+- [ ] Tests mới encode *lý do* behaviour quan trọng
+- [ ] `npm run build && npm run test && npm run lint` — tất cả pass
+- [ ] `knowledge_base/` spec cập nhật nếu behaviour thay đổi
+- [ ] `CHANGELOG.md` latest entry cập nhật
 
 ---
 
-# 10. Review Checklist
+## 13. Definition of Done
 
-Verify:
-
-- Requirements satisfied.
-- Architecture preserved.
-- Repository contracts respected.
-- Dependencies remain correct.
-- Performance acceptable.
-- Compatibility preserved.
-- Documentation updated.
-- Tests updated.
-- Knowledge Base synchronized.
+Task hoàn thành **chỉ khi**:
+1. Implementation đúng theo spec
+2. `npm run build` pass — zero TypeScript errors
+3. `npm run test` pass — không có test bị skip
+4. `npm run lint` pass — zero ESLint errors
+5. `knowledge_base/` spec đã cập nhật nếu cần
+6. `CHANGELOG.md` latest entry đã cập nhật
+7. Nếu thay đổi cấu trúc: proposal đã submit và human đã approve trước khi implement
 
 ---
 
-# 11. Definition of Done
+## 14. Decision Authority
 
-A task is complete only when:
+**AI CÓ THỂ (không cần approval):**
+Refactor nội bộ, cải thiện readability, thêm test, fix bugs trong KI-001 đến KI-007, sửa docs/typos.
 
-- Implementation is complete.
-- Validation succeeds.
-- Tests pass.
-- Documentation is updated.
-- Knowledge Base is updated when applicable.
-- Human review is completed for required changes.
+**AI PHẢI XIN APPROVAL TRƯỚC KHI:**
+Đổi `src/shared/contracts/`, đổi domain structure, thêm/xóa built-in capability, đổi CLI public interface, đổi MCP tool schema, thêm npm dependency, đổi manifest schema, break backward compatibility.
 
 ---
 
-# 12. Decision Authority
-
-AI MAY:
-
-- Refactor internal implementation.
-- Improve readability.
-- Improve documentation.
-- Add or improve tests.
-- Optimize implementation without changing observable behavior.
-
-AI MUST REQUEST APPROVAL BEFORE:
-
-- Changing architecture.
-- Changing repository structure.
-- Changing public contracts.
-- Introducing new dependencies.
-- Breaking backward compatibility.
-- Modifying governance rules.
-- Removing existing capabilities.
-
----
-
-# 13. Communication
-
-For non-trivial tasks, always provide:
-
-1. Requirement Analysis
-2. Impact Analysis
-3. Implementation Plan
-4. Validation Results
-5. Summary
-6. Remaining Risks
-7. Suggested Commit Message
-
-Do not perform commits unless explicitly instructed.
-
-Always update the latest entry in `CHANGELOG.md` without modifying historical records.
-
----
-
-# 14. Guiding Principle
-
-Harness is a **Knowledge-Driven Development Platform**.
-
-Your goal is not simply to produce working code.
-
-Your goal is to keep the following layers consistent:
+## 15. Nguyên tắc
 
 ```
-Knowledge
-      │
-      ▼
-Architecture
-      │
-      ▼
-Implementation
-      │
-      ▼
-Validation
-      │
-      ▼
-Governance
+Knowledge (knowledge_base/)
+      ↓
+Architecture (03_SYSTEM_ARCHITECTURE.md)
+      ↓
+Implementation (src/)
+      ↓
+Validation (tests/, conformance)
+      ↓
+Governance (.harness/proposals/, .harness/logs/)
 ```
 
-When uncertain, prefer reading more knowledge over writing more code.
+Khi không chắc chắn → đọc thêm knowledge trước khi viết thêm code.

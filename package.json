@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "postbuild": "node -e \"require('fs').cpSync('src/shared/templates', 'dist/shared/templates', {recursive:true})\"",
     "test": "vitest run",
     "bench": "vitest bench",
     "lint": "eslint src/ tests/ --ext .ts"

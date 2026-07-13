@@ -9,7 +9,7 @@ export async function runContext(options: { task: string; cwd?: string; harnessH
       taskId: 'task-1',
       taskType: 'implementation',
       description: options.task,
-      tags: ['auth', 'implementation'],
+      tags: [],
       workingDirectory: '.'
     });
     const duration = Date.now() - start;

@@ -13,8 +13,12 @@ import { runPublish } from './commands/publish';
 import { runProposalList } from './commands/proposal/list';
 import { runProposalSubmit } from './commands/proposal/submit';
 import { runProposalApprove } from './commands/proposal/approve';
+import { runProposalReject } from './commands/proposal/reject';
+import { runProposalPromote } from './commands/proposal/promote';
+import { runProposalRequestChanges } from './commands/proposal/request-changes';
 import { runMcpServer } from './commands/mcp-server';
 import { runConformance } from './commands/conformance';
+import { getPackageVersion } from '../../platform/service';
 
 // Ctrl+C Handler
 process.on('SIGINT', () => {
@@ -78,13 +82,14 @@ Usage:
 `;
 
 if (command === 'version') {
-  console.log('harness v1.0.0 (spec 4.0)');
+  console.log(`harness v${getPackageVersion()} (spec 4.0)`);
   process.exit(0);
 } else if (command === 'help' || args.includes('--help') || args.includes('-h')) {
   console.log(helpText);
   process.exit(0);
 } else if (command === 'init') {
-  runInit(cleanArgs[1]);
+  const force = args.includes('--force');
+  runInit(cleanArgs[1], { force });
 } else if (command === 'validate') {
   const strict = args.includes('--strict');
   // Strict should be stripped out for target path extraction
@@ -104,8 +109,10 @@ if (command === 'version') {
 } else if (command === 'doctor') {
   runDoctor(options);
 } else if (command === 'install') {
-  const source = cleanArgs[1] || 'https://github.com/my-org/shared-harness.git';
-  const version = cleanArgs[2];
+  const sourceIdx = args.indexOf('--source');
+  const versionIdx = args.indexOf('--version');
+  const source = sourceIdx !== -1 ? args[sourceIdx + 1] : (cleanArgs[1] || 'https://github.com/my-org/shared-harness.git');
+  const version = versionIdx !== -1 ? args[versionIdx + 1] : cleanArgs[2];
   runInstall(source, version, options);
 } else if (command === 'update') {
   const version = cleanArgs[1];
@@ -132,11 +139,13 @@ if (command === 'version') {
     runProposalList({ status, type, ...options });
   } else if (subCommand === 'submit') {
     const id = cleanArgs[2];
-    if (!id) {
-      console.error('✗ Missing required argument: asset id');
+    const fileIdx = args.indexOf('--file');
+    const filePath = fileIdx !== -1 ? args[fileIdx + 1] : undefined;
+    if (!id && !filePath) {
+      console.error('✗ Provide either a proposal <id> or --file <path>');
       process.exit(2);
     }
-    runProposalSubmit(id, options);
+    runProposalSubmit(id, { file: filePath, ...options });
   } else if (subCommand === 'approve') {
     const id = cleanArgs[2];
     if (!id) {
@@ -144,6 +153,31 @@ if (command === 'version') {
       process.exit(2);
     }
     runProposalApprove(id, options);
+  } else if (subCommand === 'reject') {
+    const id = cleanArgs[2];
+    if (!id) {
+      console.error('✗ Missing required argument: proposal id');
+      process.exit(2);
+    }
+    const commentsIdx = args.indexOf('--comments');
+    const comments = commentsIdx !== -1 ? args[commentsIdx + 1] : undefined;
+    runProposalReject(id, { comments, ...options });
+  } else if (subCommand === 'promote') {
+    const id = cleanArgs[2];
+    if (!id) {
+      console.error('✗ Missing required argument: proposal id');
+      process.exit(2);
+    }
+    runProposalPromote(id, options);
+  } else if (subCommand === 'request-changes') {
+    const id = cleanArgs[2];
+    if (!id) {
+      console.error('✗ Missing required argument: proposal id');
+      process.exit(2);
+    }
+    const commentsIdx = args.indexOf('--comments');
+    const comments = commentsIdx !== -1 ? args[commentsIdx + 1] : undefined;
+    runProposalRequestChanges(id, { comments, ...options });
   } else {
     console.error(`✗ Unknown proposal subcommand: ${subCommand}`);
     process.exit(2);

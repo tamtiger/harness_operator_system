@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export async function runInit(targetDirArg?: string) {
+export async function runInit(targetDirArg?: string, options: { force?: boolean } = {}) {
   const targetDir = path.resolve(targetDirArg || '.');
   const harnessDir = path.join(targetDir, '.harness');
   const manifestPath = path.join(harnessDir, 'harness.yaml');
@@ -9,8 +9,8 @@ export async function runInit(targetDirArg?: string) {
   const repoMapPath = path.join(harnessDir, 'repository-map.md');
   const rulesDir = path.join(harnessDir, 'rules');
 
-  if (fs.existsSync(manifestPath)) {
-    console.error('✗ Project is already initialized (.harness/harness.yaml exists).');
+  if (fs.existsSync(manifestPath) && !options.force) {
+    console.error('✗ Project is already initialized (.harness/harness.yaml exists). Use --force to override.');
     process.exit(1);
   }
 
@@ -31,8 +31,9 @@ artifacts:
 `;
     fs.writeFileSync(manifestPath, defaultManifest, 'utf8');
 
-    // Read template from package source path
-    const templatePath = path.resolve(__dirname, '../../../../src/shared/templates/AGENTS_TEMPLATE.md');
+    // Read template from dist/shared/templates/ (copied by postbuild script)
+    // __dirname at runtime = dist/adapters/cli/commands/
+    const templatePath = path.resolve(__dirname, '../../../shared/templates/AGENTS_TEMPLATE.md');
     let defaultAgents = '';
     
     if (fs.existsSync(templatePath)) {
@@ -59,7 +60,7 @@ artifacts:
     fs.writeFileSync(agentsPath, defaultAgents, 'utf8');
 
     // Read repository map template
-    const repoMapTemplatePath = path.resolve(__dirname, '../../../../src/shared/templates/REPOSITORY_MAP_TEMPLATE.md');
+    const repoMapTemplatePath = path.resolve(__dirname, '../../../shared/templates/REPOSITORY_MAP_TEMPLATE.md');
     let defaultRepoMap = '';
     
     if (fs.existsSync(repoMapTemplatePath)) {

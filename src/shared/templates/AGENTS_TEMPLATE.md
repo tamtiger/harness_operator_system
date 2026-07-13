@@ -1,395 +1,173 @@
 # AGENTS.md
 
-> **Harness Version:** {{HARNESS_VERSION}}
->
-> **Template Version:** {{TEMPLATE_VERSION}}
->
-> **Generated Time:** {{GENERATED_TIME}}
->
-> **Purpose:** Operational Contract for all AI Agents working in this repository.
->
-> **Scope:** This document applies to the entire repository.
+> **Harness Version:** {{HARNESS_VERSION}} | **Template Version:** {{TEMPLATE_VERSION}}
+> **Generated:** {{GENERATED_TIME}}
+> **Purpose:** Operational Contract cho tất cả AI Agent làm việc trong repository này.
 
 ---
 
-# 1. Mission
+## 1. Về Harness
 
-This repository is managed by the **Harness Platform**.
+Repository này được quản lý bởi **Harness Platform**. Thư mục `.harness/` chứa tri thức vận hành của project:
 
-Your responsibility is **not only to write code**, but to work according to the Harness development model.
+| Thư mục / File | Nội dung |
+|---|---|
+| `.harness/harness.yaml` | Manifest — khai báo cấu trúc project |
+| `.harness/repository-map.md` | Bản đồ thư mục tự động sinh |
+| `.harness/rules/` | Coding rules, architecture constraints |
+| `.harness/knowledge/` | Domain knowledge, specs, decisions |
+| `.harness/workflows/` | Task execution workflows |
+| `.harness/prompts/` | Reusable AI prompts |
 
-For every task you must:
-
-- Understand the repository before changing it.
-- Follow the project architecture.
-- Reuse existing knowledge before creating new solutions.
-- Keep implementation and knowledge synchronized.
-- Produce deterministic, reviewable changes.
-
----
-
-# 2. About Harness
-
-Harness is an AI-first development platform.
-
-Instead of relying only on source code, Harness manages repository knowledge explicitly.
-
-The `.harness/` directory contains the operational knowledge that guides AI Agents.
-
-Typical contents include:
-
-- Repository Manifest
-- Architecture Knowledge
-- Coding Rules
-- Workflows
-- Prompts
-- Specifications
-- Governance Rules
-- Validation Rules
-
-Always treat the Harness Knowledge as the primary source of repository-specific guidance.
+**Luôn đọc `.harness/` trước khi đọc source code.**
 
 ---
 
-# 3. Read Order (Knowledge First)
+## 2. Repository Overview
 
-Before implementing any task, always follow this order.
-
-```
-Task
-    │
-    ▼
-.harness/harness.yaml
-    │
-    ▼
-Repository Manifest
-    │
-    ▼
-Relevant Knowledge
-    │
-    ▼
-Repository Rules
-    │
-    ▼
-Source Code
-```
-
-Never start implementation before understanding the relevant knowledge.
-
-When documentation conflicts with implementation:
-
-```
-Architecture
-    ↓
-Specifications
-    ↓
-Repository Rules
-    ↓
-Documentation
-    ↓
-Source Code
-```
-
-Knowledge takes precedence over implementation.
+**Project:** {{PROJECT_NAME}}
+**Domain:** {{PROJECT_DOMAIN}}
+**Architecture:** {{PROJECT_ARCHITECTURE}}
+**Language:** {{PRIMARY_LANGUAGE}}
+**Entry Point:** `{{PROJECT_ENTRY_POINT}}`
 
 ---
 
-# 4. Repository Overview
+## 3. Read Order
 
-**Project**
+```
+.harness/harness.yaml          → hiểu cấu trúc project
+.harness/repository-map.md     → hiểu layout codebase
+.harness/rules/                → hiểu constraints
+.harness/knowledge/            → hiểu domain context
+Source Code                    → implement
+```
 
-{{PROJECT_NAME}}
-
-**Domain**
-
-{{PROJECT_DOMAIN}}
-
-**Architecture**
-
-{{PROJECT_ARCHITECTURE}}
-
-**Primary Language**
-
-{{PRIMARY_LANGUAGE}}
-
-**Entry Point**
-
-{{PROJECT_ENTRY_POINT}}
+Khi docs xung đột với code: **Architecture > Specs > Rules > Docs > Code**
 
 ---
 
-# 5. Development Workflow
-
-Every task should follow this workflow.
+## 4. Development Workflow
 
 ```
-Explore
-    │
-    ▼
-Read Harness Knowledge
-    │
-    ▼
-Understand Architecture
-    │
-    ▼
-Plan
-    │
-    ▼
-Implement
-    │
-    ▼
-Validate
-    │
-    ▼
-Update Knowledge
-    │
-    ▼
-Review
+Explore → Đọc .harness/ knowledge liên quan
+Understand → Xác định components và contracts bị ảnh hưởng
+Plan → Viết plan ngắn; nếu thay đổi cấu trúc → submit proposal trước
+Implement → Theo architecture, match code style, chỉ sửa files trong scope
+Validate → Build + Test + Lint + harness validate — tất cả phải pass
+Update Knowledge → Cập nhật .harness/ nếu behaviour thay đổi
+Review → Verify checklist
 ```
-
-Never skip the knowledge phase.
 
 ---
 
-# 6. Harness CLI Workflow
-
-Use Harness CLI throughout development.
-
-## Before Implementation
-
-Verify repository health.
+## 5. Harness CLI
 
 ```bash
-harness doctor
+# Trước khi bắt đầu
+harness doctor                          # kiểm tra môi trường
+harness status                          # xem assets đang load
+
+# Trước khi code
+harness context --task "mô tả task"     # xem knowledge áp dụng cho task
+
+# Trong quá trình phát triển
+harness capability list                 # liệt kê capabilities có thể tái sử dụng
+
+# Sau khi implement
+harness validate                        # validate repository structure
+harness run "verify what you built"     # verify behaviour
+harness conformance run                 # chạy conformance suite
+
+# Khi cần thay đổi governance
+harness proposal list                                # xem proposals hiện có
+harness publish .harness/proposals/change.md        # tạo draft
+harness proposal list --status DRAFT                # lấy ID
+harness proposal submit <id>                        # submit để review
+# harness proposal approve <id>                    # HUMAN ONLY
 ```
 
 ---
 
-## During Development
+## 6. MCP Tools
 
-Check repository status.
+Nếu kết nối qua MCP, bốn tools sau đây có sẵn:
 
-```bash
-harness status
+```jsonc
+// Thực thi task
+{ "name": "harness_run", "arguments": { "description": "mô tả task" } }
+
+// Validate repository
+{ "name": "harness_validate", "arguments": { "root": "/path/to/repo" } }
+
+// Liệt kê proposals
+{ "name": "harness_proposal_list", "arguments": { "status": "SUBMITTED" } }
+
+// Submit draft proposal theo ID
+{ "name": "harness_proposal_submit", "arguments": { "id": "prop-xxx" } }
 ```
+
+> `harness_proposal_approve` **không có trên MCP** — approve là human-only action qua CLI.
 
 ---
 
-## Before Review
-
-Validate the repository.
+## 7. Build Commands
 
 ```bash
-harness validate
-```
-
----
-
-## When Updating Repository Knowledge
-
-Submit a governance proposal.
-
-```bash
-harness proposal submit --file <proposal.md>
-```
-
-Knowledge changes should follow the repository governance process.
-
----
-
-# 7. Repository Commands
-
-Generated automatically during `harness init`.
-
-## Restore
-
-```bash
+# Restore dependencies
 {{BUILD_COMMAND_RESTORE}}
-```
 
-## Build
-
-```bash
+# Build
 {{BUILD_COMMAND_BUILD}}
-```
 
-## Test
-
-```bash
+# Test
 {{BUILD_COMMAND_TEST}}
-```
 
-## Lint
-
-```bash
+# Lint
 {{LINT_COMMAND}}
-```
 
-## Format
-
-```bash
+# Format
 {{FORMAT_COMMAND}}
 ```
 
-Always validate the repository before requesting review.
+---
+
+## 8. Decision Authority
+
+**AI CÓ THỂ:** Refactor nội bộ, cải thiện readability, thêm/cải thiện test, fix bugs, sửa docs.
+
+**AI PHẢI XIN APPROVAL TRƯỚC KHI:** Đổi public API/interface, đổi database schema, thêm dependency mới, đổi architecture, đổi Harness assets (`.harness/`), break backward compatibility.
 
 ---
 
-# 8. Decision Authority
+## 9. Repository Rules
 
-## AI MAY
+**Always:** Theo project architecture · Tái sử dụng patterns có sẵn · Cập nhật docs khi behaviour thay đổi · Chạy `harness validate` trước khi request review.
 
-- Refactor internal implementation.
-- Improve readability.
-- Improve documentation.
-- Add or improve tests.
-- Optimize implementation without changing observable behavior.
+**Never:** Đoán requirements — dừng lại và hỏi · Tự phát minh API không có trong knowledge · Skip validation · Xóa test để pass build · Che giấu failure.
 
 ---
 
-## AI MUST REQUEST APPROVAL BEFORE
+## 10. Definition of Done
 
-- Changing architecture.
-- Changing public APIs.
-- Changing database schema.
-- Introducing new dependencies.
-- Changing repository structure.
-- Modifying governance rules.
-- Changing Harness assets.
-- Breaking backward compatibility.
-
----
-
-# 9. Knowledge & Asset Rules
-
-Whenever implementation changes, verify whether related knowledge must also be updated.
-
-| Change | Update Required |
-|----------|----------------|
-| Public API | Documentation |
-| Architecture | Architecture Documents |
-| Workflow | Workflow Assets |
-| Coding Rules | Rule Assets |
-| Prompt Behavior | Prompt Assets |
-| Capability | Capability Specification |
-| Governance | Governance Proposal |
-| Repository Metadata | Manifest |
-
-Implementation and knowledge must remain synchronized.
+Task hoàn thành **chỉ khi**:
+- [ ] Implementation đúng
+- [ ] Build pass
+- [ ] Tests pass (không có test bị skip)
+- [ ] Lint pass
+- [ ] `harness validate` pass
+- [ ] Docs cập nhật nếu behaviour thay đổi
+- [ ] `.harness/` knowledge cập nhật nếu cần
+- [ ] Human review hoàn thành
 
 ---
 
-# 10. Repository Rules
+## 11. Nguyên tắc
 
-Always:
+**Knowledge trước Code · Architecture trước Implementation · Correctness trước Speed · Consistency trước Creativity**
 
-- Follow the project architecture.
-- Reuse existing patterns.
-- Keep changes focused.
-- Update documentation when behavior changes.
-- Explain assumptions explicitly.
-- Report remaining risks honestly.
-
-Never:
-
-- Guess missing requirements.
-- Invent APIs or contracts.
-- Ignore repository knowledge.
-- Skip validation.
-- Remove tests to make builds pass.
-- Hide failures.
-- Introduce unnecessary complexity.
+Nếu thiếu knowledge cần thiết → dừng lại và hỏi thay vì đoán.
 
 ---
 
-# 11. Expected Deliverables
-
-For non-trivial tasks, provide:
-
-1. Requirement Analysis
-2. Implementation Plan
-3. Implementation
-4. Validation Results
-5. Knowledge Updates
-6. Summary
-7. Remaining Risks
-
-Do not jump directly into implementation.
-
----
-
-# 12. Validation Checklist
-
-Before requesting review, ensure:
-
-- Build succeeds.
-- Tests pass.
-- Lint passes.
-- Documentation matches implementation.
-- Repository knowledge is synchronized.
-- Harness validation succeeds.
-- No unintended breaking changes exist.
-
-If validation fails:
-
-1. Stop.
-2. Analyze the cause.
-3. Fix the issue.
-4. Validate again.
-5. Report unresolved problems.
-
-Never ignore validation failures.
-
----
-
-# 13. Definition of Done
-
-A task is complete only when:
-
-- Implementation is complete.
-- Validation succeeds.
-- Tests pass.
-- Documentation is updated.
-- Related Harness knowledge is updated.
-- Repository passes `harness validate`.
-- Human review is completed.
-
----
-
-# 14. Guiding Principles
-
-When making decisions:
-
-- Knowledge before Code.
-- Architecture before Implementation.
-- Correctness before Speed.
-- Consistency before Creativity.
-- Maintainability before Complexity.
-
-If required knowledge is missing, stop and request clarification instead of making assumptions.
-
----
-
-# 15. Final Reminder
-
-Harness is a **knowledge-driven development system**, not just a source code repository.
-
-Your responsibility is to maintain the consistency between:
-
-```
-Knowledge
-      │
-      ▼
-Architecture
-      │
-      ▼
-Implementation
-      │
-      ▼
-Validation
-      │
-      ▼
-Documentation
-```
-
-A successful task updates both the implementation and the repository knowledge whenever necessary.
+*Generated by `harness init` · Managed by Harness Platform v{{HARNESS_VERSION}}*

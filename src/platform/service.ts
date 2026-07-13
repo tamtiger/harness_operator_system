@@ -21,7 +21,7 @@ import { DiagnosticsEngine } from './doctor/DiagnosticsEngine';
 import * as path from 'path';
 import * as fs from 'fs';
 
-function getPackageVersion(): string {
+export function getPackageVersion(): string {
   const candidates = [
     path.join(__dirname, '..', '..', 'package.json'),
     path.join(process.cwd(), 'package.json'),
