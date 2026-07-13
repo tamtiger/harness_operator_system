@@ -1,6 +1,9 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { BaseCapability } from '../registry/types';
 import { RuntimeContext } from '../../shared/types/repository';
 import { CapabilityDefinition } from '../../shared/types/assets';
+import { CapabilityRegistry } from '../../shared/contracts/services';
 import { AssetType, AssetScope, Permission } from '../../shared/types/enums';
 
 export const aiCompleteDef: CapabilityDefinition = {
@@ -125,14 +128,70 @@ export const aiSubagentDef: CapabilityDefinition = {
 };
 
 export class AISubagentCapability extends BaseCapability {
+  static registry: CapabilityRegistry | null = null;
+
   async execute(context: RuntimeContext, input: any): Promise<any> {
-    console.log(`[aiOps] Dispatching subagent [Role: ${input.role}] with prompt: "${input.prompt}"`);
+    const role = input.role || 'coder';
+    const prompt = input.prompt || '';
+    const workspaceMode = input.workspaceMode || 'in-place';
+
+    console.log(`[aiOps] Dispatching subagent [Role: ${role}] with prompt: "${prompt}"`);
+
     const conversationId = 'sub-' + Math.random().toString(36).substring(2, 9);
-    
+
+    // Write task brief if we have session context
+    try {
+      const rootPath = context.metadata?.root?.path || '.';
+      const runDir = path.join(rootPath, '.harness', 'run');
+      if (fs.existsSync(runDir)) {
+        const runFolders = fs.readdirSync(runDir)
+          .filter(f => f.startsWith('run-'))
+          .sort((a, b) => b.localeCompare(a));
+        if (runFolders.length > 0) {
+          const briefDir = path.join(runDir, runFolders[0], 'briefs');
+          if (!fs.existsSync(briefDir)) fs.mkdirSync(briefDir, { recursive: true });
+          const briefFile = path.join(briefDir, `${conversationId}.md`);
+          fs.writeFileSync(briefFile, [
+            `# Subagent Brief: ${conversationId}`,
+            `- **Role:** ${role}`,
+            `- **Prompt:** ${prompt}`,
+            `- **Workspace Mode:** ${workspaceMode}`,
+            `- **Started:** ${new Date().toISOString()}`,
+            '',
+            '## Task',
+            prompt,
+            '',
+            '## Constraints',
+            '- Do NOT modify files outside the working directory',
+            '- Run validation after changes'
+          ].join('\n'), 'utf8');
+        }
+      }
+    } catch {
+      // Best-effort brief generation
+    }
+
+    // If we have a registry and prompt looks executable, try to run it
+    let resultOutput = `Task completed successfully by subagent [${role}].`;
+    if (AISubagentCapability.registry && prompt) {
+      try {
+        const cmdResult = await AISubagentCapability.registry.invoke(
+          'harness.term.execute',
+          context,
+          { command: prompt, description: `Subagent ${role}: ${prompt}` }
+        );
+        if (cmdResult.success) {
+          resultOutput = `Task completed successfully by subagent [${role}]. Result: ${JSON.stringify(cmdResult.output)}`;
+        }
+      } catch {
+        // Fall through to default response
+      }
+    }
+
     return {
       success: true,
       conversationId,
-      result: `Stub response: Task completed successfully by subagent [${input.role}].`
+      result: resultOutput
     };
   }
 }

@@ -1,6 +1,6 @@
 # Harness Operator System
 
-**Phiên bản:** 0.0.15 | **Spec:** 4.0 | **Trạng thái:** Đang phát triển tích cực
+**Phiên bản:** 0.0.17 | **Spec:** 4.0 | **Trạng thái:** Đang phát triển tích cực
 
 Harness là **nền tảng quản lý tri thức AI-native** — lớp trung gian giữa tổ chức (chủ sở hữu tri thức) và các AI coding tool (Claude Code, Cursor, Codex CLI, Gemini CLI, Kiro, OpenHands). Mọi AI agent hoạt động từ tri thức nhất quán, có phiên bản, có thể kiểm tra.
 
@@ -26,8 +26,9 @@ Harness giải quyết bằng cách làm tri thức repository trở nên **tư�
 | **Local Harness** | Rules và knowledge riêng của project — trong `.harness/` |
 | **Effective Harness** | Kết quả merge Shared + Local. Local thắng khi xung đột. |
 | **Manifest** | `.harness/harness.yaml` — khai báo machine-readable của project |
-| **Asset** | Một mảnh tri thức: rule, prompt, workflow, capability, template, knowledge |
-| **Capability** | Hàm thực thi đăng ký trong registry. 27 built-in capabilities |
+| **Asset** | Một mảnh tri thức: rule, prompt, workflow, capability, template, skill |
+| **Capability** | Hàm thực thi đăng ký trong registry. 29 built-in capabilities |
+| **Skill** | Hướng dẫn hành vi agent — 16 built-in skills với triggers, Iron Laws, checklist |
 
 ---
 
@@ -62,7 +63,7 @@ Harness giải quyết bằng cách làm tri thức repository trở nên **tư�
 | Persistence | Repository | Filesystem, manifest, asset loading, context |
 | Persistence | Context | Context assembly, filtering, ranking, token budget |
 | Runtime | Execution | Task orchestration, scheduling, retry, verification |
-| Runtime | Capability | Hàm thực thi, registry 6-bước, 27 built-ins |
+| Runtime | Capability | Hàm thực thi, registry 6-bước, 29 built-ins |
 | Knowledge | Governance | Proposal, review/approve, promotion, audit log |
 
 ---
@@ -130,8 +131,11 @@ Tất cả commands hỗ trợ global flags: `--json` · `--quiet` · `--verbose
 | `harness validate [path] [--strict]` | Validate cấu trúc repository | 0 ok · 1 warning (strict) · 2 lỗi |
 | `harness status [--json]` | Trạng thái assets và phiên bản | 0 |
 | `harness doctor` | Chẩn đoán toàn bộ cài đặt | 0 ok · 1 warning · 2 critical |
-| `harness run "task"` | Thực thi task qua Harness runtime | 0 ok · 2 lỗi · 3 verify failed |
-| `harness context --task "..."` | Xem context sẽ load cho task | 0 |
+| `harness run "task"` | Thực thi task (NLP classify → filter skills/workflows) | 0 ok · 2 lỗi · 3 verify failed |
+| `harness context --task "..."` | Xem context cho task (NLP classify task type) | 0 |
+| `harness skill list` | Liệt kê skills với triggers | 0 |
+| `harness skill show <id>` | Xem nội dung skill chi tiết | 0 ok · 1 not found |
+| `harness workflow list` | Liệt kê workflows khả dụng | 0 |
 | `harness capability list` | Liệt kê capabilities đã đăng ký | 0 |
 | `harness install <source> [version]` | Cài Shared Harness từ Git/local | 0 ok · 2 lỗi |
 | `harness update [version] [--force]` | Cập nhật Shared Harness | 0 updated · 1 no-change · 2 lỗi |
@@ -160,7 +164,7 @@ harness proposal list --status SUBMITTED
 harness proposal submit prop-20260713-001
 ```
 
-> **Known issues:** `harness init --force` chưa implement (KI-003). `harness install` dùng positional args, không phải `--source`/`--version` flags (KI-004). `harness proposal submit` nhận `<id>` không phải `--file` (KI-005). `harness version` hardcode `v1.0.0` thay vì đọc từ `package.json` (KI-002).
+
 
 ---
 
@@ -237,6 +241,67 @@ Nếu `harness` chưa trong PATH, dùng đường dẫn đầy đủ:
 
 ---
 
+## Skills System
+
+Harness ships with 16 built-in skills that guide agent behavior. Skills are markdown files with YAML frontmatter containing triggers, loaded into agent context before task execution via the `ContextFilter`.
+
+| Skill | Triggers | Function |
+|-------|----------|----------|
+| `using-superpowers` | `any` | Meta-skill: 1% rule, red flags table, skill priority matrix |
+| `brainstorm-before-code` | `implement, add, build, create, design` | HARD-GATE: no code without approved design |
+| `plan-before-implement` | `implement, modify, change` | Bite-sized plan, no placeholders, self-review |
+| `tdd-red-green-refactor` | `implement, add, fix, test` | Iron Law: test first, watch it fail |
+| `subagent-per-task` | `implement, build, create` | Delegate isolated subtasks to specialized agents |
+| `verify-before-done` | `verify, done, complete, commit` | Iron Law: verify before claiming completion |
+| `harness-context-first` | `any` | Load context via `harness context` before acting |
+| `governance-checkpoint` | `any` | Proposal if public contracts change |
+| `dispatching-parallel-agents` | `implement, build, create` | Run multiple subagents concurrently on independent tasks |
+| `executing-plans` | `implement, build` | Execute plans step by step, mark progress |
+| `finishing-a-development-branch` | `implement, build` | Finalize branch: squash, self-review, tag |
+| `using-git-worktrees` | `implement, build` | Isolate work via parallel git worktrees |
+| `writing-skills` | `implement` | Skill authoring: YAML frontmatter, triggers, structure |
+| `systematic-debugging` | `fix, bug` | Root cause → hypothesize → verify → fix cycle |
+| `requesting-code-review` | `implement, build` | Request review: diff package, review brief |
+| `receiving-code-review` | `implement, build` | Process feedback, fix, re-verify |
+
+Skills are invoked via the `using-superpowers` meta-skill: check if any skill applies (1% rule), announce "Using [skill] to [purpose]", and follow it exactly.
+
+### Task Classification
+
+`harness context --task` và `harness run` dùng neural network (`@nlpjs/nlp`) để classify task description thành task type, từ đó filter workflows và skills phù hợp:
+
+| Intent | Ví dụ description |
+|---|---|
+| `general` | hello, xin chào, giúp tôi, không rõ — fallback an toàn |
+| `feature-dev` | thêm chức năng, implement login, build dashboard |
+| `bug-fix` | sửa lỗi, fix crash, hotfix production |
+| `refactor` | tái cấu trúc, dọn dẹp code, optimize query |
+| `code-review` | review PR, duyệt code, kiểm tra implementation |
+| `audit` | kiểm toán bảo mật, conformance, compliance |
+| `docs` | viết tài liệu, update README, changelog |
+
+Classifier hỗ trợ song ngữ Anh-Việt (strip dấu trước khi xử lý), trained với 200+ utterances. Training data ở `src/shared/utils/NlpClassifier.ts`.
+
+### Prompt Templates
+
+Three templates in `src/shared/templates/prompts/` support subagent-driven development:
+
+| Template | Purpose |
+|----------|---------|
+| `implementer-prompt.md` | Subagent dispatch with self-review, TDD evidence, escalation |
+| `task-reviewer-prompt.md` | Task-scoped spec compliance + code quality dual verdict |
+| `code-reviewer.md` | Senior code review with merge readiness assessment |
+
+### CLI Commands
+
+```bash
+harness skill list        # liệt kê skills với triggers
+harness skill show <id>   # xem nội dung skill chi tiết
+harness workflow list     # liệt kê workflows
+```
+
+---
+
 ## Workflow phát triển tính năng
 
 ```bash
@@ -244,7 +309,7 @@ harness doctor                          # 1. kiểm tra môi trường
 harness init                            # 2. khởi tạo project (lần đầu)
 harness status                          # 3. xác nhận assets load đúng
 harness context --task "mô tả task"     # 4. xem knowledge áp dụng cho task
-# ... implement ...
+# ... implement (skills guide behavior) ...
 npm run build && npm run test && npm run lint   # 5. validate code
 harness validate                        # 6. validate repository
 harness run "verify what you built"     # 7. verify behaviour
@@ -295,18 +360,16 @@ npm link          # link CLI global (dev)
 | `tests/cli.test.ts` | CLI adapter |
 | `tests/mcp.test.ts` | MCP adapter |
 | `tests/conformance.test.ts` | 30 Level-3 conformance cases |
+| `tests/aiops.test.ts` | AIOps / subagent stubs |
 
 ---
 
 ## Xử lý sự cố
 
 | Triệu chứng | Nguyên nhân | Fix |
-|---|---|---|
-| `AGENTS.md` chỉ có 3 dòng sau `harness init` | Templates chưa copy vào `dist/` (KI-001) | `cp -r src/shared/templates dist/shared/templates` rồi init lại |
-| `harness version` hiện `v1.0.0` | Hardcode (KI-002) | Không ảnh hưởng chức năng |
-| `harness install --source <url>` không nhận flag | KI-004 | Dùng positional: `harness install <url> <version>` |
-| `harness proposal submit --file` không hoạt động | KI-005 | Dùng `harness publish` trước để tạo draft, sau đó submit by ID |
+|---|---|---|---|
 | MCP server không xuất hiện trong Claude Desktop | `harness` chưa trong PATH | Dùng full path trong config |
+| Task description bị classify sai | Training data chưa đủ coverage | Thêm utterances vào `NlpClassifier.TRAINING_DATA` |
 
 ---
 

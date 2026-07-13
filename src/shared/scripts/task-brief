@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# task-brief: Extract a single task from a plan file
+# Usage: task-brief <plan-file> <task-number>
+set -euo pipefail
+
+PLAN_FILE="${1:?Usage: task-brief <plan-file> <task-number>}"
+TASK_NUM="${2:?Usage: task-brief <plan-file> <task-number>}"
+
+if [ ! -f "$PLAN_FILE" ]; then
+  echo "Error: Plan file not found: $PLAN_FILE" >&2
+  exit 1
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')"
+BRIEF_DIR="${REPO_ROOT}/.harness/task-briefs"
+mkdir -p "$BRIEF_DIR"
+
+PLAN_BASENAME="$(basename "$PLAN_FILE" .md)"
+BRIEF_FILE="${BRIEF_DIR}/${PLAN_BASENAME}-task-${TASK_NUM}-brief.md"
+
+# Extract task section using awk (look for "### Task N:" header)
+awk -v task="Task ${TASK_NUM}:" '
+  /^### Task / { if (found) exit; if (index($0, task) > 0) found=1 }
+  found { print }
+' "$PLAN_FILE" > "$BRIEF_FILE"
+
+if [ ! -s "$BRIEF_FILE" ]; then
+  echo "Error: Task ${TASK_NUM} not found in ${PLAN_FILE}" >&2
+  rm -f "$BRIEF_FILE"
+  exit 1
+fi
+
+echo "$BRIEF_FILE"

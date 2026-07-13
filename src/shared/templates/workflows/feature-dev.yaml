@@ -16,7 +16,7 @@ required_skills:
   - two-stage-review
   - verify-before-done
   - governance-checkpoint
-  - finish-development
+  - finishing-a-development-branch
 phases:
   - name: brainstorm
     skills:

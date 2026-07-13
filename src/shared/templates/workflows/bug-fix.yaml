@@ -10,7 +10,7 @@ required_skills:
   - systematic-debug
   - tdd-red-green-refactor
   - verify-before-done
-  - finish-development
+  - finishing-a-development-branch
 phases:
   - name: debug
     skills:

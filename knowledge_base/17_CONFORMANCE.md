@@ -59,7 +59,7 @@ Mức đầy đủ cho triển khai production.
 - CLI hỗ trợ tất cả các commands chuẩn
 - Context filter / rank / budget được implement đầy đủ
 - Context caching hoạt động (cache hit trên lần build thứ hai)
-- Tất cả **27 built-in capabilities** được đăng ký và hoạt động
+- Tất cả **29 built-in capabilities** được đăng ký và hoạt động
 
 ### Level 3 — Full
 
@@ -285,7 +285,7 @@ Chứng nhận bị thu hồi nếu implementation:
 | `03_ASSETS.md` | Cấu trúc và front matter của Assets |
 | `04_RUNTIME.md` | Runtime Engine — context, execution, capabilities |
 | `05_CONTEXT.md` | Context filter / rank / budget pipeline |
-| `06_CAPABILITIES.md` | Danh sách 27 built-in capabilities |
+| `06_CAPABILITIES.md` | Danh sách 29 built-in capabilities |
 | `07_ERROR_CODES.md` | Toàn bộ error codes theo nhóm |
 | `08_CLI.md` | CLI commands và exit codes |
 | `09_MCP.md` | MCP Server adapter specification |

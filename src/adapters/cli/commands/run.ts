@@ -2,6 +2,7 @@ import { createPlatformService } from '../factory';
 import { OutputFormatter } from '../formatter/OutputFormatter';
 import { ErrorFormatter } from '../formatter/ErrorFormatter';
 import { Planner } from '../../../execution/planner/Planner';
+import { classifyTask } from '../../../shared/utils/NlpClassifier';
 
 export async function runTask(description: string, options: any = {}) {
   const formatter = new OutputFormatter();
@@ -11,11 +12,13 @@ export async function runTask(description: string, options: any = {}) {
   try {
     const noBrainstorm = !!options.noBrainstorm;
     const dryRun = !!options.dryRun;
+    const { taskType, tags } = await classifyTask(description);
 
     const runtimeCtx = await service.previewContext({
       taskId: 'task-1',
-      taskType: 'implementation',
+      taskType,
       description,
+      tags,
       workingDirectory: options.cwd || '.'
     });
 

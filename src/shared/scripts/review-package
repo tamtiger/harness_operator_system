@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# review-package: Generate a diff package file for code review
+# Usage: review-package <base-sha> <head-sha>
+set -euo pipefail
+
+BASE="${1:?Usage: review-package <base-sha> <head-sha>}"
+HEAD="${2:?Usage: review-package <base-sha> <head-sha>}"
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PACKAGE_DIR="${REPO_ROOT}/.harness/review-packages"
+mkdir -p "$PACKAGE_DIR"
+
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+SHORT_BASE="$(echo "$BASE" | cut -c1-7)"
+SHORT_HEAD="$(echo "$HEAD" | cut -c1-7)"
+PACKAGE_FILE="${PACKAGE_DIR}/review-${SHORT_BASE}..${SHORT_HEAD}-${TIMESTAMP}.diff"
+
+{
+  echo "# Review Package: ${SHORT_BASE}..${SHORT_HEAD}"
+  echo "# Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  echo ""
+  echo "## Commit Log"
+  git log --oneline "${BASE}..${HEAD}" 2>/dev/null || echo "(no new commits)"
+  echo ""
+  echo "## Stats"
+  git diff --stat "${BASE}..${HEAD}" 2>/dev/null
+  echo ""
+  echo "## Full Diff"
+  git diff -U10 "${BASE}..${HEAD}" 2>/dev/null
+} > "$PACKAGE_FILE"
+
+echo "$PACKAGE_FILE"

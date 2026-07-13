@@ -1,6 +1,6 @@
 {
   "name": "harness-operator-system",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Harness Operator System",
   "main": "src/shared/index.ts",
   "bin": {
@@ -24,6 +24,10 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@nlpjs/basic": "^5.0.0-alpha.5",
+    "@nlpjs/lang-en": "^5.0.0-alpha.5",
+    "@nlpjs/neural": "^5.0.0-alpha.5",
+    "@nlpjs/nlp": "^5.0.0-alpha.5",
     "ajv": "^8.20.0",
     "js-yaml": "^5.2.1",
     "zod": "^4.4.3"

@@ -1,6 +1,6 @@
 # AGENTS.md — Harness Platform
 
-> **Phiên bản:** 0.0.15 (Spec 4.0)
+> **Phiên bản:** 0.0.17 (Spec 4.0)
 > **Mục đích:** Hợp đồng vận hành cho AI Agent đóng góp vào codebase **Harness** (không phải repo dùng Harness).
 
 ---
@@ -46,7 +46,10 @@ Adapters (CLI/MCP) → Platform → Repository/Context/Execution/Governance → 
 |---|---|
 | `src/shared/contracts/services.ts` | Tất cả service interfaces (SST cho contracts) |
 | `src/shared/errors/` | HarnessError base + 71 error factory functions |
+| `src/shared/utils/NlpClassifier.ts` | Neural network task classifier — 7 intents, song ngữ Anh-Việt |
 | `src/shared/templates/` | AGENTS_TEMPLATE.md, REPOSITORY_MAP_TEMPLATE.md |
+| `src/shared/templates/prompts/` | implementer-prompt.md, task-reviewer-prompt.md, code-reviewer.md |
+| `src/shared/skills/` | 17 skill files — superpowers, brainstorm, TDD, verify, plan, subagent, context-first, governance-checkpoint, parallel-agents, executing-plans, finish-branch, worktrees, writing-skills, debugging, request-review, receive-review, two-stage-review |
 | `src/adapters/cli/index.ts` | CLI entry point — route tất cả commands |
 | `src/adapters/cli/factory.ts` | Tạo PlatformService instance |
 | `src/adapters/mcp/server.ts` | MCP server — 4 tools |
@@ -54,7 +57,47 @@ Adapters (CLI/MCP) → Platform → Repository/Context/Execution/Governance → 
 
 ---
 
-## 4. Read Order
+## 4. Skills System
+
+Harness ships with 17 built-in skills that guide agent behavior. Skills are invoked using a meta-skill rule: check before ANY action. Skills are loaded into agent context via `ContextFilter` trigger matching and `NlpClassifier` task type classification.
+
+### Available Skills
+
+| Skill ID | Trigger | Purpose |
+|----------|---------|---------|
+| `using-superpowers` | `any` | **Meta-skill**: 1% rule — check skills before every action |
+| `brainstorm-before-code` | `implement, add, build, create, design` | HARD-GATE: no code without approved design |
+| `plan-before-implement` | `implement, modify, change` | Write bite-sized plan before editing files |
+| `tdd-red-green-refactor` | `implement, add, fix, test` | Iron Law: no production code without failing test first |
+| `subagent-per-task` | `implement, build, create` | Delegate isolated subtasks to specialized agents |
+| `verify-before-done` | `verify, done, complete, commit` | Iron Law: no completion claims without fresh evidence |
+| `harness-context-first` | `any` | Load context via `harness context` before acting |
+| `governance-checkpoint` | `any` | Check if changes need a governance proposal |
+| `dispatching-parallel-agents` | `implement, build, create` | Run multiple subagents concurrently on independent tasks |
+| `executing-plans` | `implement, build` | Execute plans step by step, mark progress |
+| `finishing-a-development-branch` | `implement, build` | Finalize branch: squash, self-review, tag |
+| `using-git-worktrees` | `implement, build` | Isolate work via parallel git worktrees |
+| `writing-skills` | `implement` | Skill authoring: YAML frontmatter, triggers, structure |
+| `systematic-debugging` | `fix, bug` | Root cause → hypothesize → verify → fix cycle |
+| `requesting-code-review` | `implement, build` | Request review: diff package, review brief |
+| `receiving-code-review` | `implement, build` | Process feedback, fix, re-verify |
+| `two-stage-review` | `implement, build` | Task-scoped review → branch merge review |
+
+### Using Skills
+
+1. Always invoke `using-superpowers` at conversation start
+2. Check if any skill applies (1% rule — if uncertain, invoke)
+3. Announce "Using [skill] to [purpose]" and follow the skill exactly
+4. If the skill has a checklist, create a todo per item
+
+Prompt templates for subagent dispatch are in `src/shared/templates/prompts/`:
+- `implementer-prompt.md` — implementer subagent dispatch
+- `task-reviewer-prompt.md` — task-scoped spec + quality reviewer
+- `code-reviewer.md` — senior code review for merge readiness
+
+---
+
+## 5. Read Order
 
 Trước khi implement bất kỳ task nào, đọc theo thứ tự này:
 
@@ -69,7 +112,7 @@ Trước khi implement bất kỳ task nào, đọc theo thứ tự này:
 
 ---
 
-## 5. Development Workflow
+## 6. Development Workflow
 
 ```
 Explore → Understand → Plan → Implement → Validate → Update Knowledge → Review
@@ -87,7 +130,7 @@ Explore → Understand → Plan → Implement → Validate → Update Knowledge 
 
 ---
 
-## 6. CLI Commands (trong quá trình phát triển)
+## 7. CLI Commands (trong quá trình phát triển)
 
 ```bash
 # Trước mỗi session
@@ -96,10 +139,17 @@ harness doctor
 # Kiểm tra trạng thái
 harness status [--json]
 
-# Xem context cho task
+# Xem context cho task (NLP classify description → filter skills/workflows)
 harness context --task "implement retry logic"
 
-# Thực thi task
+# Xem skills
+harness skill list                # liệt kê skills với triggers
+harness skill show <id>           # xem nội dung skill chi tiết
+
+# Xem workflows
+harness workflow list             # liệt kê workflows
+
+# Thực thi task (NLP classify description → chọn workflow/skills phù hợp)
 harness run "validate all built-in capabilities are registered"
 
 # Validate repository
@@ -122,13 +172,13 @@ harness proposal approve <id>    # HUMAN ONLY
 
 ---
 
-## 7. MCP Tools
+## 8. MCP Tools
 
 Khởi động server: `harness mcp-server`
 
 ### `harness_run`
 ```json
-{ "description": "string (required)", "workflowId": "string (optional)" }
+{ "description": "string (required — NLP classify → chọn workflow)", "workflowId": "string (optional)" }
 ```
 
 ### `harness_validate`
@@ -152,7 +202,7 @@ Khởi động server: `harness mcp-server`
 
 ---
 
-## 8. Repository Rules
+## 9. Repository Rules
 
 **Always:**
 - Giữ domain boundaries — không import trực tiếp giữa domains
@@ -172,21 +222,7 @@ Khởi động server: `harness mcp-server`
 
 ---
 
-## 9. Known Issues
-
-| ID | Triệu chứng | Fix direction |
-|---|---|---|
-| **KI-001** | `harness init` tạo AGENTS.md chỉ 3 dòng | Thêm postbuild script copy templates; fix path trong `init.ts` |
-| **KI-002** | `harness version` hiện `v1.0.0` thay vì `0.0.15` | Dùng `getPackageVersion()` helper đã có trong `platform/service.ts` |
-| **KI-003** | `harness init --force` không hoạt động | Parse `--force` trong `index.ts`, skip early exit trong `init.ts` |
-| **KI-004** | `harness install --source/--version` flags không hoạt động | Parse flags trong `index.ts` (dùng pattern của `--status` trong proposal list) |
-| **KI-005** | `harness proposal submit --file` không hoạt động | Implement `--file` parsing, đọc markdown, gọi `submitProposal()` |
-| **KI-006** | `harness context` hardcode tags `['auth','implementation']` | Remove static tags, để context builder filter by relevance |
-| **KI-007** | CLI thiếu `proposal reject/promote/request-changes` | Thêm 3 command mới; `GovernanceService` đã có các method này |
-
----
-
-## 10. Governance Workflow
+## 11. Governance Workflow
 
 ```
 Submit → Review (lock 30min) → HUMAN Approve → Promote to Shared
@@ -194,7 +230,7 @@ Submit → Review (lock 30min) → HUMAN Approve → Promote to Shared
 
 **Cần proposal:** đổi public contract, đổi data model, thêm/xóa capability, đổi CLI/MCP interface, đổi manifest schema.
 
-**Không cần proposal:** fix bugs (KI-001 đến KI-007), refactor nội bộ, thêm test, sửa docs.
+**Không cần proposal:** fix bugs, refactor nội bộ, thêm test, sửa docs.
 
 ```bash
 harness proposal list                            # xem proposals hiện có
@@ -206,7 +242,7 @@ harness proposal approve <id>                    # HUMAN ONLY
 
 ---
 
-## 11. Build & Validation
+## 12. Build & Validation
 
 ```bash
 npm run build    # zero tsc errors
@@ -217,7 +253,7 @@ harness conformance run  # tất cả 30 Level-3 cases phải pass trước rele
 
 ---
 
-## 12. Review Checklist
+## 13. Review Checklist
 
 - [ ] Requirement đã thỏa mãn đầy đủ
 - [ ] Domain boundaries được bảo toàn
@@ -232,7 +268,7 @@ harness conformance run  # tất cả 30 Level-3 cases phải pass trước rele
 
 ---
 
-## 13. Definition of Done
+## 14. Definition of Done
 
 Task hoàn thành **chỉ khi**:
 1. Implementation đúng theo spec
@@ -245,17 +281,17 @@ Task hoàn thành **chỉ khi**:
 
 ---
 
-## 14. Decision Authority
+## 15. Decision Authority
 
 **AI CÓ THỂ (không cần approval):**
-Refactor nội bộ, cải thiện readability, thêm test, fix bugs trong KI-001 đến KI-007, sửa docs/typos.
+Refactor nội bộ, cải thiện readability, thêm test, fix bugs, sửa docs/typos.
 
 **AI PHẢI XIN APPROVAL TRƯỚC KHI:**
 Đổi `src/shared/contracts/`, đổi domain structure, thêm/xóa built-in capability, đổi CLI public interface, đổi MCP tool schema, thêm npm dependency, đổi manifest schema, break backward compatibility.
 
 ---
 
-## 15. Nguyên tắc
+## 16. Nguyên tắc
 
 ```
 Knowledge (knowledge_base/)

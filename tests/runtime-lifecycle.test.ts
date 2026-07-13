@@ -81,6 +81,43 @@ describe('M5 Runtime - Execution Lifecycle', () => {
     expect(finalSession.phases.find(p => p.name === 'validate')?.completed).toBe(true);
   });
 
+  it('should load plan steps from session planPath when available', async () => {
+    const sessionDir = path.join(tempDir, '.harness', 'run', 'run-plan-session');
+    fs.mkdirSync(sessionDir, { recursive: true });
+
+    const planContent = `# Execution Plan
+- [ ] **Task 1: Run lint**
+- [ ] **Task 2: Run build**
+- [ ] **Task 3: Update documentation**
+`;
+    fs.writeFileSync(path.join(sessionDir, 'plan.md'), planContent, 'utf8');
+
+    const session: WorkflowSession = {
+      id: 'run-plan-session',
+      workflowId: 'feature-dev',
+      taskDescription: 'Plan-based execution',
+      status: 'active',
+      currentPhase: 'execute',
+      phases: [
+        { name: 'execute', skills: [], optional: false, human_gate: false, completed: false },
+        { name: 'validate', skills: [], optional: false, human_gate: false, completed: false }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      planPath: `.harness/run/run-plan-session/plan.md`
+    };
+
+    fs.writeFileSync(path.join(sessionDir, 'session.json'), JSON.stringify(session, null, 2), 'utf8');
+
+    const result = await runtime.execute(mockContext, {
+      taskId: 'plan-task',
+      description: 'execute plan'
+    });
+
+    expect(result.status).toBe('COMPLETED');
+    expect(result.results.length).toBeGreaterThan(0);
+  });
+
   it('should mark session as failed when execution throws an error', async () => {
     // 1. Setup mock session directory
     const sessionDir = path.join(tempDir, '.harness', 'run', 'run-999');

@@ -2,6 +2,60 @@
 
 All notable changes to the Harness Operator System will be documented in this file.
 
+## [0.0.17] - 2026-07-13
+
+### Added
+- **Audit Phase 1: Skill Content Revolution**:
+  - New `using-superpowers` meta-skill (full port from Superpowers v6.1.1): 1% rule, SUBAGENT-STOP guard, red flags table, skill priority matrix.
+  - Rewrote `brainstorm-before-code` (v2.0): HARD-GATE, 8-step checklist, anti-pattern, 9-step process flow, spec self-review, key principles.
+  - Rewrote `tdd-red-green-refactor` (v2.0): Iron Law, RED-GREEN-REFACTOR cycle with good/bad examples, verify RED/GREEN mandates, rationalization table (11 excuses), red flags list, bug fix example, verification checklist.
+  - Rewrote `verify-before-done` (v2.0): Iron Law, 5-step gate function, common failures table, rationalization prevention, key patterns, when-to-apply rules.
+- **Prompt Templates**:
+  - Added `src/shared/templates/prompts/implementer-prompt.md`: full implementer subagent dispatch template with self-review, escalation protocol, TDD evidence, report format.
+  - Added `src/shared/templates/prompts/task-reviewer-prompt.md`: task-scoped spec compliance + code quality dual-verdict reviewer with calibration guide.
+  - Added `src/shared/templates/prompts/code-reviewer.md`: senior code reviewer template with plan alignment, architecture review, and merge readiness assessment.
+- **Audit Phase 2: Core Skills**:
+  - Rewrote `plan-before-implement` (v2.0): full writing-plans port — bite-sized tasks (2-5 min), file structure mapping, plan header template, no-placeholders rule, self-review checklist, execution handoff.
+  - Rewrote `subagent-per-task` (v2.0): full subagent-driven-development port — model selection (cheapest adequate), 4 status handlers, file handoff pattern, durable progress ledger, prompt template references, red flags.
+  - New `systematic-debugging` SKILL.md: Iron Law (no fixes without root cause), 4-phase process (Investigation → Pattern → Hypothesis → Implementation), 3+ fix architectural question, rationalization table.
+  - New `requesting-code-review` SKILL.md: when/how to request review, git SHA workflow, dispatch template integration.
+  - New `receiving-code-review` SKILL.md: response pattern (READ→UNDERSTAND→VERIFY→EVALUATE→RESPOND→IMPLEMENT), forbidden responses, YAGNI check, push-back guidance.
+- **Audit Phase 3: Support Skills & Scripts**:
+  - New `dispatching-parallel-agents` SKILL.md: parallel subagent dispatch for independent failures, 4-step pattern, common mistakes, when-not-to-use guide.
+  - New `executing-plans` SKILL.md: plan loading, critical review, task execution, stop-and-ask-help protocol.
+  - New `finishing-a-development-branch` SKILL.md: full branch completion workflow with 4 options (merge/PR/keep/discard), worktree-aware cleanup, red flags.
+  - New `using-git-worktrees` SKILL.md: 3-step isolated workspace setup (detect→native→fallback), submodule guard, project auto-setup.
+  - New `writing-skills` SKILL.md: TDD-for-docs paradigm, SKILL.md structure, discovery optimization, Iron Law (no skill without failing test), rationalization table pattern.
+  - New `two-stage-review` SKILL.md: dual-verdict review loop (spec compliance → code quality), prompt template references, review lifecycle.
+  - New `src/shared/scripts/review-package`: generates .diff review package with commit log, stats, full diff.
+  - New `src/shared/scripts/task-brief`: extracts single task section from plan file into standalone brief.
+- **Audit Phase 4: Runtime Integration**:
+  - New `ProgressLedger` at `src/execution/ledger/ProgressLedger.ts`: durable markdown-based progress tracker under `.harness/run/<session>/ledger.md` with lifecycle methods (init, start, complete, fail, skip, getStatus), summary table, and survives context compaction.
+  - New `WorktreeManager` at `src/execution/worktree/WorktreeManager.ts`: git worktree isolation with `ensureWorktreesDir()`, `createWorktree()`, `removeWorktree()`, autodetect existing worktree/submodule, and auto-setup (`.gitignore`, `npm install`).
+  - **Human Gate Enforcement**: `ExecutionRuntime` now enforces `human_gate: true` on session phases via TTY prompt before execution; supports `HARNESS_AUTO_GATE=1` env var for non-interactive approval.
+  - **Planner-ExecutionRuntime Integration**: `ExecutionRuntime.buildPlan()` now loads steps from Planner session `plan.md` first (parses task checklists into `ExecutionStep[]`), falls back to `activeWorkflow`, then keyword matching.
+  - **Subagent Dispatch Enhancement**: `AISubagentCapability` now writes task brief markdown files to session `briefs/` directory and optionally invokes `harness.term.execute` via `CapabilityRegistry` for real execution; uses static registry reference set during `registerBuiltins()`.
+  - Added 7 new tests: ProgressLedger lifecycle (7 tests), WorktreeManager detection (5 tests), ExecutionRuntime plan-from-session loading (1 test).
+- **Score Improvement Pass (90/100)**:
+  - Expanded `harness-context-first` (v2.0): full skill content with context anatomy, CLI usage guide, common mistakes, refresh patterns.
+  - Expanded `governance-checkpoint` (v2.0): full skill content with mermaid workflow diagram, proposal lifecycle, CLI commands, decision guide.
+  - Added meta-skill pre-action check: `ExecutionRuntime.checkPreActionSkills()` logs matching skills from `context.injectedSkills` before execution.
+  - Added resume-from-compaction: `ProgressLedger.fromLedgerFile()` recovers state when `session.json` is lost but `ledger.md` survives.
+  - Created `src/shared/scripts/render-graphs.js`: extracts mermaid diagrams from skill markdown files and renders as SVG.
+  - Fixed documentation inconsistency: 27→29 built-in capabilities across `CHANGELOG.md`, `knowledge_base/17_CONFORMANCE.md`.
+- **KI-009 Fix: Built-in prompt auto-injection**:
+  - Added YAML frontmatter to all 3 prompt templates (`implementer-prompt.md`, `task-reviewer-prompt.md`, `code-reviewer.md`) with `type: prompt` metadata for asset compatibility.
+  - `ContextBuilder.injectBuiltinPrompts()` now loads prompt templates from `dist/shared/templates/prompts/` and prepends them to `assets.prompts` in the runtime context.
+- **KI-010 Fix: Workflow YAML skill references**:
+  - `feature-dev.yaml` and `bug-fix.yaml`: changed `finish-development` → `finishing-a-development-branch` to match actual skill ID.
+- **NLP Task Classifier**: Replaced keyword heuristic with `@nlpjs/nlp` neural network classifier (`src/shared/utils/NlpClassifier.ts`):
+  - Bilingual training data: 200+ utterances across 7 intents
+  - 6 development intents: `feature-dev`, `bug-fix`, `refactor`, `code-review`, `audit`, `docs`
+  - 1 general intent: `general` — handles greetings, help requests, unclear descriptions
+  - Strips Vietnamese diacritics (NFD normalization) before feeding to English tokenizer
+  - Confidence threshold (0.6) → uncertain inputs classify as `general` instead of forcing a dev category
+  - `context.ts` and `run.ts` updated to use async `classifyTask()`
+
 ## [0.0.16] - 2026-07-13
 
 ### Added
@@ -264,7 +318,7 @@ All notable changes to the Harness Operator System will be documented in this fi
 - **M4 Capability Registry Implementation:**
   - Installed `ajv` dependency for dynamic JSON Schema evaluations.
   - Implemented 6-step invocation protocol (including schemas, permissions, and timeout aborts) in `CapabilityRegistryImpl`.
-  - Added 27 built-in capabilities across folders: File (8), Dir (4), Search (3), Git (6), Terminal (2), AI (2), Repo (2) operations.
+  - Added 29 built-in capabilities across folders: File (8), Dir (4), Search (3), Git (6), Terminal (2), AI (3), Repo (2) operations.
   - Configured custom YAML parser in `CapabilityLoader` supporting dynamic local script executions.
   - Added CLI `harness capability list` for viewing descriptions.
   - Added test suite covering invocation validation errors (`CAP_002`/`CAP_003`), permission denials (`CAP_004`), and timeout aborts (`CAP_005`).

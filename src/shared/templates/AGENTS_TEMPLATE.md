@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> **Harness Version:** {{HARNESS_VERSION}} | **Template Version:** {{TEMPLATE_VERSION}}
+> **Harness Version:** {{HARNESS_VERSION}} | **Template Version:** 2.0.0
 > **Generated:** {{GENERATED_TIME}}
 > **Purpose:** Operational Contract cho tất cả AI Agent làm việc trong repository này.
 
@@ -21,9 +21,46 @@ Repository này được quản lý bởi **Harness Platform**. Thư mục `.har
 
 **Luôn đọc `.harness/` trước khi đọc source code.**
 
+> Nếu CLI `harness` chưa có trong PATH: chạy `npm install -g harness-operator-system` hoặc dùng `npx harness-operator-system <command>`.
+
 ---
 
-## 2. Repository Overview
+## 2. Skills System
+
+Harness ships with built-in skills that guide agent behavior. Skills are invoked using a meta-skill rule: check before ANY action.
+
+### Available Skills
+
+| Skill ID | Trigger | Purpose |
+|----------|---------|---------|
+| `using-superpowers` | `any` | **Meta-skill**: 1% rule — check skills before every action |
+| `brainstorm-before-code` | `implement, add, build, create, design` | HARD-GATE: no code without approved design |
+| `plan-before-implement` | `implement, modify, change` | Write bite-sized plan before editing files |
+| `tdd-red-green-refactor` | `implement, add, fix, test` | Iron Law: no production code without failing test first |
+| `subagent-per-task` | `implement, build, create` | Delegate isolated subtasks to specialized agents |
+| `verify-before-done` | `verify, done, complete, commit` | Iron Law: no completion claims without fresh evidence |
+| `harness-context-first` | `any` | Load context via `harness context` before acting |
+| `governance-checkpoint` | `any` | Check if changes need a governance proposal |
+| `dispatching-parallel-agents` | `implement, build, create` | Run multiple subagents concurrently on independent tasks |
+| `executing-plans` | `implement, build` | Execute plans step by step, mark progress |
+| `finishing-a-development-branch` | `implement, build` | Finalize branch: squash, self-review, tag |
+| `using-git-worktrees` | `implement, build` | Isolate work via parallel git worktrees |
+| `writing-skills` | `implement` | Skill authoring: YAML frontmatter, triggers, structure |
+| `systematic-debugging` | `fix, bug` | Root cause → hypothesize → verify → fix cycle |
+| `requesting-code-review` | `implement, build` | Request review: diff package, review brief |
+| `receiving-code-review` | `implement, build` | Process feedback, fix, re-verify |
+| `two-stage-review` | `implement, build` | Task-scoped review → branch merge review |
+
+### Using Skills
+
+1. Invoke `using-superpowers` at conversation start
+2. Check if any skill applies (1% rule — if uncertain, invoke)
+3. Announce "Using [skill] to [purpose]" and follow the skill exactly
+4. If the skill has a checklist, create a todo per item
+
+---
+
+## 3. Repository Overview
 
 **Project:** {{PROJECT_NAME}}
 **Domain:** {{PROJECT_DOMAIN}}
@@ -33,7 +70,7 @@ Repository này được quản lý bởi **Harness Platform**. Thư mục `.har
 
 ---
 
-## 3. Read Order
+## 4. Read Order
 
 ```
 .harness/harness.yaml          → hiểu cấu trúc project
@@ -47,7 +84,7 @@ Khi docs xung đột với code: **Architecture > Specs > Rules > Docs > Code**
 
 ---
 
-## 4. Development Workflow
+## 5. Development Workflow
 
 ```
 Explore → Đọc .harness/ knowledge liên quan
@@ -61,7 +98,7 @@ Review → Verify checklist
 
 ---
 
-## 5. Harness CLI
+## 6. Harness CLI
 
 ```bash
 # Trước khi bắt đầu
@@ -69,14 +106,21 @@ harness doctor                          # kiểm tra môi trường
 harness status                          # xem assets đang load
 
 # Trước khi code
-harness context --task "mô tả task"     # xem knowledge áp dụng cho task
+harness context --task "mô tả task"     # NLP classify → filter skills/workflows phù hợp
+
+# Xem skills
+harness skill list                      # liệt kê skills với triggers
+harness skill show <id>                 # xem nội dung skill chi tiết
+
+# Xem workflows
+harness workflow list                   # liệt kê workflows
 
 # Trong quá trình phát triển
 harness capability list                 # liệt kê capabilities có thể tái sử dụng
 
 # Sau khi implement
 harness validate                        # validate repository structure
-harness run "verify what you built"     # verify behaviour
+harness run "verify what you built"     # NLP classify → execute task
 harness conformance run                 # chạy conformance suite
 
 # Khi cần thay đổi governance
@@ -89,12 +133,12 @@ harness proposal submit <id>                        # submit để review
 
 ---
 
-## 6. MCP Tools
+## 7. MCP Tools
 
 Nếu kết nối qua MCP, bốn tools sau đây có sẵn:
 
 ```jsonc
-// Thực thi task
+// Thực thi task (NLP classify description → chọn workflow/skills phù hợp)
 { "name": "harness_run", "arguments": { "description": "mô tả task" } }
 
 // Validate repository
@@ -111,7 +155,7 @@ Nếu kết nối qua MCP, bốn tools sau đây có sẵn:
 
 ---
 
-## 7. Build Commands
+## 8. Build Commands
 
 ```bash
 # Restore dependencies
@@ -132,7 +176,7 @@ Nếu kết nối qua MCP, bốn tools sau đây có sẵn:
 
 ---
 
-## 8. Decision Authority
+## 9. Decision Authority
 
 **AI CÓ THỂ:** Refactor nội bộ, cải thiện readability, thêm/cải thiện test, fix bugs, sửa docs.
 
@@ -140,7 +184,7 @@ Nếu kết nối qua MCP, bốn tools sau đây có sẵn:
 
 ---
 
-## 9. Repository Rules
+## 10. Repository Rules
 
 **Always:** Theo project architecture · Tái sử dụng patterns có sẵn · Cập nhật docs khi behaviour thay đổi · Chạy `harness validate` trước khi request review.
 
@@ -148,7 +192,7 @@ Nếu kết nối qua MCP, bốn tools sau đây có sẵn:
 
 ---
 
-## 10. Definition of Done
+## 11. Definition of Done
 
 Task hoàn thành **chỉ khi**:
 - [ ] Implementation đúng
@@ -162,7 +206,7 @@ Task hoàn thành **chỉ khi**:
 
 ---
 
-## 11. Nguyên tắc
+## 12. Nguyên tắc
 
 **Knowledge trước Code · Architecture trước Implementation · Correctness trước Speed · Consistency trước Creativity**
 
